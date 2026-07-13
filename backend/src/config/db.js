@@ -1,80 +1,93 @@
-const Database = require('better-sqlite3');
 const path = require('path');
 require('dotenv').config();
 
-const DB_PATH = path.join(__dirname, '../../pos_database.db');
+const DATABASE_URL = process.env.DATABASE_URL;
 
-const sqlite = new Database(DB_PATH);
-sqlite.pragma('journal_mode = WAL');
-sqlite.pragma('foreign_keys = ON');
-
-function mapParams(sql, params = []) {
-  const newParams = [];
-  let paramIdx = 0;
-  const replaced = sql.replace(/\$(\d+)/g, () => {
-    newParams.push(params[paramIdx]);
-    paramIdx++;
-    return '?';
+if (DATABASE_URL) {
+  const { Pool } = require('pg');
+  const pool = new Pool({
+    connectionString: DATABASE_URL,
+    ssl: DATABASE_URL.includes('render.com') ? { rejectUnauthorized: false } : false,
   });
-  return { sql: replaced, params: newParams };
-}
 
-function hasReturning(sql) {
-  return /\bRETURNING\b/i.test(sql);
-}
+  const db = {
+    query: (sql, params) => pool.query(sql, params),
+    getClient: () => pool.connect(),
+  };
 
-function runQuery(sql, params = []) {
-  const trimmed = sql.trim().toUpperCase();
-  const { sql: mapped, params: mappedParams } = mapParams(sql, params);
+  module.exports = db;
+} else {
+  const Database = require('better-sqlite3');
+  const DB_PATH = path.join(__dirname, '../../pos_database.db');
+  const sqlite = new Database(DB_PATH);
+  sqlite.pragma('journal_mode = WAL');
+  sqlite.pragma('foreign_keys = ON');
 
-  if (trimmed.startsWith('SELECT') || trimmed.startsWith('WITH')) {
-    const stmt = sqlite.prepare(mapped);
-    const rows = stmt.all(...mappedParams);
-    return { rows, rowCount: rows.length };
+  function mapParams(sql, params = []) {
+    const newParams = [];
+    let paramIdx = 0;
+    const replaced = sql.replace(/\$(\d+)/g, () => {
+      newParams.push(params[paramIdx]);
+      paramIdx++;
+      return '?';
+    });
+    return { sql: replaced, params: newParams };
   }
 
-  if (trimmed.startsWith('INSERT')) {
-    const stmt = sqlite.prepare(mapped);
-    const info = stmt.run(...mappedParams);
+  function hasReturning(sql) {
+    return /\bRETURNING\b/i.test(sql);
+  }
 
-    if (hasReturning(sql)) {
-      const tableName = (sql.match(/INTO\s+(\w+)/i) || [])[1];
-      const lastRow = sqlite.prepare(`SELECT * FROM ${tableName} WHERE rowid = ?`).get(info.lastInsertRowid);
-      return { rows: lastRow ? [lastRow] : [], rowCount: info.changes };
+  function runQuery(sql, params = []) {
+    const trimmed = sql.trim().toUpperCase();
+    const { sql: mapped, params: mappedParams } = mapParams(sql, params);
+
+    if (trimmed.startsWith('SELECT') || trimmed.startsWith('WITH')) {
+      const stmt = sqlite.prepare(mapped);
+      const rows = stmt.all(...mappedParams);
+      return { rows, rowCount: rows.length };
     }
-    return { rows: [], rowCount: info.changes };
-  }
 
-  if (trimmed.startsWith('UPDATE')) {
-    const stmt = sqlite.prepare(mapped);
-    const info = stmt.run(...mappedParams);
-
-    if (hasReturning(sql)) {
-      const stmt2 = sqlite.prepare(mapped);
-      const rows = stmt2.all(...mappedParams);
-      return { rows, rowCount: info.changes };
+    if (trimmed.startsWith('INSERT')) {
+      const stmt = sqlite.prepare(mapped);
+      const info = stmt.run(...mappedParams);
+      if (hasReturning(sql)) {
+        const tableName = (sql.match(/INTO\s+(\w+)/i) || [])[1];
+        const lastRow = sqlite.prepare(`SELECT * FROM ${tableName} WHERE rowid = ?`).get(info.lastInsertRowid);
+        return { rows: lastRow ? [lastRow] : [], rowCount: info.changes };
+      }
+      return { rows: [], rowCount: info.changes };
     }
-    return { rows: [], rowCount: info.changes };
-  }
 
-  if (trimmed.startsWith('DELETE')) {
+    if (trimmed.startsWith('UPDATE')) {
+      const stmt = sqlite.prepare(mapped);
+      const info = stmt.run(...mappedParams);
+      if (hasReturning(sql)) {
+        const rows = sqlite.prepare(mapped).all(...mappedParams);
+        return { rows, rowCount: info.changes };
+      }
+      return { rows: [], rowCount: info.changes };
+    }
+
+    if (trimmed.startsWith('DELETE')) {
+      const stmt = sqlite.prepare(mapped);
+      const info = stmt.run(...mappedParams);
+      return { rows: [], rowCount: info.changes };
+    }
+
     const stmt = sqlite.prepare(mapped);
     const info = stmt.run(...mappedParams);
     return { rows: [], rowCount: info.changes };
   }
 
-  const stmt = sqlite.prepare(mapped);
-  const info = stmt.run(...mappedParams);
-  return { rows: [], rowCount: info.changes };
-}
-
-const db = {
-  query: (sql, params) => Promise.resolve(runQuery(sql, params)),
-  getClient: () => ({
+  const db = {
     query: (sql, params) => Promise.resolve(runQuery(sql, params)),
-    release: () => {},
-  }),
-  sqlite,
-};
+    getClient: () => ({
+      query: (sql, params) => Promise.resolve(runQuery(sql, params)),
+      release: () => {},
+    }),
+    sqlite,
+  };
 
-module.exports = db;
+  module.exports = db;
+}

@@ -17,10 +17,17 @@ const dashboardRoutes = require('./routes/dashboard');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Trust proxy (Render/load balancer)
+if (process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1);
+}
+
 // Security
 app.use(helmet({ crossOriginResourcePolicy: false }));
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: process.env.FRONTEND_URL
+    ? process.env.FRONTEND_URL.split(',')
+    : ['http://localhost:3000', 'http://localhost:5173'],
   credentials: true,
 }));
 
@@ -50,9 +57,28 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 
 // Health check
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+app.get('/api/health', async (req, res) => {
+  try {
+    const db = require('./config/db');
+    await db.query('SELECT 1');
+    res.json({ status: 'ok', db: 'connected', timestamp: new Date().toISOString() });
+  } catch (err) {
+    res.status(500).json({ status: 'error', db: 'disconnected', error: err.message });
+  }
 });
+
+// Auto-migrate on startup in production
+if (process.env.NODE_ENV === 'production') {
+  (async () => {
+    try {
+      console.log('Running production migration...');
+      const { execSync } = require('child_process');
+      execSync('node migrations/pg-migrate.js', { cwd: path.join(__dirname, '../..'), stdio: 'inherit' });
+    } catch (err) {
+      console.error('Auto-migration warning:', err.message);
+    }
+  })();
+}
 
 // Error handler
 app.use((err, req, res, next) => {
