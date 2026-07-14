@@ -190,6 +190,7 @@ export default function POS() {
   const [showCheckout, setShowCheckout] = useState(false);
   const [receipt, setReceipt] = useState(null);
   const [taxRate, setTaxRate] = useState(0);
+  const searchRef = useRef(null);
   const barcodeBuffer = useRef('');
   const barcodeTimer = useRef(null);
 
@@ -210,12 +211,13 @@ export default function POS() {
     return () => { window.removeEventListener('keydown', handleKey); clearTimeout(barcodeTimer.current); };
   }, []);
 
-  const loadProducts = async () => { try { const { data } = await productsAPI.getAll({ search, status: 'active', limit: 50 }); setProducts(data.products); } catch {} };
-  const loadSettings = async () => { try { const { data } = await settingsAPI.get(); setTaxRate(parseFloat(data.settings?.tax_percentage || 0) / 100); } catch {} };
+  const loadProducts = async () => { try { const { data } = await productsAPI.getAll({ search, status: 'active', limit: 50 }); setProducts(data?.products || []); } catch { setProducts([]); } };
+  const loadSettings = async () => { try { const { data } = await settingsAPI.get(); setTaxRate(parseFloat(data?.settings?.tax_percentage || 0) / 100); } catch {} };
 
   const handleBarcodeScan = async (barcode) => {
     try {
       const { data } = await productsAPI.getByBarcode(barcode);
+      if (!data?.product) { toast.error(UZ.notFound); return; }
       const added = addItem(data.product);
       if (added) toast.success(`${data.product.name} ${UZ.productAdded}`);
       else toast.error(UZ.notEnoughStock);
@@ -225,7 +227,7 @@ export default function POS() {
   const handleCheckout = async (info) => {
     try {
       const { data } = await salesAPI.create({ ...info, items: items.map((i) => ({ product_id: i.product_id, quantity: i.quantity, price: i.price, discount: i.discount || 0, tax: i.tax || 0 })) });
-      const saleWithItems = { ...data.sale, items: items.map((i) => ({ ...i, product_name: i.name })) };
+      const saleWithItems = { ...data?.sale, items: items.map((i) => ({ ...i, product_name: i.name })) };
       setReceipt(saleWithItems); setShowCheckout(false); clearCart(); loadProducts();
     } catch (err) { toast.error(err.response?.data?.error || "Sotuvda xato"); }
   };
@@ -237,7 +239,7 @@ export default function POS() {
           <div className="flex flex-col sm:flex-row gap-2 mb-4">
             <div className="relative flex-1">
               <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input ref={useRef(null)} type="text" placeholder={UZ.searchOrScan} value={search} onChange={(e) => setSearch(e.target.value)} data-barcode="true" className="input-field pl-10 dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
+              <input ref={searchRef} type="text" placeholder={UZ.searchOrScan} value={search} onChange={(e) => setSearch(e.target.value)} data-barcode="true" className="input-field pl-10 dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
             </div>
             <button onClick={() => setShowScanner(true)} className="bg-emerald-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-emerald-700 transition-all flex items-center justify-center gap-2 whitespace-nowrap">
               <HiOutlineCamera className="w-4 h-4" /> {UZ.scan}

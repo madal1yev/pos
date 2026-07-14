@@ -6,7 +6,7 @@ import toast from 'react-hot-toast';
 
 function InvoiceModal({ saleId, onClose }) {
   const [invoice, setInvoice] = useState(null);
-  useEffect(() => { (async () => { try { const { data } = await salesAPI.getInvoice(saleId); setInvoice(data.invoice); } catch { toast.error("Xato"); } })(); }, [saleId]);
+  useEffect(() => { (async () => { try { const { data } = await salesAPI.getInvoice(saleId); setInvoice(data?.invoice || data); } catch { toast.error("Xato"); } })(); }, [saleId]);
 
   if (!invoice) return <div className="fixed inset-0 z-50 flex items-center justify-center"><div className="animate-spin h-8 w-8 border-4 border-emerald-500 border-t-transparent rounded-full" /></div>;
 
@@ -65,7 +65,7 @@ export default function Sales() {
 
   const loadSales = async (page = 1) => {
     setLoading(true);
-    try { const { data } = await salesAPI.getAll({ search, payment_method: paymentFilter, from_date: dateFrom, to_date: dateTo, page, limit: 50 }); setSales(data.sales); setPagination(data.pagination); }
+    try { const { data } = await salesAPI.getAll({ search, payment_method: paymentFilter, from_date: dateFrom, to_date: dateTo, page, limit: 50 }); setSales(data?.sales || []); setPagination(data?.pagination || { page: 1, total: 0 }); }
     catch { toast.error("Sotuvlar yuklanmadi"); } finally { setLoading(false); }
   };
 

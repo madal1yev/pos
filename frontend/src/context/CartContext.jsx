@@ -7,6 +7,7 @@ export const useCartStore = create((set, get) => ({
   tax: 0,
 
   addItem: (product, quantity = 1) => {
+    if (!product?.id) return false;
     const items = get().items;
     const existing = items.find((i) => i.product_id === product.id);
 

@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { authAPI } from '../services/api';
 
 export const useAuthStore = create((set, get) => ({
-  user: JSON.parse(localStorage.getItem('pos_user') || 'null'),
+  user: (() => { try { return JSON.parse(localStorage.getItem('pos_user') || 'null'); } catch { return null; } })(),
   token: localStorage.getItem('pos_token') || null,
   loading: false,
   error: null,

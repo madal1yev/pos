@@ -227,10 +227,10 @@ export default function Products() {
   useEffect(() => { loadCategories(); loadProducts(); }, []);
   useEffect(() => { loadProducts(); }, [search, categoryFilter]);
 
-  const loadCategories = async () => { try { const { data } = await categoriesAPI.getAll(); setCategories(data.categories); } catch {} };
+  const loadCategories = async () => { try { const { data } = await categoriesAPI.getAll(); setCategories(data?.categories || []); } catch { setCategories([]); } };
   const loadProducts = async (page = 1) => {
     setLoading(true);
-    try { const { data } = await productsAPI.getAll({ search, category_id: categoryFilter, limit: 100 }); setProducts(data.products); setPagination(data.pagination); }
+    try { const { data } = await productsAPI.getAll({ search, category_id: categoryFilter, limit: 100 }); setProducts(data?.products || []); setPagination(data?.pagination || { page: 1, total: 0 }); }
     catch { toast.error("Mahsulotlar yuklanmadi"); } finally { setLoading(false); }
   };
 

@@ -104,9 +104,13 @@ export default function Reports() {
               <div className="card"><p className="text-sm text-gray-500 mb-1">{UZ.monthlySummary}</p><p className="text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(data.summary?.total_revenue)}</p><p className="text-sm text-gray-500">{data.summary?.total_sales || 0} tranzaksiya</p></div>
               <div className="card">
                 <h3 className="font-semibold text-gray-900 dark:text-white mb-4">{UZ.dailyRevenue}</h3>
+                {data?.daily_sales?.length > 0 ? (
                 <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={data.daily_sales}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="date" tick={{ fontSize: 12 }} /><YAxis tick={{ fontSize: 12 }} /><Tooltip formatter={(v) => formatCurrency(v)} /><Bar dataKey="total_revenue" fill="#10b981" radius={[4, 4, 0, 0]} /></BarChart>
+                  <BarChart data={data.daily_sales || []}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="date" tick={{ fontSize: 12 }} /><YAxis tick={{ fontSize: 12 }} /><Tooltip formatter={(v) => formatCurrency(v)} /><Bar dataKey="total_revenue" fill="#10b981" radius={[4, 4, 0, 0]} /></BarChart>
                 </ResponsiveContainer>
+                ) : (
+                <div className="flex items-center justify-center h-64 text-gray-400">{UZ.noData}</div>
+                )}
               </div>
             </>
           )}
