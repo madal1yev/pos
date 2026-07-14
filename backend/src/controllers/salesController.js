@@ -160,7 +160,7 @@ exports.create = async (req, res, next) => {
       const newStock = product.rows[0].stock_quantity - item.quantity;
 
       await db.query(
-        'UPDATE products SET stock_quantity = $1, updated_at = datetime(\'now\') WHERE id = $2',
+        'UPDATE products SET stock_quantity = $1, updated_at = NOW() WHERE id = $2',
         [newStock, item.product_id]
       );
 

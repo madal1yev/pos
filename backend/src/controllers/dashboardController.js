@@ -13,8 +13,8 @@ exports.get = async (req, res, next) => {
     const monthlySales = await db.query(
       `SELECT COUNT(*) as count, COALESCE(SUM(total_amount), 0) as revenue
        FROM sales 
-       WHERE strftime('%m', created_at) = strftime('%m', 'now')
-         AND strftime('%Y', created_at) = strftime('%Y', 'now')`
+       WHERE EXTRACT(MONTH FROM created_at) = EXTRACT(MONTH FROM NOW())
+         AND EXTRACT(YEAR FROM created_at) = EXTRACT(YEAR FROM NOW())`
     );
 
     const productStats = await db.query(
@@ -43,7 +43,7 @@ exports.get = async (req, res, next) => {
         COUNT(*) as count,
         COALESCE(SUM(total_amount), 0) as revenue
        FROM sales 
-       WHERE created_at >= datetime('now', '-7 days')
+       WHERE created_at >= NOW() - INTERVAL '7 days'
        GROUP BY date(created_at)
        ORDER BY date ASC`
     );

@@ -159,7 +159,7 @@ exports.update = async (req, res, next) => {
         minimum_stock = COALESCE($7, minimum_stock), unit = COALESCE($8, unit),
         barcode = COALESCE($9, barcode), description = COALESCE($10, description),
         status = COALESCE($11, status), image_url = COALESCE($12, image_url),
-        updated_at = datetime('now')
+        updated_at = NOW()
        WHERE id = $13 RETURNING *`,
       [name, category_id, brand, purchase_price, selling_price, stock_quantity,
         minimum_stock, unit, barcode, description, status, image_url, req.params.id]

@@ -57,9 +57,9 @@ exports.monthly = async (req, res, next) => {
         COALESCE(SUM(si.quantity), 0) as items_sold
        FROM sales s 
        LEFT JOIN sale_items si ON si.sale_id = s.id
-       WHERE strftime('%m', s.created_at) = $1 
-         AND strftime('%Y', s.created_at) = $2
-       GROUP BY date(s.created_at)
+       WHERE EXTRACT(MONTH FROM s.created_at) = $1 
+         AND EXTRACT(YEAR FROM s.created_at) = $2
+       GROUP BY DATE(s.created_at)
        ORDER BY date ASC`,
       [monthStr, String(targetYear)]
     );
@@ -70,8 +70,8 @@ exports.monthly = async (req, res, next) => {
         COALESCE(SUM(total_amount), 0) as total_revenue,
         COALESCE(SUM(total_amount - change_amount), 0) as net_revenue
        FROM sales 
-       WHERE strftime('%m', created_at) = $1 
-         AND strftime('%Y', created_at) = $2`,
+       WHERE EXTRACT(MONTH FROM created_at) = $1 
+         AND EXTRACT(YEAR FROM created_at) = $2`,
       [monthStr, String(targetYear)]
     );
 
@@ -170,12 +170,12 @@ exports.revenue = async (req, res, next) => {
 
     switch (period) {
       case 'weekly':
-        groupBy = "strftime('%Y-W%W', s.created_at)";
-        dateFormat = "strftime('%Y-W%W', s.created_at)";
+        groupBy = "TO_CHAR(s.created_at, 'IYYY-\"W\"IW')";
+        dateFormat = "TO_CHAR(s.created_at, 'IYYY-\"W\"IW')";
         break;
       case 'monthly':
-        groupBy = "strftime('%Y-%m', s.created_at)";
-        dateFormat = "strftime('%Y-%m', s.created_at)";
+        groupBy = "TO_CHAR(s.created_at, 'YYYY-MM')";
+        dateFormat = "TO_CHAR(s.created_at, 'YYYY-MM')";
         break;
       default:
         groupBy = "date(s.created_at)";
