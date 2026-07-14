@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useCartStore } from '../context/CartContext';
 import { productsAPI, salesAPI, settingsAPI } from '../services/api';
 import { UZ, formatCurrency } from '../utils/uzbek';
+import { getErrorMessage } from '../utils/errors';
 import { HiOutlineMinus, HiOutlinePlus, HiOutlineTrash, HiOutlineCamera, HiOutlineMagnifyingGlass, HiOutlineCheckCircle, HiOutlineXMark, HiOutlineShoppingCart } from 'react-icons/hi2';
 import { Html5Qrcode } from 'html5-qrcode';
 import toast from 'react-hot-toast';
@@ -229,7 +230,7 @@ export default function POS() {
       const { data } = await salesAPI.create({ ...info, items: items.map((i) => ({ product_id: i.product_id, quantity: i.quantity, price: i.price, discount: i.discount || 0, tax: i.tax || 0 })) });
       const saleWithItems = { ...data?.sale, items: items.map((i) => ({ ...i, product_name: i.name })) };
       setReceipt(saleWithItems); setShowCheckout(false); clearCart(); loadProducts();
-    } catch (err) { toast.error(err.response?.data?.error || "Sotuvda xato"); }
+    } catch (err) { toast.error(getErrorMessage(err, "Sotuvda xato")); }
   };
 
   return (

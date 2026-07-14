@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../context/AuthContext';
 import { UZ } from '../utils/uzbek';
+import { getErrorMessage } from '../utils/errors';
 import { HiOutlineEye, HiOutlineEyeSlash } from 'react-icons/hi2';
 import toast from 'react-hot-toast';
 
@@ -25,7 +26,7 @@ export default function Login() {
       toast.success(UZ.welcomeBack);
       navigate('/');
     } catch (err) {
-      toast.error(err.message);
+      toast.error(getErrorMessage(err));
     }
   };
 
@@ -102,7 +103,7 @@ export default function Login() {
 
           {error && (
             <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
-              <p className="text-sm text-red-600 dark:text-red-400 text-center">{error}</p>
+              <p className="text-sm text-red-600 dark:text-red-400 text-center">{String(error)}</p>
             </div>
           )}
         </div>

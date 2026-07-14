@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { settingsAPI } from '../services/api';
 import { UZ } from '../utils/uzbek';
+import { getErrorMessage } from '../utils/errors';
 import { HiOutlineCheckCircle } from 'react-icons/hi2';
 import toast from 'react-hot-toast';
 
@@ -14,7 +15,7 @@ export default function Settings() {
   const handleSubmit = async (e) => {
     e.preventDefault(); setSaving(true);
     try { await settingsAPI.update({ ...settings, tax_percentage: parseFloat(settings.tax_percentage) || 0, low_stock_threshold: parseInt(settings.low_stock_threshold) || 10 }); toast.success(UZ.settingsSaved); }
-    catch (err) { toast.error(err.response?.data?.error || "Xato"); } finally { setSaving(false); }
+    catch (err) { toast.error(getErrorMessage(err)); } finally { setSaving(false); }
   };
 
   if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin h-8 w-8 border-4 border-emerald-500 border-t-transparent rounded-full" /></div>;

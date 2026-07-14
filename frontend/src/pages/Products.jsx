@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { productsAPI, categoriesAPI } from '../services/api';
 import { UZ, formatCurrency } from '../utils/uzbek';
+import { getErrorMessage } from '../utils/errors';
 import { HiOutlinePlus, HiOutlineMagnifyingGlass, HiOutlinePencil, HiOutlineTrash, HiOutlineQrCode, HiOutlineXMark, HiOutlinePhoto } from 'react-icons/hi2';
 import JsBarcode from 'jsbarcode';
 import QRCode from 'qrcode';
@@ -75,7 +76,7 @@ function ProductModal({ product, categories, onClose, onSave }) {
       if (product) { await productsAPI.update(product.id, payload); toast.success("Mahsulot yangilandi"); }
       else { await productsAPI.create(payload); toast.success("Mahsulot qo'shildi"); }
       onSave();
-    } catch (err) { toast.error(err.response?.data?.error || "Saqlashda xato"); } finally { setSaving(false); }
+    } catch (err) { toast.error(getErrorMessage(err, "Saqlashda xato")); } finally { setSaving(false); }
   };
 
   const units = ['pcs','kg','g','l','ml','box','bag','bottle','jar','pack'];
@@ -236,7 +237,7 @@ export default function Products() {
 
   const handleDelete = async () => {
     try { await productsAPI.delete(deleteProduct.id); toast.success("O'chirildi"); setDeleteProduct(null); loadProducts(pagination.page); }
-    catch (err) { toast.error(err.response?.data?.error || "O'chirishda xato"); }
+    catch (err) { toast.error(getErrorMessage(err, "O'chirishda xato")); }
   };
 
   const getStockStatus = (p) => {

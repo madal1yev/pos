@@ -19,7 +19,11 @@ export const useAuthStore = create((set, get) => ({
       set({ user: data.user, token: data.token, loading: false });
       return data;
     } catch (error) {
-      const message = error.response?.data?.error || 'Login failed';
+      const errData = error.response?.data;
+      const message = typeof errData?.error === 'string' ? errData.error
+        : typeof errData?.message === 'string' ? errData.message
+        : typeof errData === 'string' ? errData
+        : 'Login failed';
       set({ error: message, loading: false });
       throw new Error(message);
     }
