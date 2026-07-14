@@ -15,7 +15,7 @@ services:
       - key: JWT_SECRET
         generateValue: true
       - key: FRONTEND_URL
-        sync: false
+        value: "https://pos-frontend.vercel.app"
     healthCheckPath: /api/health
 
 databases:

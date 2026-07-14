@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="72" height="72" viewBox="0 0 72 72">
+  <rect width="72" height="72" rx="16" fill="#4F46E5"/>
+  <rect x="16" y="12" width="40" height="32" rx="4" fill="#fff"/>
+  <rect x="20" y="16" width="32" height="20" rx="2" fill="#E0E7FF"/>
+  <text x="36" y="30" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="#4F46E5">POS</text>
+  <rect x="24" y="48" width="24" height="4" rx="2" fill="#fff"/>
+  <rect x="28" y="56" width="16" height="4" rx="2" fill="#fff" opacity="0.7"/>
+</svg>

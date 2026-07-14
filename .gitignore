@@ -1,10 +1,11 @@
 node_modules/
 .env
-*.db
-*.db-journal
+.env.local
 dist/
 .vite/
 screenshots/
 check.js
 setup-startup.ps1
 start-backend.bat
+*.db
+*.db-journal
