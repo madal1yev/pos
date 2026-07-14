@@ -1,12 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense, lazy } from 'react';
 import { dashboardAPI } from '../services/api';
 import { UZ, formatCurrency } from '../utils/uzbek';
 import {
   HiOutlineCurrencyDollar, HiOutlineShoppingCart, HiOutlineCube, HiOutlineExclamationTriangle,
   HiOutlineArrowTrendingUp
 } from 'react-icons/hi2';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import toast from 'react-hot-toast';
+
+const SalesChart = lazy(() => import('./SalesChart'));
 
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'];
 
@@ -70,14 +71,9 @@ export default function Dashboard() {
         <div className="lg:col-span-2 card">
           <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">{UZ.weeklySales}</h3>
           {data?.salesChart?.length > 0 ? (
-            <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={data.salesChart}>
-                <XAxis dataKey="date" tick={{ fontSize: 12 }} tickFormatter={(v) => new Date(v).toLocaleDateString('uz', { weekday: 'short' })} />
-                <YAxis tick={{ fontSize: 12 }} />
-                <Tooltip formatter={(v) => formatCurrency(v)} />
-                <Bar dataKey="revenue" fill="#10b981" radius={[6, 6, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            <Suspense fallback={<div className="flex items-center justify-center h-64"><div className="animate-spin h-6 w-6 border-3 border-emerald-500 border-t-transparent rounded-full" /></div>}>
+              <SalesChart data={data.salesChart} />
+            </Suspense>
           ) : (
             <div className="flex items-center justify-center h-64 text-gray-400">{UZ.noData}</div>
           )}
