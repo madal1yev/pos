@@ -1,10 +1,9 @@
 import { registerSW } from 'virtual:pwa-register';
 
 const updateSW = registerSW({
+  immediate: true,
   onNeedRefresh() {
-    if (confirm('Yangi versiya mavjud. Yangilashni xohlaysizmi?')) {
-      updateSW();
-    }
+    updateSW();
   },
   onOfflineReady() {
     console.log('Offline tayyor!');
