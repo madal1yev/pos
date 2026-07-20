@@ -92,6 +92,15 @@ app.use((err, req, res, next) => {
 
 app.listen(PORT, () => {
   console.log(`POS Server running on port ${PORT}`);
+
+  if (process.env.TELEGRAM_BOT_TOKEN) {
+    try {
+      require('./bot');
+      console.log('Telegram bot started alongside server');
+    } catch (err) {
+      console.error('Bot startup error:', err.message);
+    }
+  }
 });
 
 module.exports = app;
