@@ -31,18 +31,22 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-emerald-50 to-teal-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-900 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-2xl shadow-lg shadow-emerald-500/30 mb-4">
-            <span className="text-3xl">&#127829;</span>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-indigo-50/50 to-blue-50/30 dark:from-gray-900 dark:via-gray-900 dark:to-gray-900 flex items-center justify-center p-4 relative overflow-hidden">
+      <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-100/30 dark:bg-indigo-900/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+      <div className="absolute bottom-0 left-0 w-96 h-96 bg-blue-100/30 dark:bg-blue-900/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
+      
+      <div className="w-full max-w-md relative z-10">
+        <div className="text-center mb-8 animate-fade-in-down">
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-indigo-500 to-indigo-700 rounded-2xl shadow-xl shadow-indigo-500/30 mb-5">
+            <span className="text-4xl">🏪</span>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{UZ.welcomeBack}</h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-1">{UZ.loginSubtitle}</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">Oziq-ovqat Do'koni</h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-2 text-sm">POS tizimiga xush kelibsiz</p>
         </div>
 
-        <div className="card dark:bg-gray-800 dark:border-gray-700">
-          <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 p-8 animate-fade-in-up">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">{UZ.welcomeBack}</h2>
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">{UZ.email}</label>
               <input
@@ -70,27 +74,27 @@ export default function Login() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
                 >
                   {showPassword ? <HiOutlineEyeSlash className="w-5 h-5" /> : <HiOutlineEye className="w-5 h-5" />}
                 </button>
               </div>
             </div>
 
-            <label className="flex items-center gap-2 cursor-pointer">
+            <label className="flex items-center gap-2.5 cursor-pointer group">
               <input
                 type="checkbox"
                 checked={remember}
                 onChange={(e) => setRemember(e.target.checked)}
-                className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
               />
-              <span className="text-sm text-gray-600 dark:text-gray-400">{UZ.rememberMe}</span>
+              <span className="text-sm text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-gray-200 transition-colors">{UZ.rememberMe}</span>
             </label>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-emerald-600 text-white py-2.5 rounded-lg font-semibold hover:bg-emerald-700 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 disabled:opacity-50"
+              className="w-full bg-gradient-to-r from-indigo-600 to-indigo-700 text-white py-3 rounded-xl text-sm font-semibold hover:from-indigo-700 hover:to-indigo-800 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 shadow-lg shadow-indigo-500/25 active:scale-[0.98]"
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
@@ -102,13 +106,13 @@ export default function Login() {
           </form>
 
           {error && (
-            <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
+            <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 rounded-xl border border-red-100 dark:border-red-800/30">
               <p className="text-sm text-red-600 dark:text-red-400 text-center">{String(error)}</p>
             </div>
           )}
         </div>
 
-        <p className="text-center text-xs text-gray-500 dark:text-gray-500 mt-6">
+        <p className="text-center text-xs text-gray-400 dark:text-gray-500 mt-6">
           {UZ.demoCredentials}
         </p>
       </div>

@@ -1,25 +1,22 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { dashboardAPI } from '../services/api';
 import { UZ, formatCurrency } from '../utils/uzbek';
 import {
-  HiOutlineCurrencyDollar, HiOutlineShoppingCart, HiOutlineCube, HiOutlineExclamationTriangle,
-  HiOutlineArrowTrendingUp, HiOutlineBanknotes
+  HiOutlineBanknotes, HiOutlineShoppingCart, HiOutlineCube, HiOutlineExclamationTriangle,
+  HiOutlineArrowTrendingUp, HiOutlineUsers, HiOutlineClock, HiOutlineCalculator,
+  HiOutlineArrowRight, HiOutlineFire, HiOutlineChartBar
 } from 'react-icons/hi2';
 import toast from 'react-hot-toast';
-import { Suspense, lazy } from 'react';
 
-const SalesChart = lazy(() => import('./SalesChart'));
-
-const COLORS = ['#6366f1', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'];
-
-function StatCard({ icon: Icon, label, value, subvalue, gradient, index }) {
+function StatCard({ icon: Icon, label, value, subvalue, gradient, index, onClick }) {
   return (
-    <div className={`card hover-lift animate-fade-in-up stagger-${index + 1}`}>
+    <div onClick={onClick} className={`card hover-lift animate-fade-in-up stagger-${index + 1} ${onClick ? 'cursor-pointer' : ''}`}>
       <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{label}</p>
-          <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{value}</p>
-          {subvalue && <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{subvalue}</p>}
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">{label}</p>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1.5 leading-tight">{value}</p>
+          {subvalue && <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{subvalue}</p>}
         </div>
         <div className={`p-3 rounded-xl ${gradient}`}>
           <Icon className="w-6 h-6 text-white" />
@@ -29,9 +26,27 @@ function StatCard({ icon: Icon, label, value, subvalue, gradient, index }) {
   );
 }
 
+function QuickAction({ icon: Icon, label, description, gradient, onClick }) {
+  return (
+    <button onClick={onClick} className="card hover-lift text-left group transition-all duration-200">
+      <div className="flex items-center gap-4">
+        <div className={`p-3 rounded-xl ${gradient} group-hover:scale-110 transition-transform`}>
+          <Icon className="w-5 h-5 text-white" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-gray-900 dark:text-white">{label}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{description}</p>
+        </div>
+        <HiOutlineArrowRight className="w-4 h-4 text-gray-300 group-hover:text-indigo-500 group-hover:translate-x-1 transition-all" />
+      </div>
+    </button>
+  );
+}
+
 export default function Dashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   const loadDashboard = useCallback(async (silent = false) => {
     try {
@@ -57,67 +72,122 @@ export default function Dashboard() {
     return () => clearInterval(interval);
   }, [loadDashboard]);
 
+  const todayRevenue = parseFloat(data?.today?.sales?.revenue) || 0;
+  const todayCount = parseInt(data?.today?.sales?.count) || 0;
+  const todayAvg = todayCount > 0 ? todayRevenue / todayCount : 0;
+  const monthRevenue = parseFloat(data?.month?.revenue) || 0;
+  const monthCount = parseInt(data?.month?.count) || 0;
+  const totalProducts = parseInt(data?.products?.total) || 0;
+  const inventoryValue = parseFloat(data?.products?.total_inventory_value) || 0;
+  const lowStock = parseInt(data?.products?.low_stock) || 0;
+  const outOfStock = parseInt(data?.products?.out_of_stock) || 0;
+  const allTimeRevenue = parseFloat(data?.allTime?.revenue) || 0;
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin h-8 w-8 border-4 border-indigo-500 border-t-transparent rounded-full" />
+        <div className="text-center">
+          <div className="animate-spin h-10 w-10 border-4 border-indigo-500 border-t-transparent rounded-full mx-auto mb-3" />
+          <p className="text-sm text-gray-400">Yuklanmoqda...</p>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <div className="animate-fade-in-down">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{UZ.dashboardTitle}</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{UZ.dashboardSubtitle}</p>
+      <div className="animate-fade-in-down flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{UZ.dashboardTitle}</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            Bugun: {new Date().toLocaleDateString('uz-UZ', { weekday: 'long', day: 'numeric', month: 'long' })}
+          </p>
+        </div>
+        <button onClick={() => navigate('/analytics')} className="flex items-center gap-2 px-4 py-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-xl text-sm font-medium hover:bg-indigo-100 dark:hover:bg-indigo-900/30 transition-all">
+          <HiOutlineChartBar className="w-4 h-4" />
+          Tahlillar
+        </button>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard index={0} icon={HiOutlineBanknotes} label={UZ.todayRevenue} value={formatCurrency(data?.today?.sales?.revenue)} subvalue={`${data?.today?.sales?.count || 0} ${UZ.transactions}`} gradient="bg-gradient-to-br from-indigo-500 to-indigo-600" />
-        <StatCard index={1} icon={HiOutlineArrowTrendingUp} label={UZ.monthlyRevenue} value={formatCurrency(data?.month?.revenue)} subvalue={`${data?.month?.count || 0} ${UZ.transactions}`} gradient="bg-gradient-to-br from-blue-500 to-blue-600" />
-        <StatCard index={2} icon={HiOutlineCube} label={UZ.totalProducts} value={data?.products?.total || 0} subvalue={`${formatCurrency(data?.products?.total_inventory_value)} ${UZ.inventoryValue}`} gradient="bg-gradient-to-br from-violet-500 to-purple-600" />
-        <StatCard index={3} icon={HiOutlineExclamationTriangle} label={UZ.lowStock} value={data?.products?.low_stock || 0} subvalue={`${data?.products?.out_of_stock || 0} ${UZ.outOfStock}`} gradient="bg-gradient-to-br from-amber-400 to-orange-500" />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard
+          index={0}
+          icon={HiOutlineBanknotes}
+          label="Bugungi daromad"
+          value={formatCurrency(todayRevenue)}
+          subvalue={`${todayCount} ta sotuv`}
+          gradient="bg-gradient-to-br from-indigo-500 to-indigo-600"
+        />
+        <StatCard
+          index={1}
+          icon={HiOutlineShoppingCart}
+          label="Sotuvlar soni"
+          value={todayCount}
+          subvalue={`${formatCurrency(todayAvg)} o'rtacha`}
+          gradient="bg-gradient-to-br from-blue-500 to-blue-600"
+        />
+        <StatCard
+          index={2}
+          icon={HiOutlineCube}
+          label="Ombor qiymati"
+          value={formatCurrency(inventoryValue)}
+          subvalue={`${totalProducts} mahsulot`}
+          gradient="bg-gradient-to-br from-violet-500 to-purple-600"
+        />
+        <StatCard
+          index={3}
+          icon={HiOutlineExclamationTriangle}
+          label="Kam qolgan"
+          value={lowStock}
+          subvalue={`${outOfStock} ta tugagan`}
+          gradient={lowStock > 0 ? "bg-gradient-to-br from-amber-400 to-orange-500" : "bg-gradient-to-br from-emerald-400 to-emerald-500"}
+          onClick={() => navigate('/reports')}
+        />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 card animate-fade-in-up stagger-3">
-          <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">{UZ.weeklySales}</h3>
-          {data?.salesChart?.length > 0 ? (
-            <Suspense fallback={<div className="flex items-center justify-center h-64"><div className="animate-spin h-6 w-6 border-3 border-indigo-500 border-t-transparent rounded-full" /></div>}>
-              <SalesChart data={data.salesChart} />
-            </Suspense>
-          ) : (
-            <div className="flex flex-col items-center justify-center h-64 text-gray-400">
-              <HiOutlineBanknotes className="w-10 h-10 mb-2 opacity-30" />
-              <p className="text-sm">{UZ.noData}</p>
-            </div>
-          )}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="card animate-fade-in-up stagger-2 bg-gradient-to-br from-indigo-500 to-indigo-600 text-white">
+          <div className="flex items-center gap-3 mb-3">
+            <HiOutlineArrowTrendingUp className="w-5 h-5 opacity-80" />
+            <p className="text-sm font-medium opacity-90">Oylik daromad</p>
+          </div>
+          <p className="text-3xl font-bold">{formatCurrency(monthRevenue)}</p>
+          <p className="text-sm opacity-75 mt-1">{monthCount} ta tranzaksiya</p>
         </div>
 
-        <div className="card animate-fade-in-up stagger-4">
-          <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">{UZ.topProducts}</h3>
-          {data?.topProducts?.length > 0 ? (
-            <div className="space-y-3">
-              {data.topProducts.map((p, i) => (
-                <div key={i} className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold text-white flex-shrink-0" style={{ backgroundColor: COLORS[i % COLORS.length] }}>
-                    {i + 1}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{p.name}</p>
-                    <p className="text-xs text-gray-500">{p.sold} sotildi</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-gray-400 text-center py-8">{UZ.noSalesToday}</p>
-          )}
+        <div className="card animate-fade-in-up stagger-3 bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+          <div className="flex items-center gap-3 mb-3">
+            <HiOutlineFire className="w-5 h-5 opacity-80" />
+            <p className="text-sm font-medium opacity-90">Umumiy daromad</p>
+          </div>
+          <p className="text-3xl font-bold">{formatCurrency(allTimeRevenue)}</p>
+          <p className="text-sm opacity-75 mt-1">Barcha vaqt</p>
+        </div>
+
+        <div className="card animate-fade-in-up stagger-4 bg-gradient-to-br from-violet-500 to-purple-600 text-white">
+          <div className="flex items-center gap-3 mb-3">
+            <HiOutlineUsers className="w-5 h-5 opacity-80" />
+            <p className="text-sm font-medium opacity-90">Sotuvchilar</p>
+          </div>
+          <p className="text-3xl font-bold">{todayCount}</p>
+          <p className="text-sm opacity-75 mt-1">Bugun xizmat qilindi</p>
         </div>
       </div>
 
-      <div className="card animate-fade-in-up stagger-5">
-        <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">{UZ.recentSales}</h3>
+      <div className="animate-fade-in-up stagger-5">
+        <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Tezkor harakatlar</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <QuickAction icon={HiOutlineCalculator} label="Kassa" description="Sotuv amalga oshirish" gradient="bg-gradient-to-br from-indigo-500 to-indigo-600" onClick={() => navigate('/pos')} />
+          <QuickAction icon={HiOutlineCube} label="Mahsulotlar" description="Tovarlarni boshqarish" gradient="bg-gradient-to-br from-blue-500 to-blue-600" onClick={() => navigate('/products')} />
+          <QuickAction icon={HiOutlineChartBar} label="Hisobotlar" description="Barcha tahlillar" gradient="bg-gradient-to-br from-violet-500 to-purple-600" onClick={() => navigate('/reports')} />
+        </div>
+      </div>
+
+      <div className="card animate-fade-in-up stagger-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-white">So'nggi sotuvlar</h3>
+          <button onClick={() => navigate('/sales')} className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-medium">Barchasini ko'rish</button>
+        </div>
         {data?.recentSales?.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -125,28 +195,35 @@ export default function Dashboard() {
                 <tr className="text-left text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-800">
                   <th className="pb-3 font-medium">{UZ.invoice}</th>
                   <th className="pb-3 font-medium">{UZ.customer}</th>
-                  <th className="pb-3 font-medium">{UZ.cashier}</th>
                   <th className="pb-3 font-medium">{UZ.payment}</th>
                   <th className="pb-3 font-medium text-right">{UZ.amount}</th>
                   <th className="pb-3 font-medium text-right">{UZ.time}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
-                {data.recentSales.map((sale, i) => (
-                  <tr key={sale.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                {data.recentSales.slice(0, 5).map((sale) => (
+                  <tr key={sale.id} className="hover:bg-indigo-50/50 dark:hover:bg-indigo-900/10 transition-colors cursor-pointer" onClick={() => navigate('/sales')}>
                     <td className="py-3 font-mono text-xs font-medium text-indigo-600 dark:text-indigo-400">{sale.invoice_number}</td>
                     <td className="py-3 text-gray-600 dark:text-gray-400">{sale.customer_name || "O'tib ketgan"}</td>
-                    <td className="py-3 text-gray-600 dark:text-gray-400">{sale.cashier_name}</td>
-                    <td className="py-3"><span className="badge-info capitalize">{sale.payment_method === 'cash' ? UZ.cash : sale.payment_method === 'card' ? UZ.card : UZ.other}</span></td>
+                    <td className="py-3">
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium ${
+                        sale.payment_method === 'cash' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' :
+                        sale.payment_method === 'card' ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
+                        'bg-violet-50 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400'
+                      }`}>{sale.payment_method === 'cash' ? UZ.cash : sale.payment_method === 'card' ? UZ.card : UZ.other}</span>
+                    </td>
                     <td className="py-3 text-right font-semibold text-gray-900 dark:text-white">{formatCurrency(sale.total_amount)}</td>
-                    <td className="py-3 text-right text-gray-500">{new Date(sale.created_at).toLocaleTimeString('uz-UZ')}</td>
+                    <td className="py-3 text-right text-gray-500 text-xs">{new Date(sale.created_at).toLocaleTimeString('uz-UZ')}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         ) : (
-          <p className="text-sm text-gray-400 text-center py-8">{UZ.noSalesToday}</p>
+          <div className="text-center py-8">
+            <HiOutlineClock className="w-8 h-8 mx-auto text-gray-300 dark:text-gray-600 mb-2" />
+            <p className="text-sm text-gray-400">{UZ.noSalesToday}</p>
+          </div>
         )}
       </div>
     </div>

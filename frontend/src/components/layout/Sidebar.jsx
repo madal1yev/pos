@@ -4,7 +4,8 @@ import { UZ } from '../../utils/uzbek';
 import {
   HiOutlineHome, HiOutlineCube, HiOutlineCalculator, HiOutlineClipboardDocumentList,
   HiOutlineChartBar, HiOutlineCog, HiOutlineXMark, HiOutlineCurrencyDollar,
-  HiOutlineUser, HiOutlineArrowRightOnRectangle, HiOutlineDocumentArrowUp
+  HiOutlineUser, HiOutlineArrowRightOnRectangle, HiOutlineDocumentArrowUp,
+  HiOutlineDocumentChartBar
 } from 'react-icons/hi2';
 import { HiOutlineSun, HiOutlineMoon } from 'react-icons/hi';
 
@@ -14,6 +15,7 @@ const navItems = [
   { to: '/products', icon: HiOutlineCube, label: UZ.products },
   { to: '/sales', icon: HiOutlineClipboardDocumentList, label: UZ.sales },
   { to: '/reports', icon: HiOutlineChartBar, label: UZ.reports },
+  { to: '/analytics', icon: HiOutlineDocumentChartBar, label: 'Tahlillar' },
   { to: '/settings', icon: HiOutlineCog, label: UZ.settings },
 ];
 
