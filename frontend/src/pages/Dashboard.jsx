@@ -74,7 +74,6 @@ export default function Dashboard() {
 
   const todayRevenue = parseFloat(data?.today?.sales?.revenue) || 0;
   const todayCount = parseInt(data?.today?.sales?.count) || 0;
-  const todayAvg = todayCount > 0 ? todayRevenue / todayCount : 0;
   const monthRevenue = parseFloat(data?.month?.revenue) || 0;
   const monthCount = parseInt(data?.month?.count) || 0;
   const totalProducts = parseInt(data?.products?.total) || 0;
@@ -123,7 +122,7 @@ export default function Dashboard() {
           icon={HiOutlineShoppingCart}
           label="Sotuvlar soni"
           value={todayCount}
-          subvalue={`${formatCurrency(todayAvg)} o'rtacha`}
+          subvalue={`${monthCount} ta oylik`}
           gradient="bg-gradient-to-br from-blue-500 to-blue-600"
         />
         <StatCard
@@ -167,10 +166,10 @@ export default function Dashboard() {
         <div className="card animate-fade-in-up stagger-4 bg-gradient-to-br from-violet-500 to-purple-600 text-white">
           <div className="flex items-center gap-3 mb-3">
             <HiOutlineUsers className="w-5 h-5 opacity-80" />
-            <p className="text-sm font-medium opacity-90">Sotuvchilar</p>
+            <p className="text-sm font-medium opacity-90">Jami sotuvlar</p>
           </div>
-          <p className="text-3xl font-bold">{todayCount}</p>
-          <p className="text-sm opacity-75 mt-1">Bugun xizmat qilindi</p>
+          <p className="text-3xl font-bold">{parseInt(data?.allTime?.count) || 0}</p>
+          <p className="text-sm opacity-75 mt-1">Barcha vaqt</p>
         </div>
       </div>
 

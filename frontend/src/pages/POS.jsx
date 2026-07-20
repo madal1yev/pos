@@ -409,48 +409,77 @@ export default function POS() {
       </div>
 
       <div className="w-full lg:w-96 flex flex-col order-2">
-        <div className="card flex-1 flex flex-col">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-gray-900 dark:text-white">{UZ.cart}</h2>
-            {items.length > 0 && <button onClick={clearCart} className="text-sm text-red-500 hover:text-red-600 font-medium">{UZ.clear}</button>}
-          </div>
-          <div className="flex-1 overflow-y-auto space-y-2">
-            {items.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-gray-400">
-                <HiOutlineShoppingCart className="w-12 h-12 mb-2 opacity-30" />
-                <p className="text-sm">{UZ.emptyCart}</p>
-                <p className="text-xs">{UZ.emptyCartHint}</p>
+        <div className="card flex-1 flex flex-col overflow-hidden">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
+                <HiOutlineShoppingCart className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
               </div>
-            ) : items.map((item) => (
-              <div key={item.product_id} className="flex items-center gap-2.5 p-2.5 bg-gray-50 dark:bg-gray-700/50 rounded-xl animate-fade-in">
-                <POSImage src={item.image_url} name={item.name} size="w-9 h-9" />
+              <div>
+                <h2 className="font-semibold text-gray-900 dark:text-white text-sm">{UZ.cart}</h2>
+                {items.length > 0 && <p className="text-[10px] text-gray-400">{items.length} {UZ.items} / {getItemCount()} dona</p>}
+              </div>
+            </div>
+            {items.length > 0 && (
+              <button onClick={clearCart} className="text-xs text-red-500 hover:text-red-600 font-medium px-2 py-1 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                {UZ.clear}
+              </button>
+            )}
+          </div>
+          <div className="flex-1 overflow-y-auto space-y-1.5 pr-1">
+            {items.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full text-gray-400 py-8">
+                <div className="w-20 h-20 rounded-2xl bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-3">
+                  <HiOutlineShoppingCart className="w-10 h-10 text-gray-300 dark:text-gray-600" />
+                </div>
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{UZ.emptyCart}</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{UZ.emptyCartHint}</p>
+              </div>
+            ) : items.map((item, idx) => (
+              <div key={item.product_id} className="group flex items-center gap-2.5 p-2.5 bg-gradient-to-r from-gray-50 to-white dark:from-gray-700/50 dark:to-gray-700/30 rounded-xl border border-gray-100 dark:border-gray-700/50 hover:border-indigo-200 dark:hover:border-indigo-800/50 transition-all animate-fade-in" style={{ animationDelay: `${idx * 0.03}s` }}>
+                <div className="relative flex-shrink-0">
+                  <POSImage src={item.image_url} name={item.name} size="w-10 h-10" />
+                  <div className="absolute -top-1 -left-1 w-4 h-4 bg-indigo-600 text-white text-[8px] font-bold rounded-full flex items-center justify-center shadow-sm">
+                    {idx + 1}
+                  </div>
+                </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 dark:text-white leading-tight line-clamp-1">{item.name}</p>
-                  <p className="text-[11px] text-gray-500">{formatCurrency(item.price)} / {item.unit || 'dona'}</p>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white leading-tight line-clamp-1">{item.name}</p>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <span className="text-[11px] font-medium text-indigo-600 dark:text-indigo-400">{formatCurrency(item.price)}</span>
+                    <span className="text-[10px] text-gray-400">/ {item.unit || 'dona'}</span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1">
-                  <button onClick={() => updateQuantity(item.product_id, item.quantity - 1)} className="w-6 h-6 rounded-md bg-white dark:bg-gray-600 border border-gray-200 dark:border-gray-600 flex items-center justify-center hover:bg-gray-100"><HiOutlineMinus className="w-3 h-3" /></button>
-                  <span className="w-6 text-center text-sm font-bold">{item.quantity}</span>
-                  <button onClick={() => updateQuantity(item.product_id, item.quantity + 1)} className="w-6 h-6 rounded-md bg-white dark:bg-gray-600 border border-gray-200 dark:border-gray-600 flex items-center justify-center hover:bg-gray-100"><HiOutlinePlus className="w-3 h-3" /></button>
+                <div className="flex items-center gap-1 bg-white dark:bg-gray-600 rounded-lg border border-gray-200 dark:border-gray-600 shadow-sm">
+                  <button onClick={() => updateQuantity(item.product_id, item.quantity - 1)} className="w-7 h-7 rounded-l-lg flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-500 transition-colors active:scale-90">
+                    <HiOutlineMinus className="w-3.5 h-3.5 text-gray-600 dark:text-gray-300" />
+                  </button>
+                  <span className="w-7 text-center text-sm font-bold text-gray-900 dark:text-white">{item.quantity}</span>
+                  <button onClick={() => updateQuantity(item.product_id, item.quantity + 1)} className="w-7 h-7 rounded-r-lg flex items-center justify-center hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors active:scale-90">
+                    <HiOutlinePlus className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                  </button>
                 </div>
-                <div className="flex flex-col items-end gap-1">
+                <div className="flex flex-col items-end gap-1 min-w-[70px]">
                   <p className="text-xs font-bold text-gray-900 dark:text-white">{formatCurrency(item.subtotal)}</p>
-                  <button onClick={() => removeItem(item.product_id)} className="p-0.5 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-red-400 hover:text-red-600"><HiOutlineTrash className="w-3.5 h-3.5" /></button>
+                  <button onClick={() => removeItem(item.product_id)} className="opacity-0 group-hover:opacity-100 p-1 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 text-red-400 hover:text-red-600 transition-all">
+                    <HiOutlineTrash className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               </div>
             ))}
           </div>
           {items.length > 0 && (
-            <div className="border-t border-gray-100 dark:border-gray-700 pt-4 mt-4 space-y-3">
-              <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
-                <span>{UZ.items} ({getItemCount()})</span>
-                <span>{formatCurrency(getTotal())}</span>
+            <div className="border-t border-gray-100 dark:border-gray-700 pt-3 mt-3 space-y-2.5 bg-gradient-to-t from-gray-50/50 to-transparent dark:from-gray-800/50 -mx-6 px-6 pb-1 -mb-6">
+              <div className="flex justify-between items-center text-xs text-gray-500 dark:text-gray-400">
+                <span>Jami mahsulotlar</span>
+                <span className="font-medium">{getItemCount()} dona</span>
               </div>
-              <div className="flex justify-between text-lg font-bold text-gray-900 dark:text-white">
-                <span>{UZ.total}</span>
-                <span>{formatCurrency(getTotal())}</span>
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Jami summa</span>
+                <span className="text-xl font-bold text-indigo-600 dark:text-indigo-400">{formatCurrency(getTotal())}</span>
               </div>
-              <button onClick={() => setShowCheckout(true)} className="w-full bg-gradient-to-r from-indigo-600 to-indigo-700 text-white py-3 rounded-xl text-base font-semibold hover:from-indigo-700 hover:to-indigo-800 transition-all hover-lift shadow-lg shadow-indigo-500/25 active:scale-[0.98]">
+              <button onClick={() => setShowCheckout(true)} className="w-full bg-gradient-to-r from-indigo-600 to-indigo-700 text-white py-3.5 rounded-xl text-sm font-semibold hover:from-indigo-700 hover:to-indigo-800 transition-all hover-lift shadow-lg shadow-indigo-500/25 active:scale-[0.98] flex items-center justify-center gap-2">
+                <HiOutlineCheckCircle className="w-5 h-5" />
                 {UZ.proceedCheckout}
               </button>
             </div>

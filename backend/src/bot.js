@@ -4,7 +4,8 @@ const db = require('./config/db');
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '8805705606:AAG5TRIJjU-kMR9F0GkFlh4JcIJK95euYiE';
 const ADMIN_USERNAME = 'azizvc_m';
-const ADMIN_CHAT_ID = process.env.ADMIN_TELEGRAM_ID || null;
+const ADMIN_DISPLAY = 'azizvc\\_m';
+let ADMIN_CHAT_ID = process.env.ADMIN_TELEGRAM_ID || null;
 
 const bot = new TelegramBot(BOT_TOKEN, { polling: true });
 
@@ -25,15 +26,21 @@ function formatCurrency(amount) {
   return Number(amount || 0).toLocaleString('uz-UZ') + " so'm";
 }
 
+function escMd(text) {
+  if (!text) return '';
+  return String(text).replace(/([_*\[\]()~`>#+\-=|{}.!\\])/g, '\\$1');
+}
+
 async function getProducts(categoryId = null) {
-  let sql = `SELECT p.*, c.name as category_name FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.status = 'active'`;
-  const params = [];
   if (categoryId) {
-    sql += ` AND p.category_id = ?`;
-    params.push(categoryId);
+    return await db.query(
+      `SELECT p.*, c.name as category_name FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.status = 'active' AND p.category_id = $1 ORDER BY p.name`,
+      [categoryId]
+    );
   }
-  sql += ` ORDER BY p.name`;
-  return await db.query(sql, params);
+  return await db.query(
+    `SELECT p.*, c.name as category_name FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.status = 'active' ORDER BY p.name`
+  );
 }
 
 async function getCategories() {
@@ -41,13 +48,13 @@ async function getCategories() {
 }
 
 async function getProduct(id) {
-  const result = await db.query(`SELECT p.*, c.name as category_name FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.id = ?`, [id]);
+  const result = await db.query(`SELECT p.*, c.name as category_name FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.id = $1`, [id]);
   return result.rows[0] || null;
 }
 
 async function searchProducts(query) {
   return await db.query(
-    `SELECT p.*, c.name as category_name FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.status = 'active' AND (p.name LIKE ? OR p.brand LIKE ? OR p.barcode LIKE ?) ORDER BY p.name LIMIT 10`,
+    `SELECT p.*, c.name as category_name FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.status = 'active' AND (p.name LIKE $1 OR p.brand LIKE $2 OR p.barcode LIKE $3) ORDER BY p.name LIMIT 10`,
     [`%${query}%`, `%${query}%`, `%${query}%`]
   );
 }
@@ -57,7 +64,7 @@ async function createOrder(chatId, username, firstName, items, totalAmount) {
     const invoiceNumber = `TG-${Date.now().toString().slice(-8)}`;
 
     const saleResult = await db.query(
-      `INSERT INTO sales (invoice_number, customer_name, total_amount, payment_method, status, cashier_id, notes) VALUES (?, ?, ?, 'telegram', 'completed', 1, ?) RETURNING *`,
+      `INSERT INTO sales (invoice_number, customer_name, total_amount, payment_method, received_amount, change_amount, notes) VALUES ($1, $2, $3, 'telegram', $3, 0, $4) RETURNING *`,
       [invoiceNumber, username ? `@${username}` : firstName || 'Telegram foydalanuvchi', totalAmount, `Telegram bot orqali zakaz. Chat: ${chatId}`]
     );
 
@@ -65,17 +72,17 @@ async function createOrder(chatId, username, firstName, items, totalAmount) {
 
     for (const item of items) {
       await db.query(
-        `INSERT INTO sale_items (sale_id, product_id, quantity, unit_price, subtotal) VALUES (?, ?, ?, ?, ?)`,
+        `INSERT INTO sale_items (sale_id, product_id, quantity, price, subtotal) VALUES ($1, $2, $3, $4, $5)`,
         [sale.id, item.product_id, item.quantity, item.price, item.subtotal]
       );
 
       const product = await getProduct(item.product_id);
       if (product) {
         const newStock = Math.max(0, product.stock_quantity - item.quantity);
-        await db.query(`UPDATE products SET stock_quantity = ?, updated_at = datetime('now') WHERE id = ?`, [newStock, item.product_id]);
+        await db.query(`UPDATE products SET stock_quantity = $1, updated_at = datetime('now') WHERE id = $2`, [newStock, item.product_id]);
 
         await db.query(
-          `INSERT INTO inventory_logs (product_id, change_type, quantity, previous_stock, new_stock, note, created_by) VALUES (?, 'sale', ?, ?, ?, ?, 1)`,
+          `INSERT INTO inventory_logs (product_id, change_type, quantity, previous_stock, new_stock, note, created_by) VALUES ($1, 'sale', $2, $3, $4, $5, 1)`,
           [item.product_id, item.quantity, product.stock_quantity, newStock, `Telegram zakaz: ${invoiceNumber}`]
         );
       }
@@ -107,6 +114,11 @@ bot.onText(/\/start/, (msg) => {
   const username = msg.from?.username;
   clearSession(chatId);
 
+  if (username === ADMIN_USERNAME) {
+    ADMIN_CHAT_ID = chatId;
+    console.log(`✅ Admin aniqlandi: @${username}, Chat ID: ${chatId}`);
+  }
+
   const keyboard = {
     reply_markup: {
       inline_keyboard: [
@@ -121,6 +133,7 @@ bot.onText(/\/start/, (msg) => {
     `Assalomu alaykum, *${firstName}*! 👋\n\n` +
     `🍽️ *Oziq-ovqat do'koniga xush kelibsiz!*\n\n` +
     `Men sizga mahsulotlar haqida ma'lumot berishim va zakaz qilishda yordam bera olaman.\n\n` +
+    `📞 Savollaringiz bo'lsa: @${ADMIN_DISPLAY}\n\n` +
     `📌 Nima qilmoqchisiz?`,
     { parse_mode: 'Markdown', ...keyboard }
   );
@@ -150,6 +163,7 @@ bot.on('callback_query', async (query) => {
       `Assalomu alaykum, *${firstName}*! 👋\n\n` +
       `🍽️ *Oziq-ovqat do'koniga xush kelibsiz!*\n\n` +
       `Men sizga mahsulotlar haqida ma'lumot berishim va zakaz qilishda yordam bera olaman.\n\n` +
+      `📞 Savollaringiz bo'lsa: @${ADMIN_DISPLAY}\n\n` +
       `📌 Nima qilmoqchisiz?`,
       { chat_id: chatId, message_id: query.message.message_id, parse_mode: 'Markdown', ...keyboard }
     );
@@ -264,7 +278,7 @@ bot.on('callback_query', async (query) => {
       `🛒 *${product.name}* savatga qo'shilmoqda\n\n` +
       `💰 Narxi: *${formatCurrency(product.selling_price)}*\n` +
       `📦 Mavjud: *${product.stock_quantity} dona*\n\n` +
-      `Necha dona kerak?`,
+      `Necha dona kerak?\n💡 *Raqamni bosing yoki o'zingiz kiriting (masalan: 5)*`,
       { chat_id: chatId, message_id: query.message.message_id, parse_mode: 'Markdown', reply_markup: { inline_keyboard: inlineButtons } }
     );
   }
@@ -347,7 +361,7 @@ bot.on('callback_query', async (query) => {
 
     bot.editMessageText(
       text + `\n\n` +
-      `👤 Buyurtmachi: *${username ? `@${username}` : firstName || 'Noma\'lum'}*\n\n` +
+      `👤 Buyurtmachi: *${escMd(username ? `@${username}` : firstName || 'Noma\'lum')}*\n\n` +
       `✅ Tasdiqlaysizmi?`,
       { chat_id: chatId, message_id: query.message.message_id, parse_mode: 'Markdown', ...keyboard }
     );
@@ -366,13 +380,17 @@ bot.on('callback_query', async (query) => {
       const adminText =
         `🔔 *YANGI ZAKAZ!*\n\n` +
         `${text}\n` +
-        `👤 Buyurtmachi: *${username ? `@${username}` : firstName || 'Noma\'lum'}*\n` +
+        `👤 Buyurtmachi: *${escMd(username ? `@${username}` : firstName || 'Noma\'lum')}*\n` +
         `🆔 Chat ID: \`${chatId}\`\n` +
         `📋 Invoice: \`${invoiceNumber}\`\n` +
         `⏰ Vaqt: ${new Date().toLocaleString('uz-UZ')}\n`;
 
       if (ADMIN_CHAT_ID) {
-        bot.sendMessage(ADMIN_CHAT_ID, adminText, { parse_mode: 'Markdown' }).catch(() => {});
+        bot.sendMessage(ADMIN_CHAT_ID, adminText, { parse_mode: 'Markdown' }).catch((err) => {
+          console.error('Admin xabar yuborilmadi:', err.message);
+        });
+      } else {
+        console.log('⚠️ Admin chat ID topilmadi. Admin botga /start bosishi kerak.');
       }
 
       clearSession(chatId);
@@ -389,7 +407,7 @@ bot.on('callback_query', async (query) => {
         `✅ *Zakaz muvaffaqiyatli qabul qilindi!*\n\n` +
         `${text}\n` +
         `📋 Invoice: \`${invoiceNumber}\`\n\n` +
-        `📞 Bog'lanish: @${ADMIN_USERNAME}\n\n` +
+        `📞 Bog'lanish: @${ADMIN_DISPLAY}\n\n` +
         `Rahmat! Yana xizmatingizdamiz! 🙏`,
         { chat_id: chatId, message_id: query.message.message_id, parse_mode: 'Markdown', ...keyboard }
       );
@@ -653,7 +671,7 @@ bot.onText(/\/orders/, async (msg) => {
   try {
     const { rows: recentSales } = await db.query(
       `SELECT s.*, (SELECT COUNT(*) FROM sale_items si WHERE si.sale_id = s.id) as item_count 
-       FROM sales s WHERE s.status = 'completed' ORDER BY s.created_at DESC LIMIT 10`
+       FROM sales s ORDER BY s.created_at DESC LIMIT 10`
     );
 
     if (recentSales.length === 0) {
@@ -680,12 +698,40 @@ bot.onText(/\/help/, (msg) => {
   bot.sendMessage(chatId,
     `📚 *Yordam*\n\n` +
     `/start - Botni ishga tushirish\n` +
+    `/products - Mahsulotlar ro'yxati\n` +
     `/orders - Oxirgi zakazlar (faqat admin)\n` +
     `/help - Bu yordam\n\n` +
     `🛒 Bot orqali mahsulotlarni ko'rishingiz va zakaz qilishingiz mumkin.\n\n` +
-    `📞 Admin: @${ADMIN_USERNAME}`,
+    `📞 Admin: @${ADMIN_DISPLAY}`,
     { parse_mode: 'Markdown' }
   );
+});
+
+bot.onText(/\/products/, async (msg) => {
+  const chatId = msg.chat.id;
+  const { rows: categories } = await getCategories();
+  const activeCategories = categories.filter(c => c.product_count > 0);
+
+  if (activeCategories.length === 0) {
+    bot.sendMessage(chatId, 'Hozircha mahsulotlar mavjud emas. 😔');
+    return;
+  }
+
+  const buttons = [];
+  for (let i = 0; i < activeCategories.length; i += 2) {
+    const row = [{ text: `${activeCategories[i].name} (${activeCategories[i].product_count})`, callback_data: `cat_${activeCategories[i].id}` }];
+    if (activeCategories[i + 1]) {
+      row.push({ text: `${activeCategories[i + 1].name} (${activeCategories[i + 1].product_count})`, callback_data: `cat_${activeCategories[i + 1].id}` });
+    }
+    buttons.push(row);
+  }
+  buttons.push([{ text: '📋 Barcha mahsulotlar', callback_data: 'all_products_list' }]);
+  buttons.push([{ text: '⬅️ Bosh sahifa', callback_data: 'start' }]);
+
+  bot.sendMessage(chatId, '📂 *Kategoriyalar:*\n\nQaysi kategoriyadan mahsulot ko\'rmoqchisiz?', {
+    parse_mode: 'Markdown',
+    reply_markup: { inline_keyboard: buttons },
+  });
 });
 
 console.log('🤖 Telegram bot ishga tushdi!');
