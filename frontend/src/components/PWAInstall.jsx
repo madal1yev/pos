@@ -8,7 +8,6 @@ export default function PWAInstall() {
 
   useEffect(() => {
     const handler = (e) => {
-      e.preventDefault();
       setDeferredPrompt(e);
       setShowInstall(true);
     };

@@ -3,18 +3,17 @@ import { productsAPI, categoriesAPI, bulkAPI } from '../services/api';
 import { UZ, formatCurrency } from '../utils/uzbek';
 import { getErrorMessage } from '../utils/errors';
 import { emitDataChanged } from '../utils/events';
+import PRODUCT_CATEGORIES from '../utils/productImages';
 import { HiOutlinePlus, HiOutlineMagnifyingGlass, HiOutlinePencil, HiOutlineTrash, HiOutlineQrCode, HiOutlineXMark, HiOutlinePhoto, HiOutlineArrowUpTray, HiOutlineArrowDownTray, HiOutlineCurrencyDollar, HiOutlineDocumentArrowUp, HiOutlineCamera } from 'react-icons/hi2';
 import JsBarcode from 'jsbarcode';
 import QRCode from 'qrcode';
 import toast from 'react-hot-toast';
 
-const FALLBACK_IMG = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"><rect fill="%23f3f4f6" width="80" height="80" rx="8"/><text x="40" y="48" text-anchor="middle" fill="%239ca3af" font-size="24">📦</text></svg>';
-
 function ProductImage({ src, name, size = 'w-9 h-9' }) {
   const [error, setError] = useState(false);
   if (!src || error) {
     return (
-      <div className={`${size} rounded-lg bg-gradient-to-br from-emerald-100 to-emerald-200 dark:from-emerald-900/30 dark:to-emerald-800/30 flex items-center justify-center text-sm font-bold text-emerald-600 dark:text-emerald-400 flex-shrink-0`}>
+      <div className={`${size} rounded-lg bg-gradient-to-br from-indigo-100 to-indigo-200 dark:from-indigo-900/30 dark:to-indigo-800/30 flex items-center justify-center text-sm font-bold text-indigo-600 dark:text-indigo-400 flex-shrink-0`}>
         {name?.charAt(0)?.toUpperCase() || '📦'}
       </div>
     );
@@ -45,6 +44,56 @@ function BarcodeDisplay({ value, type = 'barcode' }) {
   return <canvas ref={canvasRef} />;
 }
 
+function ImagePickerModal({ onSelect, onClose }) {
+  const [activeTab, setActiveTab] = useState(Object.keys(PRODUCT_CATEGORIES)[0]);
+  const [search, setSearch] = useState('');
+  const categories = Object.keys(PRODUCT_CATEGORIES);
+
+  const filteredImages = search
+    ? Object.values(PRODUCT_CATEGORIES).flat().filter(img => img.name.toLowerCase().includes(search.toLowerCase())).slice(0, 60)
+    : PRODUCT_CATEGORIES[activeTab] || [];
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-700">
+          <h3 className="text-base font-semibold text-gray-900 dark:text-white">Rasm tanlang</h3>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"><HiOutlineXMark className="w-5 h-5" /></button>
+        </div>
+        <div className="px-4 pt-3">
+          <input type="text" placeholder="Rasm qidirish..." value={search} onChange={(e) => setSearch(e.target.value)} className="input-field text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
+        </div>
+        {!search && (
+          <div className="flex gap-1 px-4 pt-3 overflow-x-auto pb-1 scrollbar-none">
+            {categories.map((cat) => (
+              <button key={cat} onClick={() => setActiveTab(cat)} className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all ${activeTab === cat ? 'bg-indigo-600 text-white shadow-md' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'}`}>
+                {cat}
+              </button>
+            ))}
+          </div>
+        )}
+        <div className="flex-1 overflow-y-auto p-4">
+          <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-2">
+            {filteredImages.map((img, i) => (
+              <button key={i} onClick={() => { onSelect(img.url); onClose(); }} className="group relative aspect-square rounded-xl overflow-hidden border-2 border-gray-100 dark:border-gray-700 hover:border-indigo-500 transition-all hover:shadow-lg hover:scale-105">
+                <img src={img.url} alt={img.name} className="w-full h-full object-cover" loading="lazy" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end">
+                  <span className="text-[9px] text-white font-medium px-1.5 py-1 w-full truncate text-center">{img.name}</span>
+                </div>
+              </button>
+            ))}
+          </div>
+          {filteredImages.length === 0 && <p className="text-center text-gray-400 text-sm py-8">Rasm topilmadi</p>}
+        </div>
+        <div className="px-4 py-3 border-t border-gray-100 dark:border-gray-700 flex justify-end">
+          <button onClick={onClose} className="btn-secondary text-sm">Bekor qilish</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ProductModal({ product, categories, onClose, onSave }) {
   const [form, setForm] = useState({
     name: product?.name || '', category_id: product?.category_id || '',
@@ -56,6 +105,7 @@ function ProductModal({ product, categories, onClose, onSave }) {
   });
   const [saving, setSaving] = useState(false);
   const [barcodePreview, setBarcodePreview] = useState(null);
+  const [showImagePicker, setShowImagePicker] = useState(false);
   const barcodeSvgRef = useRef(null);
 
   const generateBarcode = () => {
@@ -158,24 +208,30 @@ function ProductModal({ product, categories, onClose, onSave }) {
             </div>
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                <span className="flex items-center gap-1.5"><HiOutlinePhoto className="w-4 h-4" /> Ras URL (ixtiyoriy)</span>
+                <span className="flex items-center gap-1.5"><HiOutlinePhoto className="w-4 h-4" /> Rasm</span>
               </label>
-              <input type="url" value={form.image_url} onChange={(e) => setForm({ ...form, image_url: e.target.value })} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="https://example.com/rasm.jpg" />
+              <div className="flex gap-2">
+                <input type="url" value={form.image_url} onChange={(e) => setForm({ ...form, image_url: e.target.value })} className="input-field flex-1 dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="URL kiriting yoki tanlang" />
+                <button type="button" onClick={() => setShowImagePicker(true)} className="px-3 py-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-lg text-sm font-medium hover:bg-indigo-100 dark:hover:bg-indigo-900/30 transition-colors flex items-center gap-1.5 whitespace-nowrap border border-indigo-200 dark:border-indigo-800">
+                  <HiOutlineCamera className="w-4 h-4" /> Tanlash
+                </button>
+              </div>
               {form.image_url && (
-                <div className="mt-2 flex items-center gap-3">
-                  <img src={form.image_url} alt="Ko'rish" className="w-16 h-16 rounded-lg object-cover border border-gray-200 dark:border-gray-700" onError={(e) => e.target.style.display='none'} />
-                  <span className="text-xs text-gray-500">Rasm ko'rinishi</span>
+                <div className="mt-2 relative inline-block">
+                  <img src={form.image_url} alt="Ko'rish" className="w-20 h-20 rounded-xl object-cover border-2 border-gray-200 dark:border-gray-700" onError={(e) => e.target.style.display='none'} />
+                  <button type="button" onClick={() => setForm({ ...form, image_url: '' })} className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600"><HiOutlineXMark className="w-3 h-3" /></button>
                 </div>
               )}
             </div>
           </div>
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-gray-700">
             <button type="button" onClick={onClose} className="btn-secondary">{UZ.cancel}</button>
-            <button type="submit" disabled={saving} className="bg-emerald-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-emerald-700 transition-all disabled:opacity-50">
+            <button type="submit" disabled={saving} className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-indigo-700 transition-all disabled:opacity-50">
               {saving ? UZ.loading : product ? UZ.save : UZ.add}
             </button>
           </div>
         </form>
+        {showImagePicker && <ImagePickerModal onSelect={(url) => setForm({ ...form, image_url: url })} onClose={() => setShowImagePicker(false)} />}
       </div>
     </div>
   );
@@ -208,7 +264,7 @@ function LabelPrintModal({ product, onClose }) {
         </div>
         <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-100 dark:border-gray-700 no-print">
           <button onClick={onClose} className="btn-secondary">{UZ.close}</button>
-          <button onClick={() => window.print()} className="bg-emerald-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-emerald-700">{UZ.print}</button>
+          <button onClick={() => window.print()} className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-indigo-700">{UZ.print}</button>
         </div>
       </div>
     </div>
@@ -272,7 +328,7 @@ function BulkPriceModal({ products, onClose, onApply }) {
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">O'zgartirish usuli</label>
             <div className="grid grid-cols-3 gap-2">
               {[['percent', 'Foiz (%)'], ['fixed', "Qo'shish"], ['exact', 'Aniq qiymat']].map(([m, l]) => (
-                <button key={m} onClick={() => setMode(m)} className={`py-2 px-3 rounded-lg text-sm font-medium border-2 transition-all ${mode === m ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'}`}>
+                <button key={m} onClick={() => setMode(m)} className={`py-2 px-3 rounded-lg text-sm font-medium border-2 transition-all ${mode === m ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'}`}>
                   {l}
                 </button>
               ))}
@@ -304,7 +360,7 @@ function BulkPriceModal({ products, onClose, onApply }) {
             {products.length > 3 && <p className="text-gray-400 mt-1">...va yana {products.length - 3} ta</p>}
           </div>
 
-          <button onClick={handleApply} disabled={applying || !value} className="w-full bg-emerald-600 text-white py-3 rounded-lg font-semibold hover:bg-emerald-700 transition-all disabled:opacity-50">
+          <button onClick={handleApply} disabled={applying || !value} className="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition-all disabled:opacity-50">
             {applying ? UZ.loading : `Qo'llash (${products.length} ta)`}
           </button>
         </div>
@@ -374,7 +430,7 @@ function CSVImportModal({ onClose, onImport }) {
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Import rejimi</label>
             <div className="grid grid-cols-2 gap-2">
-              <button onClick={() => setMode('create')} className={`py-2 px-3 rounded-lg text-sm font-medium border-2 transition-all ${mode === 'create' ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400' : 'border-gray-200 dark:border-gray-700'}`}>
+              <button onClick={() => setMode('create')} className={`py-2 px-3 rounded-lg text-sm font-medium border-2 transition-all ${mode === 'create' ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400' : 'border-gray-200 dark:border-gray-700'}`}>
                 Yangi qo'shish
               </button>
               <button onClick={() => setMode('update')} className={`py-2 px-3 rounded-lg text-sm font-medium border-2 transition-all ${mode === 'update' ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400' : 'border-gray-200 dark:border-gray-700'}`}>
@@ -385,7 +441,7 @@ function CSVImportModal({ onClose, onImport }) {
 
           <div>
             <input ref={fileRef} type="file" accept=".csv" onChange={(e) => setFile(e.target.files?.[0])} className="hidden" />
-            <button onClick={() => fileRef.current?.click()} className="w-full border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center hover:border-emerald-400 transition-colors">
+            <button onClick={() => fileRef.current?.click()} className="w-full border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center hover:border-indigo-400 transition-colors">
               <HiOutlineArrowUpTray className="w-8 h-8 mx-auto text-gray-400 mb-2" />
               {file ? <p className="text-sm font-medium text-gray-900 dark:text-white">{file.name}</p> : <p className="text-sm text-gray-500">CSV faylni tanlang yoki tortib tashlang</p>}
             </button>
@@ -395,7 +451,7 @@ function CSVImportModal({ onClose, onImport }) {
             <button onClick={handleExport} className="flex-1 btn-secondary flex items-center justify-center gap-2">
               <HiOutlineArrowDownTray className="w-4 h-4" /> CSV yuklab olish
             </button>
-            <button onClick={handleImport} disabled={importing || !file} className="flex-1 bg-emerald-600 text-white py-2 rounded-lg font-medium hover:bg-emerald-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2">
+            <button onClick={handleImport} disabled={importing || !file} className="flex-1 bg-indigo-600 text-white py-2 rounded-lg font-medium hover:bg-indigo-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2">
               <HiOutlineArrowUpTray className="w-4 h-4" /> {importing ? UZ.loading : 'Import'}
             </button>
           </div>
@@ -507,7 +563,7 @@ export default function Products() {
         </div>
 
         {loading ? (
-          <div className="flex items-center justify-center h-32"><div className="animate-spin h-6 w-6 border-4 border-emerald-500 border-t-transparent rounded-full" /></div>
+          <div className="flex items-center justify-center h-32"><div className="animate-spin h-6 w-6 border-4 border-indigo-500 border-t-transparent rounded-full" /></div>
         ) : products.length === 0 ? (
           <div className="text-center py-12 text-gray-400">{UZ.noData}</div>
         ) : (
@@ -516,7 +572,7 @@ export default function Products() {
               <thead>
                 <tr className="text-left text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-800">
                   <th className="pb-3 font-medium w-8">
-                    <input type="checkbox" checked={selectedProducts.size === products.length && products.length > 0} onChange={toggleSelectAll} className="w-4 h-4 rounded border-gray-300 text-emerald-600" />
+                    <input type="checkbox" checked={selectedProducts.size === products.length && products.length > 0} onChange={toggleSelectAll} className="w-4 h-4 rounded border-gray-300 text-indigo-600" />
                   </th>
                   <th className="pb-3 font-medium">{UZ.productsTitle}</th>
                   <th className="pb-3 font-medium">{UZ.productCode}</th>
@@ -529,9 +585,9 @@ export default function Products() {
               </thead>
               <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
                 {products.map((product) => (
-                  <tr key={product.id} className={`hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors ${selectedProducts.has(product.id) ? 'bg-emerald-50/50 dark:bg-emerald-900/10' : ''}`}>
+                  <tr key={product.id} className={`hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors ${selectedProducts.has(product.id) ? 'bg-indigo-50/50 dark:bg-indigo-900/10' : ''}`}>
                     <td className="py-3">
-                      <input type="checkbox" checked={selectedProducts.has(product.id)} onChange={() => toggleSelect(product.id)} className="w-4 h-4 rounded border-gray-300 text-emerald-600" />
+                      <input type="checkbox" checked={selectedProducts.has(product.id)} onChange={() => toggleSelect(product.id)} className="w-4 h-4 rounded border-gray-300 text-indigo-600" />
                     </td>
                     <td className="py-3">
                       <div className="flex items-center gap-3">
@@ -578,7 +634,7 @@ export default function Products() {
                 else if (pagination.page >= pagination.totalPages - 3) p = pagination.totalPages - 6 + i;
                 else p = pagination.page - 3 + i;
                 return (
-                  <button key={p} onClick={() => loadProducts(p)} className={`px-3 py-1 rounded-lg text-sm font-medium ${p === pagination.page ? 'bg-emerald-600 text-white' : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400'}`}>{p}</button>
+                  <button key={p} onClick={() => loadProducts(p)} className={`px-3 py-1 rounded-lg text-sm font-medium ${p === pagination.page ? 'bg-indigo-600 text-white' : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400'}`}>{p}</button>
                 );
               })}
               <button disabled={pagination.page >= pagination.totalPages} onClick={() => loadProducts(pagination.page + 1)} className="px-3 py-1 rounded-lg text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 disabled:opacity-50">Keyingi</button>
@@ -594,14 +650,21 @@ export default function Products() {
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm modal-overlay" onClick={() => setDeleteProduct(null)} />
           <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md p-6 modal-content">
             <div className="text-center">
-              <div className="mx-auto w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mb-4">
-                <HiOutlineTrash className="w-6 h-6 text-red-600 dark:text-red-400" />
+              <div className="mx-auto w-16 h-16 rounded-2xl bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center mb-4 shadow-lg shadow-red-500/25">
+                <HiOutlineTrash className="w-8 h-8 text-white" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{UZ.deleteProduct}</h3>
-              <p className="text-sm text-gray-500 mt-2">"{deleteProduct.name}" {UZ.deleteConfirm}</p>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white">{UZ.deleteProduct}</h3>
+              <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
+                <p className="text-sm text-gray-600 dark:text-gray-400">O'chirilayotgan mahsulot:</p>
+                <p className="font-semibold text-gray-900 dark:text-white mt-1">{deleteProduct.name}</p>
+                <p className="text-xs text-gray-500 mt-0.5">{deleteProduct.product_code}</p>
+              </div>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-3">Bu amalni bekor qilib bo'lmaydi. Davom etasizmi?</p>
               <div className="flex justify-center gap-3 mt-6">
-                <button onClick={() => setDeleteProduct(null)} className="btn-secondary">{UZ.cancel}</button>
-                <button onClick={handleDelete} className="bg-red-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-700">{UZ.delete}</button>
+                <button onClick={() => setDeleteProduct(null)} className="flex-1 btn-secondary">{UZ.cancel}</button>
+                <button onClick={handleDelete} className="flex-1 bg-gradient-to-r from-red-500 to-red-600 text-white px-4 py-2.5 rounded-lg font-semibold hover:from-red-600 hover:to-red-700 transition-all shadow-lg shadow-red-500/25 active:scale-[0.98]">
+                  {UZ.delete}
+                </button>
               </div>
             </div>
           </div>

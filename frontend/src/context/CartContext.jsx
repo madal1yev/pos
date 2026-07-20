@@ -6,17 +6,18 @@ export const useCartStore = create((set, get) => ({
   discount: 0,
   tax: 0,
 
-  addItem: (product, quantity = 1) => {
+  addItem: (product, quantity = 1, unit = null) => {
     if (!product?.id) return false;
     const items = get().items;
-    const existing = items.find((i) => i.product_id === product.id);
+    const existing = items.find((i) => i.product_id === product.id && i.unit === (unit || product.unit || 'pcs'));
+    const effectiveUnit = unit || product.unit || 'pcs';
 
     if (existing) {
       const newQty = existing.quantity + quantity;
       if (newQty > product.stock_quantity) return false;
       set({
         items: items.map((i) =>
-          i.product_id === product.id
+          i.product_id === product.id && i.unit === effectiveUnit
             ? { ...i, quantity: newQty, subtotal: newQty * i.price - (i.discount || 0) + (i.tax || 0) }
             : i
         ),
@@ -32,6 +33,7 @@ export const useCartStore = create((set, get) => ({
             product_code: product.product_code,
             price: product.selling_price,
             quantity,
+            unit: effectiveUnit,
             discount: 0,
             tax: 0,
             subtotal: quantity * product.selling_price,

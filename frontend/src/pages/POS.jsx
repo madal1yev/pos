@@ -8,6 +8,14 @@ import { HiOutlineMinus, HiOutlinePlus, HiOutlineTrash, HiOutlineCamera, HiOutli
 import { Html5Qrcode } from 'html5-qrcode';
 import toast from 'react-hot-toast';
 
+const UNIT_OPTIONS = [
+  { value: 'pcs', label: 'Dona', short: 'dona', step: 1, min: 1 },
+  { value: 'kg', label: 'Kilogramm', short: 'kg', step: 0.1, min: 0.1 },
+  { value: 'g', label: 'Gram', short: 'gr', step: 10, min: 10 },
+  { value: 'l', label: 'Litr', short: 'l', step: 0.1, min: 0.1 },
+  { value: 'ml', label: 'Millilitr', short: 'ml', step: 50, min: 50 },
+];
+
 const AVATAR_COLORS = [
   'from-indigo-400 to-indigo-600',
   'from-blue-400 to-blue-600',
@@ -30,6 +38,84 @@ function getInitials(name) {
   const parts = name.trim().split(/\s+/);
   if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
   return name.substring(0, 2).toUpperCase();
+}
+
+function QuantityModal({ product, onClose, onAdd }) {
+  const defaultUnit = product.unit || 'pcs';
+  const [selectedUnit, setSelectedUnit] = useState(UNIT_OPTIONS.find(u => u.value === defaultUnit) || UNIT_OPTIONS[0]);
+  const [quantity, setQuantity] = useState(defaultUnit === 'pcs' ? 1 : (selectedUnit.min || 1));
+  const unitPrice = product.selling_price;
+  const total = (unitPrice * quantity).toFixed(0);
+
+  const handleAdd = () => {
+    if (quantity <= 0) { toast.error('Miqdor kiriting'); return; }
+    onAdd(product, quantity, selectedUnit.value);
+    onClose();
+  };
+
+  const increment = () => {
+    const newQty = Math.round((quantity + selectedUnit.step) * 100) / 100;
+    setQuantity(newQty);
+  };
+
+  const decrement = () => {
+    const newQty = Math.round((quantity - selectedUnit.step) * 100) / 100;
+    if (newQty >= selectedUnit.min) setQuantity(newQty);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm modal-overlay" onClick={onClose} />
+      <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-sm modal-content">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-700">
+          <h3 className="text-base font-semibold text-gray-900 dark:text-white">Miqdor tanlash</h3>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"><HiOutlineXMark className="w-5 h-5" /></button>
+        </div>
+        <div className="p-5 space-y-4">
+          <div className="flex items-center gap-3">
+            <POSImage src={product.image_url} name={product.name} size="w-12 h-12" />
+            <div>
+              <p className="font-semibold text-gray-900 dark:text-white">{product.name}</p>
+              <p className="text-sm text-indigo-600 dark:text-indigo-400 font-medium">{formatCurrency(unitPrice)} / {selectedUnit.short}</p>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">O'lchov birligi</label>
+            <div className="grid grid-cols-5 gap-1.5">
+              {UNIT_OPTIONS.map((u) => (
+                <button key={u.value} onClick={() => { setSelectedUnit(u); if (u.value === 'pcs') setQuantity(1); else setQuantity(u.min); }} className={`py-2 px-1 rounded-xl text-xs font-medium border-2 transition-all ${selectedUnit.value === u.value ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 shadow-sm' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300'}`}>
+                  {u.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Miqdor ({selectedUnit.short})</label>
+            <div className="flex items-center gap-3">
+              <button onClick={decrement} className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-gray-700 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors active:scale-95">
+                <HiOutlineMinus className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+              </button>
+              <input type="number" value={quantity} onChange={(e) => setQuantity(Math.max(selectedUnit.min, parseFloat(e.target.value) || selectedUnit.min))} step={selectedUnit.step} min={selectedUnit.min} className="flex-1 text-center text-2xl font-bold text-gray-900 dark:text-white bg-transparent border-b-2 border-gray-200 dark:border-gray-600 focus:border-indigo-500 outline-none py-2" />
+              <button onClick={increment} className="w-12 h-12 rounded-xl bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center hover:bg-indigo-200 dark:hover:bg-indigo-900/50 transition-colors active:scale-95">
+                <HiOutlinePlus className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+              </button>
+            </div>
+          </div>
+
+          <div className="bg-gradient-to-r from-indigo-50 to-blue-50 dark:from-indigo-900/20 dark:to-blue-900/20 rounded-xl p-4 flex justify-between items-center">
+            <span className="text-sm text-gray-600 dark:text-gray-400">Jami:</span>
+            <span className="text-xl font-bold text-indigo-600 dark:text-indigo-400">{formatCurrency(total)}</span>
+          </div>
+
+          <button onClick={handleAdd} className="w-full bg-gradient-to-r from-indigo-600 to-indigo-700 text-white py-3.5 rounded-xl text-base font-semibold hover:from-indigo-700 hover:to-indigo-800 transition-all shadow-lg shadow-indigo-500/25 active:scale-[0.98]">
+            Savatga qo'shish
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function POSImage({ src, name, size = 'w-11 h-11' }) {
@@ -141,9 +227,9 @@ function CheckoutModal({ total, taxRate, onClose, onComplete }) {
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">{UZ.receivedAmount}</label>
                 <input type="number" value={receivedAmount} onChange={(e) => setReceivedAmount(e.target.value)} className="input-field text-lg font-semibold dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
               </div>
-              <div className="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-xl p-4 text-center">
+              <div className="bg-gradient-to-r from-indigo-50 to-blue-50 dark:from-indigo-900/20 dark:to-blue-900/20 rounded-xl p-4 text-center">
                 <p className="text-sm text-gray-500 mb-1">{UZ.change}</p>
-                <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{formatCurrency(change)}</p>
+                <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">{formatCurrency(change)}</p>
               </div>
             </>
           )}
@@ -197,7 +283,7 @@ function ReceiptModal({ sale, onClose }) {
             <div className="space-y-1.5 text-sm mb-3">
               {sale.items.map((item, i) => (
                 <div key={i} className="flex justify-between">
-                  <span className="text-gray-700 dark:text-gray-300">{item.product_name || item.name} x{item.quantity}</span>
+                  <span className="text-gray-700 dark:text-gray-300">{item.product_name || item.name} x{item.quantity} {item.unit || 'dona'}</span>
                   <span className="font-medium text-gray-900 dark:text-white">{formatCurrency(item.subtotal || item.price * item.quantity)}</span>
                 </div>
               ))}
@@ -207,7 +293,7 @@ function ReceiptModal({ sale, onClose }) {
             <div className="flex justify-between"><span className="text-gray-500">{UZ.total}</span><span className="font-bold text-gray-900 dark:text-white text-lg">{formatCurrency(sale.total_amount)}</span></div>
             <div className="flex justify-between"><span className="text-gray-500">{UZ.payment}</span><span className="text-gray-700 dark:text-gray-300">{sale.payment_method === 'cash' ? UZ.cash : sale.payment_method === 'card' ? UZ.card : UZ.other}</span></div>
             <div className="flex justify-between"><span className="text-gray-500">{UZ.receivedAmount}</span><span>{formatCurrency(sale.received_amount)}</span></div>
-            <div className="flex justify-between"><span className="text-gray-500">{UZ.change}</span><span className="font-semibold text-emerald-600 dark:text-emerald-400">{formatCurrency(sale.change_amount)}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">{UZ.change}</span><span className="font-semibold text-indigo-600 dark:text-indigo-400">{formatCurrency(sale.change_amount)}</span></div>
           </div>
           <div className="text-center mt-4 pt-3 border-t border-dashed border-gray-300 dark:border-gray-600">
             {receiptFooter.split('\n').map((line, i) => (
@@ -216,7 +302,7 @@ function ReceiptModal({ sale, onClose }) {
           </div>
         </div>
         <div className="flex justify-center gap-3 px-6 py-4 border-t border-gray-100 dark:border-gray-700 no-print">
-          <button onClick={() => window.print()} className="bg-emerald-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-emerald-700">{UZ.print}</button>
+          <button onClick={() => window.print()} className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-indigo-700">{UZ.print}</button>
           <button onClick={onClose} className="btn-secondary">{UZ.close}</button>
         </div>
       </div>
@@ -232,6 +318,7 @@ export default function POS() {
   const [showCheckout, setShowCheckout] = useState(false);
   const [receipt, setReceipt] = useState(null);
   const [taxRate, setTaxRate] = useState(0);
+  const [quantityProduct, setQuantityProduct] = useState(null);
   const searchRef = useRef(null);
   const barcodeBuffer = useRef('');
   const barcodeTimer = useRef(null);
@@ -272,15 +359,19 @@ export default function POS() {
     try {
       const { data } = await productsAPI.getByBarcode(barcode);
       if (!data?.product) { toast.error(UZ.notFound); return; }
-      const added = addItem(data.product);
-      if (added) toast.success(`${data.product.name} ${UZ.productAdded}`);
-      else toast.error(UZ.notEnoughStock);
+      setQuantityProduct(data.product);
     } catch { toast.error(UZ.notFound); }
+  };
+
+  const handleAddToCart = (product, quantity, unit) => {
+    const added = addItem(product, quantity, unit);
+    if (!added) toast.error(UZ.notEnoughStock);
+    else toast.success(`${product.name} ${quantity} ${unit} ${UZ.productAdded}`);
   };
 
   const handleCheckout = async (info) => {
     try {
-      const { data } = await salesAPI.create({ ...info, items: items.map((i) => ({ product_id: i.product_id, quantity: i.quantity, price: i.price, discount: i.discount || 0, tax: i.tax || 0 })) });
+      const { data } = await salesAPI.create({ ...info, items: items.map((i) => ({ product_id: i.product_id, quantity: i.quantity, price: i.price, unit: i.unit || 'pcs', discount: i.discount || 0, tax: i.tax || 0 })) });
       const saleWithItems = { ...data?.sale, items: items.map((i) => ({ ...i, product_name: i.name })) };
       setReceipt(saleWithItems); setShowCheckout(false); clearCart(); loadProducts(); emitDataChanged();
     } catch (err) { toast.error(getErrorMessage(err, "Sotuvda xato")); }
@@ -301,7 +392,7 @@ export default function POS() {
           </div>
           <div className="flex-1 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3 gap-2">
             {products.map((product, i) => (
-              <button key={product.id} onClick={() => { const a = addItem(product); if (!a) toast.error(UZ.notEnoughStock); else toast.success(`${product.name} ${UZ.productAdded}`); }} className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-150 text-center hover:shadow-md border border-gray-100 dark:border-gray-700/50" style={{ animationDelay: `${i * 0.02}s` }}>
+              <button key={product.id} onClick={() => setQuantityProduct(product)} className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-150 text-center hover:shadow-md border border-gray-100 dark:border-gray-700/50" style={{ animationDelay: `${i * 0.02}s` }}>
                 <POSImage src={product.image_url} name={product.name} size="w-14 h-14" />
                 <div className="w-full min-w-0">
                   <p className="text-xs font-semibold text-gray-900 dark:text-white leading-tight break-words line-clamp-2 min-h-[2rem]">{product.name}</p>
@@ -335,7 +426,7 @@ export default function POS() {
                 <POSImage src={item.image_url} name={item.name} size="w-9 h-9" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-900 dark:text-white leading-tight line-clamp-1">{item.name}</p>
-                  <p className="text-[11px] text-gray-500">{formatCurrency(item.price)}</p>
+                  <p className="text-[11px] text-gray-500">{formatCurrency(item.price)} / {item.unit || 'dona'}</p>
                 </div>
                 <div className="flex items-center gap-1">
                   <button onClick={() => updateQuantity(item.product_id, item.quantity - 1)} className="w-6 h-6 rounded-md bg-white dark:bg-gray-600 border border-gray-200 dark:border-gray-600 flex items-center justify-center hover:bg-gray-100"><HiOutlineMinus className="w-3 h-3" /></button>
@@ -368,6 +459,7 @@ export default function POS() {
       </div>
 
       {showScanner && <ScannerModal onClose={() => setShowScanner(false)} onScan={(text) => handleBarcodeScan(text)} />}
+      {quantityProduct && <QuantityModal product={quantityProduct} onClose={() => setQuantityProduct(null)} onAdd={handleAddToCart} />}
       {showCheckout && <CheckoutModal total={getTotal()} taxRate={taxRate} onClose={() => setShowCheckout(false)} onComplete={handleCheckout} />}
       {receipt && <ReceiptModal sale={receipt} onClose={() => setReceipt(null)} />}
     </div>
