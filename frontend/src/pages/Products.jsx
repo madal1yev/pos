@@ -488,7 +488,7 @@ export default function Products() {
               <HiOutlineCurrencyDollar className="w-4 h-4" /> Narx o'zgartirish ({selectedProducts.size})
             </button>
           )}
-          <button onClick={() => { setEditProduct(null); setShowModal(true); }} className="bg-emerald-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-emerald-700 transition-all flex items-center gap-2">
+          <button onClick={() => { setEditProduct(null); setShowModal(true); }} className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-indigo-700 transition-all flex items-center gap-2 shadow-md shadow-indigo-500/20">
             <HiOutlinePlus className="w-5 h-5" /> {UZ.addProduct}
           </button>
         </div>
