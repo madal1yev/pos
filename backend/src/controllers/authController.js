@@ -114,8 +114,9 @@ exports.changePassword = async (req, res, next) => {
       return res.status(400).json({ error: 'Current password is incorrect' });
     }
 
+    const nowExpr = db.isSqlite ? "datetime('now')" : 'NOW()';
     const hashed = await bcrypt.hash(new_password, 10);
-    await db.query('UPDATE users SET password = $1, updated_at = NOW() WHERE id = $2', [hashed, req.user.id]);
+    await db.query(`UPDATE users SET password = $1, updated_at = ${nowExpr} WHERE id = $2`, [hashed, req.user.id]);
 
     res.json({ message: 'Password changed successfully' });
   } catch (error) {

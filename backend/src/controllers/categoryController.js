@@ -31,9 +31,10 @@ exports.create = async (req, res, next) => {
 exports.update = async (req, res, next) => {
   try {
     const { name, description } = req.body;
+    const nowExpr = db.isSqlite ? "datetime('now')" : 'NOW()';
     const result = await db.query(
       `UPDATE categories SET name = COALESCE($1, name), description = COALESCE($2, description), 
-       updated_at = NOW() WHERE id = $3 RETURNING *`,
+       updated_at = ${nowExpr} WHERE id = $3 RETURNING *`,
       [name, description, req.params.id]
     );
     if (result.rows.length === 0) {

@@ -15,13 +15,29 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+let isRedirecting = false;
+
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('pos_token');
-      localStorage.removeItem('pos_user');
-      window.location.href = '/login';
+    if (error.response?.status === 401 && !isRedirecting) {
+      const token = localStorage.getItem('pos_token');
+      const isLoginPage = window.location.pathname === '/login';
+      if (token && !isLoginPage) {
+        const retryCount = error.config?._retryCount || 0;
+        if (retryCount >= 1) {
+          isRedirecting = true;
+          localStorage.removeItem('pos_token');
+          localStorage.removeItem('pos_user');
+          window.location.href = '/login';
+        } else {
+          error.config._retryCount = (error.config._retryCount || 0) + 1;
+          return api.request(error.config);
+        }
+      } else if (!token && !isLoginPage) {
+        isRedirecting = true;
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }
@@ -80,6 +96,13 @@ export const dashboardAPI = {
 export const settingsAPI = {
   get: () => api.get('/settings'),
   update: (data) => api.put('/settings', data),
+};
+
+// Bulk operations
+export const bulkAPI = {
+  updatePrices: (updates) => api.post('/bulk/bulk-update-prices', { updates }),
+  importCSV: (formData) => api.post('/bulk/import-csv', formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  exportCSV: () => api.get('/bulk/export-csv', { responseType: 'blob' }),
 };
 
 export default api;

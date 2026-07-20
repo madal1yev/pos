@@ -12,8 +12,8 @@ function InvoiceModal({ saleId, onClose }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm modal-overlay" onClick={onClose} />
+      <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto modal-content">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700 no-print">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{UZ.invoice} #{invoice?.invoice_number}</h2>
           <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"><HiOutlineXMark className="w-5 h-5" /></button>
@@ -63,6 +63,12 @@ export default function Sales() {
 
   useEffect(() => { loadSales(); }, [search, paymentFilter, dateFrom, dateTo]);
 
+  useEffect(() => {
+    const handler = () => loadSales(pagination.page);
+    window.addEventListener('pos:data-changed', handler);
+    return () => window.removeEventListener('pos:data-changed', handler);
+  }, [pagination.page]);
+
   const loadSales = async (page = 1) => {
     setLoading(true);
     try { const { data } = await salesAPI.getAll({ search, payment_method: paymentFilter, from_date: dateFrom, to_date: dateTo, page, limit: 50 }); setSales(data?.sales || []); setPagination(data?.pagination || { page: 1, total: 0 }); }
@@ -71,11 +77,11 @@ export default function Sales() {
 
   return (
     <div className="space-y-6">
-      <div>
+      <div className="animate-fade-in-down">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{UZ.salesTitle}</h1>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{pagination.total} tranzaksiya</p>
       </div>
-      <div className="card">
+      <div className="card animate-fade-in-up stagger-1">
         <div className="flex flex-col sm:flex-row gap-3 mb-4">
           <div className="relative flex-1"><HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" /><input type="text" placeholder={UZ.search} value={search} onChange={(e) => setSearch(e.target.value)} className="input-field pl-10 dark:bg-gray-700 dark:border-gray-600 dark:text-white" /></div>
           <select value={paymentFilter} onChange={(e) => setPaymentFilter(e.target.value)} className="input-field w-auto sm:w-40 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
@@ -99,7 +105,7 @@ export default function Sales() {
               </tr></thead>
               <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
                 {sales.map((sale) => (
-                  <tr key={sale.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                  <tr key={sale.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
                     <td className="py-3 font-mono text-xs font-medium text-gray-900 dark:text-white">{sale.invoice_number}</td>
                     <td className="py-3 text-gray-600 dark:text-gray-400">{sale.customer_name || "O'tib ketgan"}</td>
                     <td className="py-3 text-gray-600 dark:text-gray-400">{sale.cashier_name}</td>

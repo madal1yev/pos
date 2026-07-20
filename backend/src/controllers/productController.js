@@ -151,6 +151,8 @@ exports.update = async (req, res, next) => {
       return res.status(404).json({ error: 'Product not found' });
     }
 
+    const nowExpr = db.isSqlite ? "datetime('now')" : 'NOW()';
+
     const result = await db.query(
       `UPDATE products SET 
         name = COALESCE($1, name), category_id = COALESCE($2, category_id),
@@ -159,7 +161,7 @@ exports.update = async (req, res, next) => {
         minimum_stock = COALESCE($7, minimum_stock), unit = COALESCE($8, unit),
         barcode = COALESCE($9, barcode), description = COALESCE($10, description),
         status = COALESCE($11, status), image_url = COALESCE($12, image_url),
-        updated_at = NOW()
+        updated_at = ${nowExpr}
        WHERE id = $13 RETURNING *`,
       [name, category_id, brand, purchase_price, selling_price, stock_quantity,
         minimum_stock, unit, barcode, description, status, image_url, req.params.id]

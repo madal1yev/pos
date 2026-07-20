@@ -30,6 +30,8 @@ exports.update = async (req, res, next) => {
       return res.json({ settings: insertResult.rows[0] });
     }
 
+    const nowExpr = db.isSqlite ? "datetime('now')" : 'NOW()';
+
     const result = await db.query(
       `UPDATE settings SET 
         store_name = COALESCE($1, store_name),
@@ -43,7 +45,7 @@ exports.update = async (req, res, next) => {
         receipt_footer = COALESCE($9, receipt_footer),
         low_stock_threshold = COALESCE($10, low_stock_threshold),
         logo_url = COALESCE($11, logo_url),
-        updated_at = NOW()
+        updated_at = ${nowExpr}
        WHERE id = (SELECT id FROM settings LIMIT 1) RETURNING *`,
       [store_name, store_address, store_phone, store_email,
         currency, currency_symbol, tax_percentage,

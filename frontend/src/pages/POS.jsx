@@ -3,20 +3,45 @@ import { useCartStore } from '../context/CartContext';
 import { productsAPI, salesAPI, settingsAPI } from '../services/api';
 import { UZ, formatCurrency } from '../utils/uzbek';
 import { getErrorMessage } from '../utils/errors';
+import { emitDataChanged } from '../utils/events';
 import { HiOutlineMinus, HiOutlinePlus, HiOutlineTrash, HiOutlineCamera, HiOutlineMagnifyingGlass, HiOutlineCheckCircle, HiOutlineXMark, HiOutlineShoppingCart } from 'react-icons/hi2';
 import { Html5Qrcode } from 'html5-qrcode';
 import toast from 'react-hot-toast';
 
-function POSImage({ src, name }) {
+const AVATAR_COLORS = [
+  'from-indigo-400 to-indigo-600',
+  'from-blue-400 to-blue-600',
+  'from-violet-400 to-purple-600',
+  'from-pink-400 to-rose-600',
+  'from-amber-400 to-orange-500',
+  'from-emerald-400 to-teal-600',
+  'from-cyan-400 to-blue-500',
+  'from-fuchsia-400 to-pink-600',
+];
+
+function getAvatarColor(name) {
+  let hash = 0;
+  for (let i = 0; i < (name || '').length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+}
+
+function getInitials(name) {
+  if (!name) return '?';
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  return name.substring(0, 2).toUpperCase();
+}
+
+function POSImage({ src, name, size = 'w-11 h-11' }) {
   const [error, setError] = useState(false);
   if (!src || error) {
     return (
-      <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-emerald-100 to-emerald-200 dark:from-emerald-900/30 dark:to-emerald-800/30 flex items-center justify-center text-sm font-bold text-emerald-600 dark:text-emerald-400 flex-shrink-0">
-        {name?.charAt(0)?.toUpperCase() || '📦'}
+      <div className={`${size} rounded-xl bg-gradient-to-br ${getAvatarColor(name)} flex items-center justify-center text-sm font-bold text-white shadow-sm flex-shrink-0`}>
+        {getInitials(name)}
       </div>
     );
   }
-  return <img src={src} alt={name} className="w-10 h-10 rounded-lg object-cover flex-shrink-0" onError={() => setError(true)} loading="lazy" />;
+  return <img src={src} alt={name} className={`${size} rounded-xl object-cover flex-shrink-0`} onError={() => setError(true)} loading="lazy" />;
 }
 
 function ScannerModal({ onClose, onScan }) {
@@ -43,8 +68,8 @@ function ScannerModal({ onClose, onScan }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md">
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm modal-overlay" onClick={onClose} />
+      <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md modal-content">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{UZ.scanBarcode}</h2>
           <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"><HiOutlineXMark className="w-5 h-5" /></button>
@@ -77,8 +102,8 @@ function CheckoutModal({ total, taxRate, onClose, onComplete }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md">
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm modal-overlay" onClick={onClose} />
+      <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md modal-content">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{UZ.checkout}</h2>
           <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"><HiOutlineXMark className="w-5 h-5" /></button>
@@ -131,23 +156,37 @@ function CheckoutModal({ total, taxRate, onClose, onComplete }) {
 }
 
 function ReceiptModal({ sale, onClose }) {
+  const [settings, setSettings] = useState(null);
+  
+  useEffect(() => {
+    settingsAPI.get().then(({ data }) => setSettings(data?.settings)).catch(() => {});
+  }, []);
+
   if (!sale) return null;
   const now = new Date();
   const dateStr = now.toLocaleDateString('uz-UZ');
   const timeStr = now.toLocaleTimeString('uz-UZ');
+
+  const storeName = settings?.store_name || "Oziq-ovqat Do'koni";
+  const storeAddress = settings?.store_address || "Toshkent shahri, Bunyodkor ko'chasi 15";
+  const storePhone = settings?.store_phone || "Tel: +998 90 123 45 67";
+  const receiptHeader = settings?.receipt_header || '';
+  const receiptFooter = settings?.receipt_footer || 'Xaridingiz uchun rahmat!\nYana kutamiz!';
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-sm max-h-[90vh] overflow-y-auto">
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm modal-overlay" onClick={onClose} />
+      <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-sm max-h-[90vh] overflow-y-auto modal-content">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700 no-print sticky top-0 bg-white dark:bg-gray-800 z-10">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{UZ.receipt || 'Chek'}</h2>
           <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"><HiOutlineXMark className="w-5 h-5" /></button>
         </div>
         <div className="p-6 print:p-2" id="receipt-content">
           <div className="text-center mb-4">
-            <p className="text-lg font-bold text-gray-900 dark:text-white">Oziq-ovqat Do'koni</p>
-            <p className="text-xs text-gray-500">Toshkent shahri, Bunyodkor ko'chasi 15</p>
-            <p className="text-xs text-gray-500">Tel: +998 90 123 45 67</p>
+            {receiptHeader && <p className="text-xs text-gray-500 mb-2">{receiptHeader}</p>}
+            <p className="text-lg font-bold text-gray-900 dark:text-white">{storeName}</p>
+            {storeAddress && <p className="text-xs text-gray-500">{storeAddress}</p>}
+            {storePhone && <p className="text-xs text-gray-500">{storePhone}</p>}
           </div>
           <div className="border-t border-b border-dashed border-gray-300 dark:border-gray-600 py-2 my-3 text-xs text-gray-500 flex justify-between">
             <span>{UZ.invoice}: {sale.invoice_number}</span>
@@ -170,8 +209,9 @@ function ReceiptModal({ sale, onClose }) {
             <div className="flex justify-between"><span className="text-gray-500">{UZ.change}</span><span className="font-semibold text-emerald-600 dark:text-emerald-400">{formatCurrency(sale.change_amount)}</span></div>
           </div>
           <div className="text-center mt-4 pt-3 border-t border-dashed border-gray-300 dark:border-gray-600">
-            <p className="text-xs text-gray-500">Xaridingiz uchun rahmat!</p>
-            <p className="text-xs text-gray-400 mt-1">Yana kutamiz!</p>
+            {receiptFooter.split('\n').map((line, i) => (
+              <p key={i} className="text-xs text-gray-500">{line}</p>
+            ))}
           </div>
         </div>
         <div className="flex justify-center gap-3 px-6 py-4 border-t border-gray-100 dark:border-gray-700 no-print">
@@ -194,6 +234,7 @@ export default function POS() {
   const searchRef = useRef(null);
   const barcodeBuffer = useRef('');
   const barcodeTimer = useRef(null);
+  const searchTimeout = useRef(null);
 
   useEffect(() => { loadProducts(); loadSettings(); }, [search]);
 
@@ -212,8 +253,19 @@ export default function POS() {
     return () => { window.removeEventListener('keydown', handleKey); clearTimeout(barcodeTimer.current); };
   }, []);
 
-  const loadProducts = async () => { try { const { data } = await productsAPI.getAll({ search, status: 'active', limit: 50 }); setProducts(data?.products || []); } catch { setProducts([]); } };
-  const loadSettings = async () => { try { const { data } = await settingsAPI.get(); setTaxRate(parseFloat(data?.settings?.tax_percentage || 0) / 100); } catch {} };
+  const loadProducts = async () => {
+    try {
+      const { data } = await productsAPI.getAll({ search, status: 'active', limit: 50 });
+      setProducts(data?.products || []);
+    } catch { setProducts([]); }
+  };
+
+  const loadSettings = async () => {
+    try {
+      const { data } = await settingsAPI.get();
+      setTaxRate(parseFloat(data?.settings?.tax_percentage || 0) / 100);
+    } catch {}
+  };
 
   const handleBarcodeScan = async (barcode) => {
     try {
@@ -229,12 +281,12 @@ export default function POS() {
     try {
       const { data } = await salesAPI.create({ ...info, items: items.map((i) => ({ product_id: i.product_id, quantity: i.quantity, price: i.price, discount: i.discount || 0, tax: i.tax || 0 })) });
       const saleWithItems = { ...data?.sale, items: items.map((i) => ({ ...i, product_name: i.name })) };
-      setReceipt(saleWithItems); setShowCheckout(false); clearCart(); loadProducts();
+      setReceipt(saleWithItems); setShowCheckout(false); clearCart(); loadProducts(); emitDataChanged();
     } catch (err) { toast.error(getErrorMessage(err, "Sotuvda xato")); }
   };
 
   return (
-    <div className="h-[calc(100vh-4rem)] sm:h-[calc(100vh-8rem)] flex flex-col lg:flex-row gap-4">
+    <div className="h-[calc(100vh-4rem)] sm:h-[calc(100vh-8rem)] flex flex-col lg:flex-row gap-4 animate-fade-in">
       <div className="flex-1 flex flex-col min-w-0 order-1">
         <div className="card flex-1 flex flex-col">
           <div className="flex flex-col sm:flex-row gap-2 mb-4">
@@ -246,17 +298,17 @@ export default function POS() {
               <HiOutlineCamera className="w-4 h-4" /> {UZ.scan}
             </button>
           </div>
-          <div className="flex-1 overflow-y-auto space-y-2">
-            {products.map((product) => (
-              <button key={product.id} onClick={() => { const a = addItem(product); if (!a) toast.error(UZ.notEnoughStock); else toast.success(`${product.name} ${UZ.productAdded}`); }} className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-left">
-                <POSImage src={product.image_url} name={product.name} />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{product.name}</p>
-                  <p className="text-xs text-gray-500">{product.brand || product.product_code}</p>
+          <div className="flex-1 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3 gap-2">
+            {products.map((product, i) => (
+              <button key={product.id} onClick={() => { const a = addItem(product); if (!a) toast.error(UZ.notEnoughStock); else toast.success(`${product.name} ${UZ.productAdded}`); }} className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-150 text-center hover:shadow-md border border-gray-100 dark:border-gray-700/50" style={{ animationDelay: `${i * 0.02}s` }}>
+                <POSImage src={product.image_url} name={product.name} size="w-14 h-14" />
+                <div className="w-full min-w-0">
+                  <p className="text-xs font-semibold text-gray-900 dark:text-white leading-tight break-words line-clamp-2 min-h-[2rem]">{product.name}</p>
+                  <p className="text-[10px] text-gray-400 mt-0.5">{product.brand || product.product_code}</p>
                 </div>
-                <div className="text-right flex-shrink-0">
-                  <p className="text-sm font-bold text-gray-900 dark:text-white">{formatCurrency(product.selling_price)}</p>
-                  <p className={`text-xs ${product.stock_quantity <= product.minimum_stock ? 'text-red-500' : 'text-gray-400'}`}>{UZ.stockQuantity}: {product.stock_quantity}</p>
+                <div className="w-full flex items-center justify-between gap-1 mt-auto">
+                  <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400">{formatCurrency(product.selling_price)}</span>
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${product.stock_quantity <= product.minimum_stock ? 'bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400' : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'}`}>{product.stock_quantity}</span>
                 </div>
               </button>
             ))}
@@ -278,19 +330,21 @@ export default function POS() {
                 <p className="text-xs">{UZ.emptyCartHint}</p>
               </div>
             ) : items.map((item) => (
-              <div key={item.product_id} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
-                <POSImage src={item.image_url} name={item.name} />
+              <div key={item.product_id} className="flex items-center gap-2.5 p-2.5 bg-gray-50 dark:bg-gray-700/50 rounded-xl animate-fade-in">
+                <POSImage src={item.image_url} name={item.name} size="w-9 h-9" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{item.name}</p>
-                  <p className="text-xs text-gray-500">{formatCurrency(item.price)} x {item.quantity}</p>
+                  <p className="text-sm font-medium text-gray-900 dark:text-white leading-tight line-clamp-1">{item.name}</p>
+                  <p className="text-[11px] text-gray-500">{formatCurrency(item.price)}</p>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <button onClick={() => updateQuantity(item.product_id, item.quantity - 1)} className="w-7 h-7 rounded-lg bg-white dark:bg-gray-600 border border-gray-200 dark:border-gray-600 flex items-center justify-center hover:bg-gray-100"><HiOutlineMinus className="w-3 h-3" /></button>
-                  <span className="w-8 text-center text-sm font-medium">{item.quantity}</span>
-                  <button onClick={() => updateQuantity(item.product_id, item.quantity + 1)} className="w-7 h-7 rounded-lg bg-white dark:bg-gray-600 border border-gray-200 dark:border-gray-600 flex items-center justify-center hover:bg-gray-100"><HiOutlinePlus className="w-3 h-3" /></button>
+                <div className="flex items-center gap-1">
+                  <button onClick={() => updateQuantity(item.product_id, item.quantity - 1)} className="w-6 h-6 rounded-md bg-white dark:bg-gray-600 border border-gray-200 dark:border-gray-600 flex items-center justify-center hover:bg-gray-100"><HiOutlineMinus className="w-3 h-3" /></button>
+                  <span className="w-6 text-center text-sm font-bold">{item.quantity}</span>
+                  <button onClick={() => updateQuantity(item.product_id, item.quantity + 1)} className="w-6 h-6 rounded-md bg-white dark:bg-gray-600 border border-gray-200 dark:border-gray-600 flex items-center justify-center hover:bg-gray-100"><HiOutlinePlus className="w-3 h-3" /></button>
                 </div>
-                <p className="text-sm font-semibold text-gray-900 dark:text-white w-24 text-right">{formatCurrency(item.subtotal)}</p>
-                <button onClick={() => removeItem(item.product_id)} className="p-1 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500"><HiOutlineTrash className="w-4 h-4" /></button>
+                <div className="flex flex-col items-end gap-1">
+                  <p className="text-xs font-bold text-gray-900 dark:text-white">{formatCurrency(item.subtotal)}</p>
+                  <button onClick={() => removeItem(item.product_id)} className="p-0.5 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-red-400 hover:text-red-600"><HiOutlineTrash className="w-3.5 h-3.5" /></button>
+                </div>
               </div>
             ))}
           </div>
@@ -304,7 +358,7 @@ export default function POS() {
                 <span>{UZ.total}</span>
                 <span>{formatCurrency(getTotal())}</span>
               </div>
-              <button onClick={() => setShowCheckout(true)} className="w-full bg-emerald-600 text-white py-3 rounded-lg text-base font-semibold hover:bg-emerald-700 transition-all">
+              <button onClick={() => setShowCheckout(true)} className="w-full bg-emerald-600 text-white py-3 rounded-lg text-base font-semibold hover:bg-emerald-700 transition-all hover-lift">
                 {UZ.proceedCheckout}
               </button>
             </div>

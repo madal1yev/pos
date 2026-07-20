@@ -13,6 +13,7 @@ const salesRoutes = require('./routes/sales');
 const reportRoutes = require('./routes/reports');
 const settingsRoutes = require('./routes/settings');
 const dashboardRoutes = require('./routes/dashboard');
+const bulkRoutes = require('./routes/bulk');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -55,6 +56,7 @@ app.use('/api/sales', salesRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/bulk', bulkRoutes);
 
 // Health check
 app.get('/api/health', async (req, res) => {

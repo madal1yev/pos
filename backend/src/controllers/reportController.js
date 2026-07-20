@@ -46,38 +46,66 @@ exports.monthly = async (req, res, next) => {
     const { year, month } = req.query;
     const targetYear = year || new Date().getFullYear();
     const targetMonth = month || new Date().getMonth() + 1;
+    const isSqlite = db.isSqlite;
 
-    const monthStr = String(targetMonth).padStart(2, '0');
+    const monthNum = parseInt(targetMonth, 10);
+    const yearNum = parseInt(targetYear, 10);
 
-    const dailySales = await db.query(
-      `SELECT 
-        date(s.created_at) as date,
-        COUNT(*) as total_sales,
-        COALESCE(SUM(s.total_amount), 0) as total_revenue,
-        COALESCE(SUM(si.quantity), 0) as items_sold
-       FROM sales s 
-       LEFT JOIN sale_items si ON si.sale_id = s.id
-       WHERE EXTRACT(MONTH FROM s.created_at) = $1 
-         AND EXTRACT(YEAR FROM s.created_at) = $2
-       GROUP BY DATE(s.created_at)
-       ORDER BY date ASC`,
-      [monthStr, String(targetYear)]
-    );
+    const dailySales = isSqlite
+      ? await db.query(
+          `SELECT 
+            date(s.created_at) as date,
+            COUNT(*) as total_sales,
+            COALESCE(SUM(s.total_amount), 0) as total_revenue,
+            COALESCE(SUM(si.quantity), 0) as items_sold
+           FROM sales s 
+           LEFT JOIN sale_items si ON si.sale_id = s.id
+           WHERE CAST(strftime('%m', s.created_at) AS INTEGER) = $1 
+             AND CAST(strftime('%Y', s.created_at) AS INTEGER) = $2
+           GROUP BY DATE(s.created_at)
+           ORDER BY date ASC`,
+          [monthNum, yearNum]
+        )
+      : await db.query(
+          `SELECT 
+            date(s.created_at) as date,
+            COUNT(*) as total_sales,
+            COALESCE(SUM(s.total_amount), 0) as total_revenue,
+            COALESCE(SUM(si.quantity), 0) as items_sold
+           FROM sales s 
+           LEFT JOIN sale_items si ON si.sale_id = s.id
+           WHERE EXTRACT(MONTH FROM s.created_at) = $1 
+             AND EXTRACT(YEAR FROM s.created_at) = $2
+           GROUP BY DATE(s.created_at)
+           ORDER BY date ASC`,
+          [monthNum, yearNum]
+        );
 
-    const monthlySummary = await db.query(
-      `SELECT 
-        COUNT(*) as total_sales,
-        COALESCE(SUM(total_amount), 0) as total_revenue,
-        COALESCE(SUM(total_amount - change_amount), 0) as net_revenue
-       FROM sales 
-       WHERE EXTRACT(MONTH FROM created_at) = $1 
-         AND EXTRACT(YEAR FROM created_at) = $2`,
-      [monthStr, String(targetYear)]
-    );
+    const monthlySummary = isSqlite
+      ? await db.query(
+          `SELECT 
+            COUNT(*) as total_sales,
+            COALESCE(SUM(total_amount), 0) as total_revenue,
+            COALESCE(SUM(total_amount - change_amount), 0) as net_revenue
+           FROM sales 
+           WHERE CAST(strftime('%m', created_at) AS INTEGER) = $1 
+             AND CAST(strftime('%Y', created_at) AS INTEGER) = $2`,
+          [monthNum, yearNum]
+        )
+      : await db.query(
+          `SELECT 
+            COUNT(*) as total_sales,
+            COALESCE(SUM(total_amount), 0) as total_revenue,
+            COALESCE(SUM(total_amount - change_amount), 0) as net_revenue
+           FROM sales 
+           WHERE EXTRACT(MONTH FROM created_at) = $1 
+             AND EXTRACT(YEAR FROM created_at) = $2`,
+          [monthNum, yearNum]
+        );
 
     res.json({
-      year: parseInt(targetYear),
-      month: parseInt(targetMonth),
+      year: yearNum,
+      month: monthNum,
       summary: monthlySummary.rows[0],
       daily_sales: dailySales.rows,
     });
@@ -165,21 +193,38 @@ exports.inventory = async (req, res, next) => {
 exports.revenue = async (req, res, next) => {
   try {
     const { period = 'daily', from_date, to_date } = req.query;
+    const isSqlite = db.isSqlite;
 
     let groupBy, dateFormat;
 
-    switch (period) {
-      case 'weekly':
-        groupBy = "TO_CHAR(s.created_at, 'IYYY-\"W\"IW')";
-        dateFormat = "TO_CHAR(s.created_at, 'IYYY-\"W\"IW')";
-        break;
-      case 'monthly':
-        groupBy = "TO_CHAR(s.created_at, 'YYYY-MM')";
-        dateFormat = "TO_CHAR(s.created_at, 'YYYY-MM')";
-        break;
-      default:
-        groupBy = "date(s.created_at)";
-        dateFormat = "date(s.created_at)";
+    if (isSqlite) {
+      switch (period) {
+        case 'weekly':
+          groupBy = "strftime('%Y-W%W', s.created_at)";
+          dateFormat = "strftime('%Y-W%W', s.created_at)";
+          break;
+        case 'monthly':
+          groupBy = "strftime('%Y-%m', s.created_at)";
+          dateFormat = "strftime('%Y-%m', s.created_at)";
+          break;
+        default:
+          groupBy = "date(s.created_at)";
+          dateFormat = "date(s.created_at)";
+      }
+    } else {
+      switch (period) {
+        case 'weekly':
+          groupBy = "TO_CHAR(s.created_at, 'IYYY-\"W\"IW')";
+          dateFormat = "TO_CHAR(s.created_at, 'IYYY-\"W\"IW')";
+          break;
+        case 'monthly':
+          groupBy = "TO_CHAR(s.created_at, 'YYYY-MM')";
+          dateFormat = "TO_CHAR(s.created_at, 'YYYY-MM')";
+          break;
+        default:
+          groupBy = "date(s.created_at)";
+          dateFormat = "date(s.created_at)";
+      }
     }
 
     let where = ['1=1'];

@@ -12,7 +12,7 @@ export default function SalesChart({ data }) {
         />
         <YAxis tick={{ fontSize: 12 }} />
         <Tooltip formatter={(v) => formatCurrency(v)} />
-        <Bar dataKey="revenue" fill="#10b981" radius={[6, 6, 0, 0]} />
+        <Bar dataKey="revenue" fill="#6366f1" radius={[6, 6, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
   );

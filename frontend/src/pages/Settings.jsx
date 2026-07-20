@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { settingsAPI } from '../services/api';
 import { UZ } from '../utils/uzbek';
 import { getErrorMessage } from '../utils/errors';
+import { emitDataChanged } from '../utils/events';
 import { HiOutlineCheckCircle } from 'react-icons/hi2';
 import toast from 'react-hot-toast';
 
@@ -14,7 +15,7 @@ export default function Settings() {
 
   const handleSubmit = async (e) => {
     e.preventDefault(); setSaving(true);
-    try { await settingsAPI.update({ ...settings, tax_percentage: parseFloat(settings.tax_percentage) || 0, low_stock_threshold: parseInt(settings.low_stock_threshold) || 10 }); toast.success(UZ.settingsSaved); }
+    try { await settingsAPI.update({ ...settings, tax_percentage: parseFloat(settings.tax_percentage) || 0, low_stock_threshold: parseInt(settings.low_stock_threshold) || 10 }); toast.success(UZ.settingsSaved); emitDataChanged(); }
     catch (err) { toast.error(getErrorMessage(err)); } finally { setSaving(false); }
   };
 

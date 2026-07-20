@@ -13,6 +13,7 @@ if (DATABASE_URL) {
   const db = {
     query: (sql, params) => pool.query(sql, params),
     getClient: () => pool.connect(),
+    isSqlite: false,
   };
 
   module.exports = db;
@@ -87,6 +88,7 @@ if (DATABASE_URL) {
       release: () => {},
     }),
     sqlite,
+    isSqlite: true,
   };
 
   module.exports = db;

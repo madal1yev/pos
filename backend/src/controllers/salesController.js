@@ -159,8 +159,9 @@ exports.create = async (req, res, next) => {
       const product = await db.query('SELECT stock_quantity FROM products WHERE id = $1', [item.product_id]);
       const newStock = product.rows[0].stock_quantity - item.quantity;
 
+      const nowExpr = db.isSqlite ? "datetime('now')" : 'NOW()';
       await db.query(
-        'UPDATE products SET stock_quantity = $1, updated_at = NOW() WHERE id = $2',
+        `UPDATE products SET stock_quantity = $1, updated_at = ${nowExpr} WHERE id = $2`,
         [newStock, item.product_id]
       );
 

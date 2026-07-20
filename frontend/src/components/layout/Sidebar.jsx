@@ -4,7 +4,7 @@ import { UZ } from '../../utils/uzbek';
 import {
   HiOutlineHome, HiOutlineCube, HiOutlineCalculator, HiOutlineClipboardDocumentList,
   HiOutlineChartBar, HiOutlineCog, HiOutlineXMark, HiOutlineCurrencyDollar,
-  HiOutlineUser, HiOutlineArrowRightOnRectangle
+  HiOutlineUser, HiOutlineArrowRightOnRectangle, HiOutlineDocumentArrowUp
 } from 'react-icons/hi2';
 import { HiOutlineSun, HiOutlineMoon } from 'react-icons/hi';
 
@@ -36,13 +36,13 @@ export default function Sidebar({ open, onClose, dark, toggleDark }) {
   const accentClass = ({ isActive }) =>
     `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
       isActive
-        ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30'
-        : 'bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20 dark:text-emerald-400'
+        ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-lg shadow-emerald-500/25'
+        : 'text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800'
     }`;
 
   const SidebarContent = () => (
-    <div className="flex flex-col h-full">
-      <div className="px-5 py-5 flex items-center gap-3">
+    <div className="flex flex-col h-full overflow-hidden">
+      <div className="px-5 py-5 flex items-center gap-3 flex-shrink-0">
         <div className="w-9 h-9 bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-xl flex items-center justify-center shadow-lg">
           <span className="text-white text-lg">&#127829;</span>
         </div>
@@ -55,7 +55,7 @@ export default function Sidebar({ open, onClose, dark, toggleDark }) {
         </button>
       </div>
 
-      <nav className="flex-1 px-3 py-2 space-y-0.5">
+      <nav className="flex-1 px-3 py-2 space-y-0.5 overflow-y-auto min-h-0">
         {navItems.map((item) => (
           <NavLink
             key={item.to}
@@ -70,7 +70,7 @@ export default function Sidebar({ open, onClose, dark, toggleDark }) {
         ))}
       </nav>
 
-      <div className="p-4 border-t border-gray-100 dark:border-gray-800 space-y-2">
+      <div className="p-4 border-t border-gray-100 dark:border-gray-800 space-y-2 flex-shrink-0">
         <button onClick={toggleDark} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 rounded-lg transition-colors">
           {dark ? <HiOutlineSun className="w-5 h-5" /> : <HiOutlineMoon className="w-5 h-5" />}
           {dark ? "Yorug' rejim" : "Qorong'u rejim"}
@@ -104,7 +104,7 @@ export default function Sidebar({ open, onClose, dark, toggleDark }) {
       {open && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-          <div className="fixed inset-y-0 left-0 w-64 bg-white dark:bg-gray-900 shadow-xl z-50">
+          <div className="fixed inset-y-0 left-0 w-64 bg-white dark:bg-gray-900 shadow-xl z-50 flex flex-col animate-slide-in-left">
             <SidebarContent />
           </div>
         </div>

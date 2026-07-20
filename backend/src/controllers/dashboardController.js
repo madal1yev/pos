@@ -3,6 +3,7 @@ const db = require('../config/db');
 exports.get = async (req, res, next) => {
   try {
     const today = new Date().toISOString().split('T')[0];
+    const isSqlite = db.isSqlite;
 
     const todaySales = await db.query(
       `SELECT COUNT(*) as count, COALESCE(SUM(total_amount), 0) as revenue
@@ -10,12 +11,19 @@ exports.get = async (req, res, next) => {
       [today]
     );
 
-    const monthlySales = await db.query(
-      `SELECT COUNT(*) as count, COALESCE(SUM(total_amount), 0) as revenue
-       FROM sales 
-       WHERE EXTRACT(MONTH FROM created_at) = EXTRACT(MONTH FROM NOW())
-         AND EXTRACT(YEAR FROM created_at) = EXTRACT(YEAR FROM NOW())`
-    );
+    const monthlySales = isSqlite
+      ? await db.query(
+          `SELECT COUNT(*) as count, COALESCE(SUM(total_amount), 0) as revenue
+           FROM sales 
+           WHERE CAST(strftime('%m', created_at) AS INTEGER) = CAST(strftime('%m', 'now') AS INTEGER)
+             AND CAST(strftime('%Y', created_at) AS INTEGER) = CAST(strftime('%Y', 'now') AS INTEGER)`
+        )
+      : await db.query(
+          `SELECT COUNT(*) as count, COALESCE(SUM(total_amount), 0) as revenue
+           FROM sales 
+           WHERE EXTRACT(MONTH FROM created_at) = EXTRACT(MONTH FROM NOW())
+             AND EXTRACT(YEAR FROM created_at) = EXTRACT(YEAR FROM NOW())`
+        );
 
     const productStats = await db.query(
       `SELECT 
@@ -37,16 +45,27 @@ exports.get = async (req, res, next) => {
        ORDER BY s.created_at DESC LIMIT 10`
     );
 
-    const salesChart = await db.query(
-      `SELECT 
-        date(created_at) as date,
-        COUNT(*) as count,
-        COALESCE(SUM(total_amount), 0) as revenue
-       FROM sales 
-       WHERE created_at >= NOW() - INTERVAL '7 days'
-       GROUP BY date(created_at)
-       ORDER BY date ASC`
-    );
+    const salesChart = isSqlite
+      ? await db.query(
+          `SELECT 
+            date(created_at) as date,
+            COUNT(*) as count,
+            COALESCE(SUM(total_amount), 0) as revenue
+           FROM sales 
+           WHERE created_at >= datetime('now', '-7 days')
+           GROUP BY date(created_at)
+           ORDER BY date ASC`
+        )
+      : await db.query(
+          `SELECT 
+            date(created_at) as date,
+            COUNT(*) as count,
+            COALESCE(SUM(total_amount), 0) as revenue
+           FROM sales 
+           WHERE created_at >= NOW() - INTERVAL '7 days'
+           GROUP BY date(created_at)
+           ORDER BY date ASC`
+        );
 
     const topProducts = await db.query(
       `SELECT p.name, COALESCE(SUM(si.quantity), 0) as sold
