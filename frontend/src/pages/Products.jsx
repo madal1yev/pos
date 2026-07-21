@@ -395,7 +395,6 @@ function BulkPriceModal({ products, onClose, onApply }) {
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Qaysi narxni o'zgartirasiz?</label>
             <select value={field} onChange={(e) => setField(e.target.value)} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white">
               <option value="selling_price">Sotish narxi</option>
-              <option value="purchase_price">Sotib narxi</option>
             </select>
           </div>
           <div>

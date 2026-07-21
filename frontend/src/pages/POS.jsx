@@ -42,21 +42,34 @@ function getInitials(name) {
 
 function CalculatorPanel({ onInput, onClose }) {
   const [display, setDisplay] = useState('0');
+  const [expression, setExpression] = useState('');
   const [prevValue, setPrevValue] = useState(null);
   const [operator, setOperator] = useState(null);
   const [waiting, setWaiting] = useState(false);
 
+  const opSymbol = { '+': '+', '-': '−', '*': '×', '/': '÷' };
+
   const inputDigit = (d) => {
-    if (waiting) { setDisplay(String(d)); setWaiting(false); }
-    else { setDisplay(display === '0' ? String(d) : display + d); }
+    if (waiting) {
+      setDisplay(String(d));
+      setExpression(prev => prev + ' ' + String(d));
+      setWaiting(false);
+    } else {
+      setDisplay(display === '0' ? String(d) : display + d);
+      if (operator) {
+        setExpression(prev => prevValue + ' ' + (opSymbol[operator] || operator) + ' ' + (display === '0' ? String(d) : display.slice(0, -1) + String(d)));
+      } else {
+        setExpression(display === '0' ? String(d) : display + d);
+      }
+    }
   };
 
   const inputDecimal = () => {
-    if (waiting) { setDisplay('0.'); setWaiting(false); return; }
+    if (waiting) { setDisplay('0.'); setExpression(prev => prev + ' 0.'); setWaiting(false); return; }
     if (!display.includes('.')) setDisplay(display + '.');
   };
 
-  const clear = () => { setDisplay('0'); setPrevValue(null); setOperator(null); setWaiting(false); };
+  const clear = () => { setDisplay('0'); setExpression(''); setPrevValue(null); setOperator(null); setWaiting(false); };
 
   const calculate = (a, op, b) => {
     const numA = parseFloat(a), numB = parseFloat(b);
@@ -72,10 +85,13 @@ function CalculatorPanel({ onInput, onClose }) {
   const handleOperator = (op) => {
     if (operator && !waiting) {
       const result = calculate(prevValue, operator, display);
-      setDisplay(String(Math.round(result * 100) / 100));
-      setPrevValue(String(Math.round(result * 100) / 100));
+      const rounded = Math.round(result * 100) / 100;
+      setDisplay(String(rounded));
+      setExpression(prevValue + ' ' + (opSymbol[operator] || operator) + ' ' + display + ' = ' + rounded);
+      setPrevValue(String(rounded));
     } else {
       setPrevValue(display);
+      setExpression(display + ' ' + (opSymbol[op] || op));
     }
     setOperator(op);
     setWaiting(true);
@@ -84,7 +100,9 @@ function CalculatorPanel({ onInput, onClose }) {
   const handleEquals = () => {
     if (!operator) return;
     const result = calculate(prevValue, operator, display);
-    setDisplay(String(Math.round(result * 100) / 100));
+    const rounded = Math.round(result * 100) / 100;
+    setExpression(prevValue + ' ' + (opSymbol[operator] || operator) + ' ' + display + ' =');
+    setDisplay(String(rounded));
     setPrevValue(null);
     setOperator(null);
     setWaiting(true);
@@ -101,7 +119,8 @@ function CalculatorPanel({ onInput, onClose }) {
 
   return (
     <div className="bg-gray-50 dark:bg-gray-700/50 rounded-2xl p-3">
-      <div className="bg-white dark:bg-gray-800 rounded-xl p-3 mb-3 text-right">
+      <div className="bg-white dark:bg-gray-800 rounded-xl p-3 mb-3 text-right min-h-[4.5rem] flex flex-col justify-end">
+        {expression && <span className="text-xs text-gray-400 dark:text-gray-500 font-mono truncate">{expression}</span>}
         <span className="text-2xl font-bold text-gray-900 dark:text-white font-mono">{display}</span>
       </div>
       <div className="grid grid-cols-4 gap-1.5 mb-2">
@@ -213,13 +232,17 @@ function QuantityModal({ product, onClose, onAdd }) {
 
               <div>
                 <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wider">Miqdor ({selectedUnit.short})</label>
-                <div className="flex items-center gap-2">
-                  <button onClick={decrement} className="w-11 h-11 rounded-xl bg-gray-100 dark:bg-gray-700 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors active:scale-95 flex-shrink-0">
-                    <HiOutlineMinus className="w-4 h-4 text-gray-600 dark:text-gray-300" />
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <button onClick={decrement} className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-gray-100 dark:bg-gray-700 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors active:scale-90 flex-shrink-0 border border-gray-200 dark:border-gray-600 shadow-sm">
+                    <HiOutlineMinus className="w-5 h-5 text-gray-600 dark:text-gray-300" />
                   </button>
-                  <input type="number" value={quantity} onChange={(e) => setQuantity(Math.max(selectedUnit.min, parseFloat(e.target.value) || selectedUnit.min))} step={selectedUnit.step} min={selectedUnit.min} className="flex-1 text-center text-3xl font-bold text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-200 dark:border-gray-600 focus:border-indigo-500 outline-none py-2.5" />
-                  <button onClick={increment} className="w-11 h-11 rounded-xl bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center hover:bg-indigo-200 dark:hover:bg-indigo-900/50 transition-colors active:scale-95 flex-shrink-0">
-                    <HiOutlinePlus className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                  <input type="text" inputMode="decimal" value={quantity} onChange={(e) => {
+                    const v = e.target.value.replace(/[^0-9.]/g, '');
+                    const n = parseFloat(v);
+                    setQuantity(isNaN(n) ? selectedUnit.min : Math.max(selectedUnit.min, n));
+                  }} className="w-0 flex-1 text-center text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-200 dark:border-gray-600 focus:border-indigo-500 outline-none py-3 px-2 min-w-0" />
+                  <button onClick={increment} className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center hover:bg-indigo-200 dark:hover:bg-indigo-900/50 transition-colors active:scale-90 flex-shrink-0 border border-indigo-200 dark:border-indigo-800 shadow-sm">
+                    <HiOutlinePlus className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
                   </button>
                 </div>
               </div>

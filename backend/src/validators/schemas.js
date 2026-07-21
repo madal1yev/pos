@@ -33,7 +33,7 @@ const categorySchema = z.object({
 
 const saleItemSchema = z.object({
   product_id: z.coerce.number().int(),
-  quantity: z.coerce.number().int().positive(),
+  quantity: z.coerce.number().positive(),
   price: z.coerce.number().min(0),
   discount: z.coerce.number().min(0).optional(),
   tax: z.coerce.number().min(0).optional(),
@@ -42,7 +42,7 @@ const saleItemSchema = z.object({
 const saleSchema = z.object({
   customer_name: z.string().optional(),
   payment_method: z.enum(['cash', 'card', 'other']),
-  received_amount: z.number().min(0),
+  received_amount: z.coerce.number().min(0),
   items: z.array(saleItemSchema).min(1, 'At least one item is required'),
   notes: z.string().optional(),
 });
