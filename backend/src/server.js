@@ -75,7 +75,7 @@ if (process.env.NODE_ENV === 'production') {
     try {
       console.log('Running production migration...');
       const { execSync } = require('child_process');
-      execSync('node migrations/pg-migrate.js', { cwd: path.join(__dirname, '../..'), stdio: 'inherit' });
+      execSync('node migrations/pg-migrate.js', { cwd: path.join(__dirname, '..'), stdio: 'inherit' });
     } catch (err) {
       console.error('Auto-migration warning:', err.message);
     }
