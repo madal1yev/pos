@@ -71,13 +71,14 @@ app.get('/api/health', async (req, res) => {
 
 // Auto-migrate on startup in production
 if (process.env.NODE_ENV === 'production') {
+  console.log(`Database: ${process.env.DATABASE_URL ? 'PostgreSQL' : 'SQLite (⚠️ ma\'lumotlar saqlanmaydi!)'}`);
   (async () => {
     try {
       console.log('Running production migration...');
       const { execSync } = require('child_process');
       execSync('node migrations/pg-migrate.js', { cwd: path.join(__dirname, '..'), stdio: 'inherit' });
     } catch (err) {
-      console.error('Auto-migration warning:', err.message);
+      console.error('Auto-migration xatosi:', err.message);
     }
   })();
 }

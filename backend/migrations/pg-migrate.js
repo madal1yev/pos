@@ -187,7 +187,7 @@ async function migrate() {
         }
       }
     } else {
-      const { default: sqliteDb } = require('../src/config/db');
+      const sqliteDb = require('../src/config/db');
       const statements = require('fs').readFileSync(require('path').join(__dirname, 'run.js'), 'utf8');
       const migrationMatch = statements.match(/const migrationSQL = `([\s\S]*?)`;/);
       const seedMatch = statements.match(/const seedData = `([\s\S]*?)`;/);
