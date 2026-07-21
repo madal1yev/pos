@@ -127,7 +127,9 @@ INSERT OR IGNORE INTO settings (store_name, store_address, store_phone, currency
 VALUES ('Oziq-ovqat Do''koni', 'Toshkent shahri, Bunyodkor ko''chasi 15', '+998 90 123 45 67', 'UZS', 'so''m', 0, 'Xaridingiz uchun rahmat! Yana kutamiz!');
 
 INSERT OR IGNORE INTO users (name, email, password, role_id)
-VALUES ('Admin', 'admin@pos.com', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 1);
+VALUES ('Admin', 'admin@pos.uz', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 1);
+
+UPDATE users SET email = 'admin@pos.uz' WHERE email = 'admin@pos.com';
 
 INSERT OR IGNORE INTO categories (name, description) VALUES
 ('Sut mahsulotlari', 'Sut, qatiq, pishloq va boshqa sut mahsulotlari'),

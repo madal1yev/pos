@@ -54,7 +54,7 @@ export default function Login() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                placeholder="admin@pos.com"
+                placeholder="admin@pos.uz"
                 required
                 autoFocus
               />

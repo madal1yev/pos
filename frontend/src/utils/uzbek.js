@@ -31,7 +31,7 @@ export const UZ = {
   signingIn: 'Kirilmoqda...',
   welcomeBack: 'Xush kelibsiz!',
   loginSubtitle: 'POS tizimiga kiring',
-  demoCredentials: 'Demo: admin@pos.com / password',
+  demoCredentials: 'Demo: admin@pos.uz / password',
   dashboard: 'Boshqaruv paneli',
   pos: 'Kassa',
   products: 'Mahsulotlar',

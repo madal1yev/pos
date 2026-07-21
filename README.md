@@ -90,7 +90,7 @@ npm run dev
 ### 6. Login
 
 Open `http://localhost:3000` and login with:
-- **Email:** admin@pos.com
+- **Email:** admin@pos.uz
 - **Password:** password
 
 ## Project Structure
