@@ -4,7 +4,7 @@ import { productsAPI, salesAPI, settingsAPI } from '../services/api';
 import { UZ, formatCurrency } from '../utils/uzbek';
 import { getErrorMessage } from '../utils/errors';
 import { emitDataChanged } from '../utils/events';
-import { HiOutlineMinus, HiOutlinePlus, HiOutlineTrash, HiOutlineCamera, HiOutlineMagnifyingGlass, HiOutlineCheckCircle, HiOutlineXMark, HiOutlineShoppingCart } from 'react-icons/hi2';
+import { HiOutlineMinus, HiOutlinePlus, HiOutlineTrash, HiOutlineCamera, HiOutlineMagnifyingGlass, HiOutlineCheckCircle, HiOutlineXMark, HiOutlineShoppingCart, HiOutlineCalculator } from 'react-icons/hi2';
 import { Html5Qrcode } from 'html5-qrcode';
 import toast from 'react-hot-toast';
 
@@ -40,12 +40,105 @@ function getInitials(name) {
   return name.substring(0, 2).toUpperCase();
 }
 
+function CalculatorPanel({ onInput, onClose }) {
+  const [display, setDisplay] = useState('0');
+  const [prevValue, setPrevValue] = useState(null);
+  const [operator, setOperator] = useState(null);
+  const [waiting, setWaiting] = useState(false);
+
+  const inputDigit = (d) => {
+    if (waiting) { setDisplay(String(d)); setWaiting(false); }
+    else { setDisplay(display === '0' ? String(d) : display + d); }
+  };
+
+  const inputDecimal = () => {
+    if (waiting) { setDisplay('0.'); setWaiting(false); return; }
+    if (!display.includes('.')) setDisplay(display + '.');
+  };
+
+  const clear = () => { setDisplay('0'); setPrevValue(null); setOperator(null); setWaiting(false); };
+
+  const calculate = (a, op, b) => {
+    const numA = parseFloat(a), numB = parseFloat(b);
+    switch (op) {
+      case '+': return numA + numB;
+      case '-': return numA - numB;
+      case '*': return numA * numB;
+      case '/': return numB !== 0 ? numA / numB : 0;
+      default: return numB;
+    }
+  };
+
+  const handleOperator = (op) => {
+    if (operator && !waiting) {
+      const result = calculate(prevValue, operator, display);
+      setDisplay(String(Math.round(result * 100) / 100));
+      setPrevValue(String(Math.round(result * 100) / 100));
+    } else {
+      setPrevValue(display);
+    }
+    setOperator(op);
+    setWaiting(true);
+  };
+
+  const handleEquals = () => {
+    if (!operator) return;
+    const result = calculate(prevValue, operator, display);
+    setDisplay(String(Math.round(result * 100) / 100));
+    setPrevValue(null);
+    setOperator(null);
+    setWaiting(true);
+  };
+
+  const handleUse = () => {
+    onInput(parseFloat(display));
+    onClose();
+  };
+
+  const btn = (label, action, cls = '') => (
+    <button onClick={action} className={`py-3 rounded-xl text-sm font-semibold transition-all active:scale-95 ${cls}`}>{label}</button>
+  );
+
+  return (
+    <div className="bg-gray-50 dark:bg-gray-700/50 rounded-2xl p-3">
+      <div className="bg-white dark:bg-gray-800 rounded-xl p-3 mb-3 text-right">
+        <span className="text-2xl font-bold text-gray-900 dark:text-white font-mono">{display}</span>
+      </div>
+      <div className="grid grid-cols-4 gap-1.5 mb-2">
+        {btn('C', clear, 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400')}
+        {btn('±', () => setDisplay(String(parseFloat(display) * -1)), 'bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200')}
+        {btn('%', () => setDisplay(String(parseFloat(display) / 100)), 'bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200')}
+        {btn('÷', () => handleOperator('/'), 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400')}
+        {btn('7', () => inputDigit(7), 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm')}
+        {btn('8', () => inputDigit(8), 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm')}
+        {btn('9', () => inputDigit(9), 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm')}
+        {btn('×', () => handleOperator('*'), 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400')}
+        {btn('4', () => inputDigit(4), 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm')}
+        {btn('5', () => inputDigit(5), 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm')}
+        {btn('6', () => inputDigit(6), 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm')}
+        {btn('−', () => handleOperator('-'), 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400')}
+        {btn('1', () => inputDigit(1), 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm')}
+        {btn('2', () => inputDigit(2), 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm')}
+        {btn('3', () => inputDigit(3), 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm')}
+        {btn('+', () => handleOperator('+'), 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400')}
+        {btn('0', () => inputDigit(0), 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm col-span-2')}
+        {btn('.', inputDecimal, 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm')}
+        {btn('=', handleEquals, 'bg-indigo-600 text-white shadow-md shadow-indigo-500/25')}
+      </div>
+      <button onClick={handleUse} className="w-full bg-emerald-600 text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-emerald-700 transition-all">
+        Qo'llash ({display})
+      </button>
+    </div>
+  );
+}
+
 function QuantityModal({ product, onClose, onAdd }) {
   const defaultUnit = product.unit || 'pcs';
   const [selectedUnit, setSelectedUnit] = useState(UNIT_OPTIONS.find(u => u.value === defaultUnit) || UNIT_OPTIONS[0]);
   const [quantity, setQuantity] = useState(defaultUnit === 'pcs' ? 1 : (selectedUnit.min || 1));
+  const [showCalc, setShowCalc] = useState(false);
   const unitPrice = product.selling_price;
-  const total = (unitPrice * quantity).toFixed(0);
+  const total = Math.round(unitPrice * quantity * 100) / 100;
 
   const handleAdd = () => {
     if (quantity <= 0) { toast.error('Miqdor kiriting'); return; }
@@ -54,64 +147,96 @@ function QuantityModal({ product, onClose, onAdd }) {
   };
 
   const increment = () => {
-    const newQty = Math.round((quantity + selectedUnit.step) * 100) / 100;
-    setQuantity(newQty);
+    setQuantity(q => Math.round((q + selectedUnit.step) * 100) / 100);
   };
 
   const decrement = () => {
-    const newQty = Math.round((quantity - selectedUnit.step) * 100) / 100;
-    if (newQty >= selectedUnit.min) setQuantity(newQty);
+    setQuantity(q => {
+      const n = Math.round((q - selectedUnit.step) * 100) / 100;
+      return n >= selectedUnit.min ? n : q;
+    });
   };
+
+  const quickAmounts = selectedUnit.value === 'pcs' ? [1, 2, 3, 5, 10] : [0.5, 1, 2, 3, 5];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="fixed inset-0 bg-black/50 backdrop-blur-sm modal-overlay" onClick={onClose} />
-      <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-sm modal-content">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-700">
+      <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md modal-content max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800 z-10">
           <h3 className="text-base font-semibold text-gray-900 dark:text-white">Miqdor tanlash</h3>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"><HiOutlineXMark className="w-5 h-5" /></button>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setShowCalc(!showCalc)} className={`p-1.5 rounded-lg transition-colors ${showCalc ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600' : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400'}`}>
+              <HiOutlineCalculator className="w-5 h-5" />
+            </button>
+            <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"><HiOutlineXMark className="w-5 h-5" /></button>
+          </div>
         </div>
+
         <div className="p-5 space-y-4">
-          <div className="flex items-center gap-3">
-            <POSImage src={product.image_url} name={product.name} size="w-12 h-12" />
-            <div>
-              <p className="font-semibold text-gray-900 dark:text-white">{product.name}</p>
-              <p className="text-sm text-indigo-600 dark:text-indigo-400 font-medium">{formatCurrency(unitPrice)} / {selectedUnit.short}</p>
-            </div>
-          </div>
+          {showCalc ? (
+            <CalculatorPanel onInput={(v) => { setQuantity(v); }} onClose={() => setShowCalc(false)} />
+          ) : (
+            <>
+              <div className="flex items-center gap-3">
+                <POSImage src={product.image_url} name={product.name} size="w-14 h-14" />
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold text-gray-900 dark:text-white truncate">{product.name}</p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-sm font-bold text-indigo-600 dark:text-indigo-400">{formatCurrency(unitPrice)}</span>
+                    <span className="text-xs text-gray-400">/ {selectedUnit.short}</span>
+                    {product.stock_quantity < product.minimum_stock && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400 font-medium">Zaxirada: {product.stock_quantity}</span>
+                    )}
+                  </div>
+                </div>
+              </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">O'lchov birligi</label>
-            <div className="grid grid-cols-5 gap-1.5">
-              {UNIT_OPTIONS.map((u) => (
-                <button key={u.value} onClick={() => { setSelectedUnit(u); if (u.value === 'pcs') setQuantity(1); else setQuantity(u.min); }} className={`py-2 px-1 rounded-xl text-xs font-medium border-2 transition-all ${selectedUnit.value === u.value ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 shadow-sm' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300'}`}>
-                  {u.label}
-                </button>
-              ))}
-            </div>
-          </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wider">O'lchov birligi</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {UNIT_OPTIONS.map((u) => (
+                    <button key={u.value} onClick={() => { setSelectedUnit(u); setQuantity(u.value === 'pcs' ? 1 : u.min); }} className={`py-1.5 px-3 rounded-lg text-xs font-medium border transition-all ${selectedUnit.value === u.value ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 shadow-sm' : 'border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:border-gray-300'}`}>
+                      {u.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Miqdor ({selectedUnit.short})</label>
-            <div className="flex items-center gap-3">
-              <button onClick={decrement} className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-gray-700 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors active:scale-95">
-                <HiOutlineMinus className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+              <div className="flex flex-wrap gap-1.5">
+                {quickAmounts.map(a => (
+                  <button key={a} onClick={() => setQuantity(a)} className={`py-1.5 px-3 rounded-lg text-xs font-medium border transition-all ${quantity === a ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400' : 'border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'}`}>
+                    {a} {selectedUnit.short}
+                  </button>
+                ))}
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wider">Miqdor ({selectedUnit.short})</label>
+                <div className="flex items-center gap-2">
+                  <button onClick={decrement} className="w-11 h-11 rounded-xl bg-gray-100 dark:bg-gray-700 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors active:scale-95 flex-shrink-0">
+                    <HiOutlineMinus className="w-4 h-4 text-gray-600 dark:text-gray-300" />
+                  </button>
+                  <input type="number" value={quantity} onChange={(e) => setQuantity(Math.max(selectedUnit.min, parseFloat(e.target.value) || selectedUnit.min))} step={selectedUnit.step} min={selectedUnit.min} className="flex-1 text-center text-3xl font-bold text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-200 dark:border-gray-600 focus:border-indigo-500 outline-none py-2.5" />
+                  <button onClick={increment} className="w-11 h-11 rounded-xl bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center hover:bg-indigo-200 dark:hover:bg-indigo-900/50 transition-colors active:scale-95 flex-shrink-0">
+                    <HiOutlinePlus className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-r from-indigo-50 to-blue-50 dark:from-indigo-900/20 dark:to-blue-900/20 rounded-xl p-4 flex justify-between items-center">
+                <div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Jami</p>
+                  <p className="text-xs text-gray-400">{quantity} × {formatCurrency(unitPrice)}</p>
+                </div>
+                <span className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">{formatCurrency(total)}</span>
+              </div>
+
+              <button onClick={handleAdd} className="w-full bg-gradient-to-r from-indigo-600 to-indigo-700 text-white py-3.5 rounded-xl text-base font-semibold hover:from-indigo-700 hover:to-indigo-800 transition-all shadow-lg shadow-indigo-500/25 active:scale-[0.98] flex items-center justify-center gap-2">
+                <HiOutlinePlus className="w-5 h-5" /> Savatga qo'shish
               </button>
-              <input type="number" value={quantity} onChange={(e) => setQuantity(Math.max(selectedUnit.min, parseFloat(e.target.value) || selectedUnit.min))} step={selectedUnit.step} min={selectedUnit.min} className="flex-1 text-center text-2xl font-bold text-gray-900 dark:text-white bg-transparent border-b-2 border-gray-200 dark:border-gray-600 focus:border-indigo-500 outline-none py-2" />
-              <button onClick={increment} className="w-12 h-12 rounded-xl bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center hover:bg-indigo-200 dark:hover:bg-indigo-900/50 transition-colors active:scale-95">
-                <HiOutlinePlus className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-              </button>
-            </div>
-          </div>
-
-          <div className="bg-gradient-to-r from-indigo-50 to-blue-50 dark:from-indigo-900/20 dark:to-blue-900/20 rounded-xl p-4 flex justify-between items-center">
-            <span className="text-sm text-gray-600 dark:text-gray-400">Jami:</span>
-            <span className="text-xl font-bold text-indigo-600 dark:text-indigo-400">{formatCurrency(total)}</span>
-          </div>
-
-          <button onClick={handleAdd} className="w-full bg-gradient-to-r from-indigo-600 to-indigo-700 text-white py-3.5 rounded-xl text-base font-semibold hover:from-indigo-700 hover:to-indigo-800 transition-all shadow-lg shadow-indigo-500/25 active:scale-[0.98]">
-            Savatga qo'shish
-          </button>
+            </>
+          )}
         </div>
       </div>
     </div>
@@ -319,6 +444,7 @@ export default function POS() {
   const [receipt, setReceipt] = useState(null);
   const [taxRate, setTaxRate] = useState(0);
   const [quantityProduct, setQuantityProduct] = useState(null);
+  const [showCalcModal, setShowCalcModal] = useState(false);
   const searchRef = useRef(null);
   const barcodeBuffer = useRef('');
   const barcodeTimer = useRef(null);
@@ -386,9 +512,14 @@ export default function POS() {
               <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input ref={searchRef} type="text" placeholder={UZ.searchOrScan} value={search} onChange={(e) => setSearch(e.target.value)} data-barcode="true" className="input-field pl-10 dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
             </div>
-            <button onClick={() => setShowScanner(true)} className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-indigo-700 transition-all flex items-center justify-center gap-2 whitespace-nowrap shadow-md shadow-indigo-500/20">
-              <HiOutlineCamera className="w-4 h-4" /> {UZ.scan}
-            </button>
+            <div className="flex gap-2">
+              <button onClick={() => setShowCalcModal(true)} className="bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-3 py-2 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-600 transition-all flex items-center justify-center gap-1.5 border border-gray-200 dark:border-gray-600 shadow-sm">
+                <HiOutlineCalculator className="w-4 h-4" /> Kalk
+              </button>
+              <button onClick={() => setShowScanner(true)} className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-indigo-700 transition-all flex items-center justify-center gap-2 whitespace-nowrap shadow-md shadow-indigo-500/20">
+                <HiOutlineCamera className="w-4 h-4" /> {UZ.scan}
+              </button>
+            </div>
           </div>
           <div className="flex-1 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3 gap-2">
             {products.map((product, i) => (
@@ -396,11 +527,11 @@ export default function POS() {
                 <POSImage src={product.image_url} name={product.name} size="w-14 h-14" />
                 <div className="w-full min-w-0">
                   <p className="text-xs font-semibold text-gray-900 dark:text-white leading-tight break-words line-clamp-2 min-h-[2rem]">{product.name}</p>
-                  <p className="text-[10px] text-gray-400 mt-0.5">{product.brand || product.product_code}</p>
+                  <p className="text-[10px] text-gray-400 mt-0.5">{product.product_code}</p>
                 </div>
                 <div className="w-full flex items-center justify-between gap-1 mt-auto">
                   <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400">{formatCurrency(product.selling_price)}</span>
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${product.stock_quantity <= product.minimum_stock ? 'bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400' : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'}`}>{product.stock_quantity}</span>
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${product.stock_quantity < product.minimum_stock ? 'bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400' : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'}`}>{product.stock_quantity}</span>
                 </div>
               </button>
             ))}
@@ -491,6 +622,20 @@ export default function POS() {
       {quantityProduct && <QuantityModal product={quantityProduct} onClose={() => setQuantityProduct(null)} onAdd={handleAddToCart} />}
       {showCheckout && <CheckoutModal total={getTotal()} taxRate={taxRate} onClose={() => setShowCheckout(false)} onComplete={handleCheckout} />}
       {receipt && <ReceiptModal sale={receipt} onClose={() => setReceipt(null)} />}
+      {showCalcModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm modal-overlay" onClick={() => setShowCalcModal(false)} />
+          <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-xs">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-700">
+              <h3 className="text-base font-semibold text-gray-900 dark:text-white">Kalkulyator</h3>
+              <button onClick={() => setShowCalcModal(false)} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"><HiOutlineXMark className="w-5 h-5" /></button>
+            </div>
+            <div className="p-4">
+              <CalculatorPanel onInput={() => {}} onClose={() => setShowCalcModal(false)} />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

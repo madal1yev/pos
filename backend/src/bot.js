@@ -54,8 +54,8 @@ async function getProduct(id) {
 
 async function searchProducts(query) {
   return await db.query(
-    `SELECT p.*, c.name as category_name FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.status = 'active' AND (p.name LIKE $1 OR p.brand LIKE $2 OR p.barcode LIKE $3) ORDER BY p.name LIMIT 10`,
-    [`%${query}%`, `%${query}%`, `%${query}%`]
+    `SELECT p.*, c.name as category_name FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.status = 'active' AND (p.name LIKE $1 OR p.barcode LIKE $2) ORDER BY p.name LIMIT 10`,
+    [`%${query}%`, `%${query}%`]
   );
 }
 
@@ -79,7 +79,8 @@ async function createOrder(chatId, username, firstName, items, totalAmount) {
       const product = await getProduct(item.product_id);
       if (product) {
         const newStock = Math.max(0, product.stock_quantity - item.quantity);
-        await db.query(`UPDATE products SET stock_quantity = $1, updated_at = datetime('now') WHERE id = $2`, [newStock, item.product_id]);
+        const nowExpr = db.isSqlite ? "datetime('now')" : 'NOW()';
+        await db.query(`UPDATE products SET stock_quantity = $1, updated_at = ${nowExpr} WHERE id = $2`, [newStock, item.product_id]);
 
         await db.query(
           `INSERT INTO inventory_logs (product_id, change_type, quantity, previous_stock, new_stock, note, created_by) VALUES ($1, 'sale', $2, $3, $4, $5, 1)`,
@@ -218,7 +219,7 @@ bot.on('callback_query', async (query) => {
     }
 
     const stockStatus = product.stock_quantity === 0 ? '❌ Tugagan' :
-      product.stock_quantity <= product.minimum_stock ? '⚠️ Kam qoldi' : '✅ Mavjud';
+      product.stock_quantity < product.minimum_stock ? '⚠️ Kam qoldi' : '✅ Mavjud';
 
     const imageText = product.image_url ? `🖼️ Rasm: [Ko\'rish](${product.image_url})\n` : '';
 
@@ -461,7 +462,7 @@ bot.on('callback_query', async (query) => {
 
   if (data === 'check_stock') {
     const { rows: products } = await getProducts();
-    const lowStock = products.filter(p => p.stock_quantity <= p.minimum_stock && p.stock_quantity > 0);
+    const lowStock = products.filter(p => p.stock_quantity < p.minimum_stock && p.stock_quantity > 0);
     const outOfStock = products.filter(p => p.stock_quantity === 0);
 
     let text = '📊 *Zaxira holati:*\n\n';

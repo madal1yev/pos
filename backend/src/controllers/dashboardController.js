@@ -28,7 +28,7 @@ exports.get = async (req, res, next) => {
     const productStats = await db.query(
       `SELECT 
         COUNT(*) as total,
-        SUM(CASE WHEN stock_quantity <= minimum_stock THEN 1 ELSE 0 END) as low_stock,
+        SUM(CASE WHEN stock_quantity < minimum_stock THEN 1 ELSE 0 END) as low_stock,
         SUM(CASE WHEN stock_quantity = 0 THEN 1 ELSE 0 END) as out_of_stock,
         COALESCE(SUM(selling_price * stock_quantity), 0) as total_inventory_value
        FROM products WHERE status = 'active'`

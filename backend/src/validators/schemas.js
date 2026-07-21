@@ -16,8 +16,6 @@ const registerSchema = z.object({
 const productSchema = z.object({
   name: z.string().min(1, 'Product name is required'),
   category_id: z.number().int().nullable().optional(),
-  brand: z.string().optional(),
-  purchase_price: z.number().min(0).optional(),
   selling_price: z.number().min(0, 'Selling price must be positive'),
   stock_quantity: z.number().int().min(0).optional(),
   minimum_stock: z.number().int().min(0).optional(),
@@ -34,11 +32,11 @@ const categorySchema = z.object({
 });
 
 const saleItemSchema = z.object({
-  product_id: z.number().int(),
-  quantity: z.number().int().positive(),
-  price: z.number().min(0),
-  discount: z.number().min(0).optional(),
-  tax: z.number().min(0).optional(),
+  product_id: z.coerce.number().int(),
+  quantity: z.coerce.number().int().positive(),
+  price: z.coerce.number().min(0),
+  discount: z.coerce.number().min(0).optional(),
+  tax: z.coerce.number().min(0).optional(),
 });
 
 const saleSchema = z.object({

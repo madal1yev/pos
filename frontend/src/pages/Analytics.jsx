@@ -462,7 +462,7 @@ export default function Analytics() {
                         const barWidth = Math.min(100, (p.stock_quantity / Math.max(p.minimum_stock, 1)) * 100);
                         let status;
                         if (p.stock_quantity === 0) status = { label: 'Tugagan', cls: 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400' };
-                        else if (ratio <= 1) status = { label: 'Kam qoldi', cls: 'bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' };
+                        else if (ratio < 1) status = { label: 'Kam qoldi', cls: 'bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' };
                         else status = { label: 'Mavjud', cls: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' };
                         return (
                           <tr key={p.id} className="hover:bg-indigo-50/40 dark:hover:bg-indigo-900/10 transition-colors">
@@ -481,7 +481,7 @@ export default function Analytics() {
                                 <div className="flex-1 h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden hidden sm:block" style={{ minWidth: '60px' }}>
                                   <div className={`h-full rounded-full transition-all ${p.stock_quantity === 0 ? 'bg-red-400' : ratio <= 1 ? 'bg-amber-400' : 'bg-emerald-400'}`} style={{ width: `${barWidth}%` }} />
                                 </div>
-                                <span className={`text-sm font-bold whitespace-nowrap ${p.stock_quantity <= p.minimum_stock ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-white'}`}>{p.stock_quantity}</span>
+                                <span className={`text-sm font-bold whitespace-nowrap ${p.stock_quantity < p.minimum_stock ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-white'}`}>{p.stock_quantity}</span>
                                 <span className="text-[11px] text-gray-400">{p.unit}</span>
                               </div>
                             </td>

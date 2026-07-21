@@ -18,7 +18,7 @@ export default function Header({ onMenuClick }) {
     try {
       const { data } = await productsAPI.getAll({ status: 'active', limit: 100 });
       const products = data?.products || [];
-      const low = products.filter(p => p.stock_quantity <= p.minimum_stock && p.stock_quantity > 0);
+      const low = products.filter(p => p.stock_quantity < p.minimum_stock && p.stock_quantity > 0);
       setLowStockItems(low);
     } catch {}
   };

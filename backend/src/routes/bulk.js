@@ -33,10 +33,6 @@ router.post('/bulk-update-prices', async (req, res, next) => {
           sets.push(`selling_price = $${pIdx++}`);
           params.push(parseFloat(u.selling_price));
         }
-        if (u.purchase_price !== undefined) {
-          sets.push(`purchase_price = $${pIdx++}`);
-          params.push(parseFloat(u.purchase_price));
-        }
         if (u.name !== undefined) {
           sets.push(`name = $${pIdx++}`);
           params.push(u.name);
@@ -48,10 +44,6 @@ router.post('/bulk-update-prices', async (req, res, next) => {
         if (u.minimum_stock !== undefined) {
           sets.push(`minimum_stock = $${pIdx++}`);
           params.push(parseInt(u.minimum_stock));
-        }
-        if (u.brand !== undefined) {
-          sets.push(`brand = $${pIdx++}`);
-          params.push(u.brand);
         }
         if (u.category_id !== undefined) {
           sets.push(`category_id = $${pIdx++}`);
@@ -93,9 +85,7 @@ router.post('/import-csv', upload.single('file'), async (req, res, next) => {
     const header = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/"/g, ''));
     const nameIdx = header.findIndex(h => h === 'name' || h === 'nomi' || h === 'mahsulot_nomi');
     const priceIdx = header.findIndex(h => h === 'selling_price' || h === 'sotish_narxi' || h === 'narx');
-    const purchaseIdx = header.findIndex(h => h === 'purchase_price' || h === 'sotib_narxi');
     const categoryIdx = header.findIndex(h => h === 'category' || h === 'kategoriya' || h === 'category_id');
-    const brandIdx = header.findIndex(h => h === 'brand' || h === 'brend');
     const stockIdx = header.findIndex(h => h === 'stock' || h === 'stock_quantity' || h === 'miqdor' || h === 'zaxira');
     const barcodeIdx = header.findIndex(h => h === 'barcode' || h === 'shtrix_kod' || h === 'shtrix-kod');
     const unitIdx = header.findIndex(h => h === 'unit' || h === 'olchov');
@@ -121,8 +111,6 @@ router.post('/import-csv', upload.single('file'), async (req, res, next) => {
         if (!name) { errors.push({ row: i + 1, error: 'Missing name' }); continue; }
 
         const selling_price = priceIdx >= 0 ? parseFloat(vals[priceIdx]) || 0 : 0;
-        const purchase_price = purchaseIdx >= 0 ? parseFloat(vals[purchaseIdx]) || 0 : 0;
-        const brand = brandIdx >= 0 ? vals[brandIdx] || null : null;
         const barcode = barcodeIdx >= 0 ? vals[barcodeIdx] || null : null;
         const unit = unitIdx >= 0 ? vals[unitIdx] || 'pcs' : 'pcs';
         const stock_quantity = stockIdx >= 0 ? parseInt(vals[stockIdx]) || 0 : 0;
@@ -145,11 +133,11 @@ router.post('/import-csv', upload.single('file'), async (req, res, next) => {
         if (upsertMode && barcode) {
           const existing = await db.query('SELECT id FROM products WHERE barcode = $1', [barcode]);
           if (existing.rows.length > 0) {
-            const params = [name, category_id, brand, purchase_price, selling_price, stock_quantity, minimum_stock, unit, description, existing.rows[0].id];
+            const params = [name, category_id, selling_price, stock_quantity, minimum_stock, unit, description, existing.rows[0].id];
             await db.query(
-              `UPDATE products SET name=$1, category_id=$2, brand=$3, purchase_price=$4,
-               selling_price=$5, stock_quantity=$6, minimum_stock=$7, unit=$8,
-               description=$9, updated_at=${nowExpr} WHERE id=$10`,
+              `UPDATE products SET name=$1, category_id=$2,
+               selling_price=$3, stock_quantity=$4, minimum_stock=$5, unit=$6,
+               description=$7, updated_at=${nowExpr} WHERE id=$8`,
               params
             );
             updated++;
@@ -161,10 +149,10 @@ router.post('/import-csv', upload.single('file'), async (req, res, next) => {
         const autoBarcode = barcode || `2000${String(9000 + imported + 1).padStart(5, '0')}`;
 
         await db.query(
-          `INSERT INTO products (name, product_code, category_id, brand, purchase_price, selling_price,
+          `INSERT INTO products (name, product_code, category_id, selling_price,
             stock_quantity, minimum_stock, unit, barcode, description, status)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
-          [name, productCode, category_id, brand, purchase_price, selling_price,
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+          [name, productCode, category_id, selling_price,
             stock_quantity, minimum_stock, unit, autoBarcode, description, status]
         );
         imported++;
@@ -186,9 +174,9 @@ router.get('/export-csv', async (req, res, next) => {
        LEFT JOIN categories c ON p.category_id = c.id ORDER BY p.id`
     );
 
-    const header = 'name,product_code,barcode,brand,category,purchase_price,selling_price,stock_quantity,minimum_stock,unit,status\n';
+    const header = 'name,product_code,barcode,category,selling_price,stock_quantity,minimum_stock,unit,status\n';
     const rows = result.rows.map(p =>
-      `"${(p.name || '').replace(/"/g, '""')}","${p.product_code}","${p.barcode || ''}","${p.brand || ''}","${p.category_name || ''}",${p.purchase_price},${p.selling_price},${p.stock_quantity},${p.minimum_stock},"${p.unit}","${p.status}"`
+      `"${(p.name || '').replace(/"/g, '""')}","${p.product_code}","${p.barcode || ''}","${p.category_name || ''}",${p.selling_price},${p.stock_quantity},${p.minimum_stock},"${p.unit}","${p.status}"`
     ).join('\n');
 
     res.setHeader('Content-Type', 'text/csv');

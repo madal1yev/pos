@@ -12,7 +12,7 @@ exports.getAll = async (req, res, next) => {
 
     if (search) {
       paramCount++;
-      where.push(`(p.name LIKE $${paramCount} OR p.product_code LIKE $${paramCount} OR p.barcode LIKE $${paramCount} OR p.brand LIKE $${paramCount})`);
+      where.push(`(p.name LIKE $${paramCount} OR p.product_code LIKE $${paramCount} OR p.barcode LIKE $${paramCount})`);
       params.push(`%${search}%`);
     }
 
@@ -108,7 +108,7 @@ exports.create = async (req, res, next) => {
   try {
     const productCode = await generateProductCode();
     const {
-      name, category_id, brand, purchase_price, selling_price,
+      name, category_id, selling_price,
       stock_quantity, minimum_stock, unit, barcode, description, image_url
     } = req.body;
 
@@ -116,11 +116,11 @@ exports.create = async (req, res, next) => {
     const autoImage = image_url || guessImageUrl(name);
 
     const result = await db.query(
-      `INSERT INTO products (name, product_code, category_id, brand, purchase_price, selling_price,
+      `INSERT INTO products (name, product_code, category_id, selling_price,
         stock_quantity, minimum_stock, unit, barcode, description, image_url)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
        RETURNING *`,
-      [name, productCode, category_id || null, brand || null, purchase_price || 0,
+      [name, productCode, category_id || null,
         selling_price, stock_quantity || 0, minimum_stock || 0, unit || 'pcs',
         autoBarcode, description || null, autoImage]
     );
@@ -142,7 +142,7 @@ exports.create = async (req, res, next) => {
 exports.update = async (req, res, next) => {
   try {
     const {
-      name, category_id, brand, purchase_price, selling_price,
+      name, category_id, selling_price,
       stock_quantity, minimum_stock, unit, barcode, description, status, image_url
     } = req.body;
 
@@ -156,14 +156,13 @@ exports.update = async (req, res, next) => {
     const result = await db.query(
       `UPDATE products SET 
         name = COALESCE($1, name), category_id = COALESCE($2, category_id),
-        brand = COALESCE($3, brand), purchase_price = COALESCE($4, purchase_price),
-        selling_price = COALESCE($5, selling_price), stock_quantity = COALESCE($6, stock_quantity),
-        minimum_stock = COALESCE($7, minimum_stock), unit = COALESCE($8, unit),
-        barcode = COALESCE($9, barcode), description = COALESCE($10, description),
-        status = COALESCE($11, status), image_url = COALESCE($12, image_url),
+        selling_price = COALESCE($3, selling_price), stock_quantity = COALESCE($4, stock_quantity),
+        minimum_stock = COALESCE($5, minimum_stock), unit = COALESCE($6, unit),
+        barcode = COALESCE($7, barcode), description = COALESCE($8, description),
+        status = COALESCE($9, status), image_url = COALESCE($10, image_url),
         updated_at = ${nowExpr}
-       WHERE id = $13 RETURNING *`,
-      [name, category_id, brand, purchase_price, selling_price, stock_quantity,
+       WHERE id = $11 RETURNING *`,
+      [name, category_id, selling_price, stock_quantity,
         minimum_stock, unit, barcode, description, status, image_url, req.params.id]
     );
 

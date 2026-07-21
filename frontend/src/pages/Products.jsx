@@ -179,7 +179,7 @@ function ImagePickerModal({ onSelect, onClose }) {
 function ProductModal({ product, categories, onClose, onSave }) {
   const [form, setForm] = useState({
     name: product?.name || '', category_id: product?.category_id || '',
-    brand: product?.brand || '', purchase_price: product?.purchase_price || '',
+
     selling_price: product?.selling_price || '', stock_quantity: product?.stock_quantity || 0,
     minimum_stock: product?.minimum_stock || 0, unit: product?.unit || 'pcs',
     barcode: product?.barcode || '', image_url: product?.image_url || '',
@@ -205,7 +205,7 @@ function ProductModal({ product, categories, onClose, onSave }) {
     e.preventDefault();
     setSaving(true);
     try {
-      const payload = { ...form, category_id: form.category_id ? parseInt(form.category_id) : null, purchase_price: parseFloat(form.purchase_price) || 0, selling_price: parseFloat(form.selling_price) || 0, stock_quantity: parseInt(form.stock_quantity) || 0, minimum_stock: parseInt(form.minimum_stock) || 0 };
+      const payload = { ...form, category_id: form.category_id ? parseInt(form.category_id) : null, selling_price: parseFloat(form.selling_price) || 0, stock_quantity: parseInt(form.stock_quantity) || 0, minimum_stock: parseInt(form.minimum_stock) || 0 };
       if (product) { await productsAPI.update(product.id, payload); toast.success("Mahsulot yangilandi"); }
       else { await productsAPI.create(payload); toast.success("Mahsulot qo'shildi"); }
       emitDataChanged();
@@ -234,10 +234,6 @@ function ProductModal({ product, categories, onClose, onSave }) {
                 {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Brend</label>
-              <input type="text" value={form.brand} onChange={(e) => setForm({ ...form, brand: e.target.value })} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Masalan: Coca-Cola" />
-            </div>
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Shtrix-kod</label>
               <div className="flex gap-2">
@@ -260,10 +256,6 @@ function ProductModal({ product, categories, onClose, onSave }) {
               <select value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                 {UNIT_OPTIONS.map((u) => <option key={u.value} value={u.value}>{u.label}</option>)}
               </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Sotib narxi</label>
-              <input type="number" step="0.01" value={form.purchase_price} onChange={(e) => setForm({ ...form, purchase_price: e.target.value })} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="0" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Sotish narxi *</label>
@@ -523,7 +515,7 @@ export default function Products() {
 
   const getStockStatus = (p) => {
     if (p.stock_quantity === 0) return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">{UZ.outOfStockStatus}</span>;
-    if (p.minimum_stock > 0 && p.stock_quantity <= p.minimum_stock) return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">{UZ.lowStockStatus}</span>;
+    if (p.minimum_stock > 0 && p.stock_quantity < p.minimum_stock) return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">{UZ.lowStockStatus}</span>;
     return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">{UZ.inStockStatus}</span>;
   };
 
@@ -593,7 +585,7 @@ export default function Products() {
                         <ProductImage src={product.image_url} name={product.name} />
                         <div>
                           <p className="font-semibold text-gray-900 dark:text-white">{product.name}</p>
-                          {product.brand && <p className="text-xs text-gray-500 mt-0.5">{product.brand}</p>}
+
                         </div>
                       </div>
                     </td>
@@ -603,7 +595,7 @@ export default function Products() {
                     </td>
                     <td className="py-3 text-right font-bold text-gray-900 dark:text-white">{formatCurrency(product.selling_price)}</td>
                     <td className="py-3 text-right">
-                      <span className={`font-semibold ${product.stock_quantity <= (product.minimum_stock || 0) && product.minimum_stock > 0 ? 'text-amber-600 dark:text-amber-400' : product.stock_quantity === 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-white'}`}>
+                      <span className={`font-semibold ${product.stock_quantity < (product.minimum_stock || 0) && product.minimum_stock > 0 ? 'text-amber-600 dark:text-amber-400' : product.stock_quantity === 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-white'}`}>
                         {product.stock_quantity}
                       </span>
                       <span className="text-gray-400 text-xs ml-1">{UNIT_LABELS[product.unit] || product.unit}</span>

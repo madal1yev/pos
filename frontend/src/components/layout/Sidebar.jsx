@@ -4,7 +4,7 @@ import { UZ } from '../../utils/uzbek';
 import {
   HiOutlineHome, HiOutlineCube, HiOutlineCalculator, HiOutlineClipboardDocumentList,
   HiOutlineChartBar, HiOutlineCog, HiOutlineXMark, HiOutlineCurrencyDollar,
-  HiOutlineUser, HiOutlineArrowRightOnRectangle, HiOutlineDocumentChartBar
+  HiOutlineArrowRightOnRectangle, HiOutlineDocumentChartBar
 } from 'react-icons/hi2';
 import { HiOutlineSun, HiOutlineMoon } from 'react-icons/hi';
 

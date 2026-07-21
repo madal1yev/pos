@@ -134,7 +134,7 @@ exports.topProducts = async (req, res, next) => {
 
     const result = await db.query(
       `SELECT 
-        p.id, p.name, p.product_code, p.brand, p.selling_price,
+        p.id, p.name, p.product_code, p.selling_price,
         COALESCE(SUM(si.quantity), 0) as total_sold,
         COALESCE(SUM(si.subtotal), 0) as total_revenue,
         COUNT(DISTINCT si.sale_id) as sale_count
@@ -160,12 +160,11 @@ exports.inventory = async (req, res, next) => {
 
     let where = "p.status = 'active'";
     if (low_stock === 'true') {
-      where += ' AND p.stock_quantity <= p.minimum_stock';
+      where += ' AND p.stock_quantity < p.minimum_stock';
     }
 
     const result = await db.query(
       `SELECT p.*, c.name as category_name,
-        (p.selling_price - p.purchase_price) as profit_margin,
         (p.selling_price * p.stock_quantity) as stock_value
        FROM products p
        LEFT JOIN categories c ON p.category_id = c.id
@@ -178,8 +177,7 @@ exports.inventory = async (req, res, next) => {
         COUNT(*) as total_products,
         COALESCE(SUM(stock_quantity), 0) as total_stock,
         COALESCE(SUM(selling_price * stock_quantity), 0) as total_stock_value,
-        COALESCE(SUM(purchase_price * stock_quantity), 0) as total_cost_value,
-        SUM(CASE WHEN stock_quantity <= minimum_stock THEN 1 ELSE 0 END) as low_stock_count,
+        SUM(CASE WHEN stock_quantity < minimum_stock THEN 1 ELSE 0 END) as low_stock_count,
         SUM(CASE WHEN stock_quantity = 0 THEN 1 ELSE 0 END) as out_of_stock_count
        FROM products WHERE status = 'active'`
     );
