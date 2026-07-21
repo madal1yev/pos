@@ -461,7 +461,7 @@ export default function POS() {
                 </div>
                 <div className="flex flex-col items-end gap-1 min-w-[70px]">
                   <p className="text-xs font-bold text-gray-900 dark:text-white">{formatCurrency(item.subtotal)}</p>
-                  <button onClick={() => removeItem(item.product_id)} className="opacity-0 group-hover:opacity-100 p-1 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 text-red-400 hover:text-red-600 transition-all">
+                  <button onClick={() => removeItem(item.product_id)} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-400 hover:text-red-600 transition-colors">
                     <HiOutlineTrash className="w-3.5 h-3.5" />
                   </button>
                 </div>

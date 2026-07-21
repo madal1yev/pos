@@ -4,17 +4,31 @@ import { UZ, formatCurrency } from '../utils/uzbek';
 import { getErrorMessage } from '../utils/errors';
 import { emitDataChanged } from '../utils/events';
 import PRODUCT_CATEGORIES from '../utils/productImages';
-import { HiOutlinePlus, HiOutlineMagnifyingGlass, HiOutlinePencil, HiOutlineTrash, HiOutlineQrCode, HiOutlineXMark, HiOutlinePhoto, HiOutlineArrowUpTray, HiOutlineArrowDownTray, HiOutlineCurrencyDollar, HiOutlineDocumentArrowUp, HiOutlineCamera } from 'react-icons/hi2';
+import { HiOutlinePlus, HiOutlineMagnifyingGlass, HiOutlinePencil, HiOutlineTrash, HiOutlineQrCode, HiOutlineXMark, HiOutlinePhoto, HiOutlineCurrencyDollar, HiOutlineCamera } from 'react-icons/hi2';
 import JsBarcode from 'jsbarcode';
 import QRCode from 'qrcode';
+import { Html5Qrcode } from 'html5-qrcode';
 import toast from 'react-hot-toast';
 
-function ProductImage({ src, name, size = 'w-9 h-9' }) {
+const UNIT_LABELS = {
+  pcs: 'Dona', kg: 'Kilogramm', g: 'Gram', l: 'Litr', ml: 'Millilitr',
+  box: 'Quti', bag: 'Xalta', bottle: 'Butulka', jar: 'Idish', pack: 'Payket',
+};
+
+const UNIT_OPTIONS = [
+  { value: 'pcs', label: 'Dona' }, { value: 'kg', label: 'Kilogramm' },
+  { value: 'g', label: 'Gram' }, { value: 'l', label: 'Litr' },
+  { value: 'ml', label: 'Millilitr' }, { value: 'box', label: 'Quti' },
+  { value: 'bag', label: 'Xalta' }, { value: 'bottle', label: 'Butulka' },
+  { value: 'jar', label: 'Idish' }, { value: 'pack', label: 'Payket' },
+];
+
+function ProductImage({ src, name, size = 'w-10 h-10' }) {
   const [error, setError] = useState(false);
   if (!src || error) {
     return (
-      <div className={`${size} rounded-lg bg-gradient-to-br from-indigo-100 to-indigo-200 dark:from-indigo-900/30 dark:to-indigo-800/30 flex items-center justify-center text-sm font-bold text-indigo-600 dark:text-indigo-400 flex-shrink-0`}>
-        {name?.charAt(0)?.toUpperCase() || '📦'}
+      <div className={`${size} rounded-xl bg-gradient-to-br from-indigo-100 to-indigo-200 dark:from-indigo-900/30 dark:to-indigo-800/30 flex items-center justify-center text-sm font-bold text-indigo-600 dark:text-indigo-400 flex-shrink-0 shadow-sm`}>
+        {name?.charAt(0)?.toUpperCase() || '?'}
       </div>
     );
   }
@@ -22,7 +36,7 @@ function ProductImage({ src, name, size = 'w-9 h-9' }) {
     <img
       src={src}
       alt={name}
-      className={`${size} rounded-lg object-cover flex-shrink-0`}
+      className={`${size} rounded-xl object-cover flex-shrink-0 shadow-sm border border-gray-100 dark:border-gray-700`}
       onError={() => setError(true)}
       loading="lazy"
     />
@@ -44,6 +58,46 @@ function BarcodeDisplay({ value, type = 'barcode' }) {
   return <canvas ref={canvasRef} />;
 }
 
+function BarcodeScannerModal({ onClose, onScan }) {
+  const html5QrCodeRef = useRef(null);
+  const [error, setError] = useState(null);
+  const [scanning, setScanning] = useState(true);
+
+  useEffect(() => { startScanner(); return () => stopScanner(); }, []);
+
+  const stopScanner = async () => {
+    try { if (html5QrCodeRef.current) { const s = html5QrCodeRef.current.getState(); if (s === 2) await html5QrCodeRef.current.stop(); html5QrCodeRef.current.clear(); html5QrCodeRef.current = null; } } catch {}
+  };
+
+  const startScanner = async () => {
+    try {
+      html5QrCodeRef.current = new Html5Qrcode('product-scanner-viewport');
+      await html5QrCodeRef.current.start(
+        { facingMode: 'environment' }, { fps: 10, qrbox: { width: 250, height: 150 } },
+        (text) => { onScan(text); stopScanner(); onClose(); },
+        () => {}
+      );
+    } catch { setError('Kamera mavjud emas. Shtrix-kodni qo\'lda kiriting.'); setScanning(false); }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-700">
+          <h3 className="text-base font-semibold text-gray-900 dark:text-white">Shtrix-kodni skanerlash</h3>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"><HiOutlineXMark className="w-5 h-5" /></button>
+        </div>
+        <div className="p-4">
+          <div id="product-scanner-viewport" className="rounded-xl overflow-hidden" />
+          {error && <p className="text-sm text-amber-600 dark:text-amber-400 text-center mt-3">{error}</p>}
+          {scanning && <p className="text-sm text-gray-500 text-center mt-3 animate-pulse">Kamerani shtrix-kodga yo'naltiring...</p>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ImagePickerModal({ onSelect, onClose }) {
   const [activeTab, setActiveTab] = useState(Object.keys(PRODUCT_CATEGORIES)[0]);
   const [search, setSearch] = useState('');
@@ -57,36 +111,50 @@ function ImagePickerModal({ onSelect, onClose }) {
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
       <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-700">
-          <h3 className="text-base font-semibold text-gray-900 dark:text-white">Rasm tanlang</h3>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"><HiOutlineXMark className="w-5 h-5" /></button>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Mahsulot rasmi tanlang</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{filteredImages.length} ta rasm mavjud</p>
+          </div>
+          <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"><HiOutlineXMark className="w-5 h-5" /></button>
         </div>
-        <div className="px-4 pt-3">
-          <input type="text" placeholder="Rasm qidirish..." value={search} onChange={(e) => setSearch(e.target.value)} className="input-field text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
+        <div className="px-5 pt-4">
+          <div className="relative">
+            <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input type="text" placeholder="Rasm qidirish... (masalan: cola, olma, sut)" value={search} onChange={(e) => setSearch(e.target.value)} className="input-field pl-10 dark:bg-gray-700 dark:border-gray-600 dark:text-white" autoFocus />
+          </div>
         </div>
         {!search && (
-          <div className="flex gap-1 px-4 pt-3 overflow-x-auto pb-1 scrollbar-none">
+          <div className="flex gap-1.5 px-5 pt-3 overflow-x-auto pb-1 scrollbar-none">
             {categories.map((cat) => (
-              <button key={cat} onClick={() => setActiveTab(cat)} className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all ${activeTab === cat ? 'bg-indigo-600 text-white shadow-md' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'}`}>
+              <button key={cat} onClick={() => setActiveTab(cat)} className={`px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all ${activeTab === cat ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/25' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'}`}>
                 {cat}
               </button>
             ))}
           </div>
         )}
-        <div className="flex-1 overflow-y-auto p-4">
-          <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-2">
+        <div className="flex-1 overflow-y-auto p-5">
+          <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-2.5">
             {filteredImages.map((img, i) => (
-              <button key={i} onClick={() => { onSelect(img.url); onClose(); }} className="group relative aspect-square rounded-xl overflow-hidden border-2 border-gray-100 dark:border-gray-700 hover:border-indigo-500 transition-all hover:shadow-lg hover:scale-105">
+              <button key={i} onClick={() => { onSelect(img.url); onClose(); }} className="group relative aspect-square rounded-xl overflow-hidden border-2 border-gray-100 dark:border-gray-700 hover:border-indigo-500 transition-all hover:shadow-lg hover:scale-[1.03] active:scale-[0.97]">
                 <img src={img.url} alt={img.name} className="w-full h-full object-cover" loading="lazy" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end">
-                  <span className="text-[9px] text-white font-medium px-1.5 py-1 w-full truncate text-center">{img.name}</span>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end">
+                  <span className="text-[9px] text-white font-semibold px-2 py-1.5 w-full text-center truncate">{img.name}</span>
+                </div>
+                <div className="absolute top-1.5 right-1.5 w-5 h-5 bg-indigo-600 rounded-full items-center justify-center text-white text-xs shadow-md hidden group-hover:flex">
+                  <HiOutlinePlus className="w-3 h-3" />
                 </div>
               </button>
             ))}
           </div>
-          {filteredImages.length === 0 && <p className="text-center text-gray-400 text-sm py-8">Rasm topilmadi</p>}
+          {filteredImages.length === 0 && (
+            <div className="text-center py-12">
+              <HiOutlinePhoto className="w-10 h-10 mx-auto text-gray-300 dark:text-gray-600 mb-2" />
+              <p className="text-sm text-gray-400">Rasm topilmadi</p>
+            </div>
+          )}
         </div>
-        <div className="px-4 py-3 border-t border-gray-100 dark:border-gray-700 flex justify-end">
+        <div className="px-5 py-3 border-t border-gray-100 dark:border-gray-700 flex justify-end">
           <button onClick={onClose} className="btn-secondary text-sm">Bekor qilish</button>
         </div>
       </div>
@@ -104,8 +172,8 @@ function ProductModal({ product, categories, onClose, onSave }) {
     description: product?.description || '', status: product?.status || 'active',
   });
   const [saving, setSaving] = useState(false);
-  const [barcodePreview, setBarcodePreview] = useState(null);
   const [showImagePicker, setShowImagePicker] = useState(false);
+  const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
   const barcodeSvgRef = useRef(null);
 
   const generateBarcode = () => {
@@ -114,10 +182,10 @@ function ProductModal({ product, categories, onClose, onSave }) {
   };
 
   useEffect(() => {
-    if (barcodePreview && barcodeSvgRef.current) {
-      try { JsBarcode(barcodeSvgRef.current, barcodePreview, { format: 'CODE128', width: 1.5, height: 40, displayValue: true, fontSize: 12, margin: 5 }); } catch {}
+    if (form.barcode && barcodeSvgRef.current) {
+      try { JsBarcode(barcodeSvgRef.current, form.barcode, { format: 'CODE128', width: 1.5, height: 35, displayValue: true, fontSize: 11, margin: 4 }); } catch {}
     }
-  }, [barcodePreview]);
+  }, [form.barcode]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -131,107 +199,114 @@ function ProductModal({ product, categories, onClose, onSave }) {
     } catch (err) { toast.error(getErrorMessage(err, "Saqlashda xato")); } finally { setSaving(false); }
   };
 
-  const units = ['pcs','kg','g','l','ml','box','bag','bottle','jar','pack'];
-  const unitLabels = { pcs: UZ.pcs, kg: UZ.kg, g: UZ.g, l: UZ.l, ml: UZ.ml, box: UZ.box, bag: UZ.bag, bottle: UZ.bottle, jar: UZ.jar, pack: UZ.pack };
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="fixed inset-0 bg-black/50 backdrop-blur-sm modal-overlay" onClick={onClose} />
       <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto modal-content">
         <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-6 py-4 flex items-center justify-between z-10">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{product ? UZ.editProduct : UZ.addProduct}</h2>
-          <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"><HiOutlineXMark className="w-5 h-5" /></button>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{product ? 'Mahsulotni tahrirlash' : 'Yangi mahsulot qo\'shish'}</h2>
+          <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"><HiOutlineXMark className="w-5 h-5" /></button>
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{UZ.productName} *</label>
-              <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" required />
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Mahsulot nomi *</label>
+              <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Masalan: Coca-Cola 1L" required />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{UZ.category}</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Kategoriya</label>
               <select value={form.category_id} onChange={(e) => setForm({ ...form, category_id: e.target.value })} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                <option value="">{UZ.noCategory}</option>
+                <option value="">Kategoriya tanlash</option>
                 {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{UZ.brand}</label>
-              <input type="text" value={form.brand} onChange={(e) => setForm({ ...form, brand: e.target.value })} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Brend</label>
+              <input type="text" value={form.brand} onChange={(e) => setForm({ ...form, brand: e.target.value })} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Masalan: Coca-Cola" />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{UZ.barcode}</label>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Shtrix-kod</label>
               <div className="flex gap-2">
-                <input type="text" value={form.barcode} onChange={(e) => setForm({ ...form, barcode: e.target.value })} className="input-field flex-1 dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
-                <button type="button" onClick={generateBarcode} className="px-3 py-1.5 text-xs font-medium bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                <input type="text" value={form.barcode} onChange={(e) => setForm({ ...form, barcode: e.target.value })} className="input-field flex-1 dark:bg-gray-700 dark:border-gray-600 dark:text-white font-mono" placeholder="Shtrix-kodni kiriting" />
+                <button type="button" onClick={() => setShowBarcodeScanner(true)} className="px-3 py-2 text-sm font-medium bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-colors flex items-center gap-1.5 border border-emerald-200 dark:border-emerald-800 whitespace-nowrap">
+                  <HiOutlineCamera className="w-4 h-4" /> Skanerlash
+                </button>
+                <button type="button" onClick={generateBarcode} className="px-3 py-2 text-sm font-medium bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 whitespace-nowrap transition-colors border border-gray-200 dark:border-gray-600">
                   Generatsiya
                 </button>
               </div>
               {form.barcode && (
-                <div className="mt-2 p-2 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 inline-block">
+                <div className="mt-3 p-3 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 inline-block shadow-sm">
                   <svg ref={barcodeSvgRef} />
                 </div>
               )}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{UZ.unit}</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">O'lchov birligi</label>
               <select value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                {units.map((u) => <option key={u} value={u}>{unitLabels[u] || u}</option>)}
+                {UNIT_OPTIONS.map((u) => <option key={u.value} value={u.value}>{u.label}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{UZ.purchasePrice}</label>
-              <input type="number" step="0.01" value={form.purchase_price} onChange={(e) => setForm({ ...form, purchase_price: e.target.value })} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Sotib narxi</label>
+              <input type="number" step="0.01" value={form.purchase_price} onChange={(e) => setForm({ ...form, purchase_price: e.target.value })} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="0" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{UZ.sellingPrice}</label>
-              <input type="number" step="0.01" value={form.selling_price} onChange={(e) => setForm({ ...form, selling_price: e.target.value })} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" required />
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Sotish narxi *</label>
+              <input type="number" step="0.01" value={form.selling_price} onChange={(e) => setForm({ ...form, selling_price: e.target.value })} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="0" required />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{UZ.stockQuantity}</label>
-              <input type="number" value={form.stock_quantity} onChange={(e) => setForm({ ...form, stock_quantity: e.target.value })} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Mavjud miqdor</label>
+              <input type="number" value={form.stock_quantity} onChange={(e) => setForm({ ...form, stock_quantity: e.target.value })} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="0" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{UZ.minimumStock}</label>
-              <input type="number" value={form.minimum_stock} onChange={(e) => setForm({ ...form, minimum_stock: e.target.value })} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Minimal zaxira</label>
+              <input type="number" value={form.minimum_stock} onChange={(e) => setForm({ ...form, minimum_stock: e.target.value })} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="0" />
+              <p className="text-[11px] text-gray-400 mt-1">Bu miqdordan kam qolganda ogohlantirish beriladi</p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{UZ.status}</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Holat</label>
               <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                <option value="active">{UZ.active}</option>
-                <option value="inactive">{UZ.inactive}</option>
+                <option value="active">Faol</option>
+                <option value="inactive">Nofaol</option>
               </select>
             </div>
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{UZ.description}</label>
-              <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={2} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Tavsif</label>
+              <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={2} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Qo'shimcha ma'lumot..." />
             </div>
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                <span className="flex items-center gap-1.5"><HiOutlinePhoto className="w-4 h-4" /> Rasm</span>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                <span className="flex items-center gap-1.5"><HiOutlinePhoto className="w-4 h-4" /> Mahsulot rasmi</span>
               </label>
-              <div className="flex gap-2">
-                <input type="url" value={form.image_url} onChange={(e) => setForm({ ...form, image_url: e.target.value })} className="input-field flex-1 dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="URL kiriting yoki tanlang" />
-                <button type="button" onClick={() => setShowImagePicker(true)} className="px-3 py-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-lg text-sm font-medium hover:bg-indigo-100 dark:hover:bg-indigo-900/30 transition-colors flex items-center gap-1.5 whitespace-nowrap border border-indigo-200 dark:border-indigo-800">
+              <div className="flex gap-3">
+                <div className="flex-1">
+                  <input type="url" value={form.image_url} onChange={(e) => setForm({ ...form, image_url: e.target.value })} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="URL kiriting yoki quyidagi tugmani bosing" />
+                </div>
+                <button type="button" onClick={() => setShowImagePicker(true)} className="px-4 py-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-lg text-sm font-medium hover:bg-indigo-100 dark:hover:bg-indigo-900/30 transition-colors flex items-center gap-2 border border-indigo-200 dark:border-indigo-800 whitespace-nowrap">
                   <HiOutlineCamera className="w-4 h-4" /> Tanlash
                 </button>
               </div>
               {form.image_url && (
-                <div className="mt-2 relative inline-block">
-                  <img src={form.image_url} alt="Ko'rish" className="w-20 h-20 rounded-xl object-cover border-2 border-gray-200 dark:border-gray-700" onError={(e) => e.target.style.display='none'} />
-                  <button type="button" onClick={() => setForm({ ...form, image_url: '' })} className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600"><HiOutlineXMark className="w-3 h-3" /></button>
+                <div className="mt-3 relative inline-block">
+                  <img src={form.image_url} alt="Ko'rish" className="w-24 h-24 rounded-xl object-cover border-2 border-gray-200 dark:border-gray-700 shadow-sm" onError={(e) => { e.target.style.display='none'; toast.error('Rasm yuklanmadi'); }} />
+                  <button type="button" onClick={() => setForm({ ...form, image_url: '' })} className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 shadow-md transition-colors"><HiOutlineXMark className="w-3.5 h-3.5" /></button>
                 </div>
+              )}
+              {!form.image_url && (
+                <p className="text-[11px] text-gray-400 mt-1.5">Rasm tanlamangsa, avtomatik ravishda tanlab qo'yiladi</p>
               )}
             </div>
           </div>
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-gray-700">
-            <button type="button" onClick={onClose} className="btn-secondary">{UZ.cancel}</button>
-            <button type="submit" disabled={saving} className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-indigo-700 transition-all disabled:opacity-50">
-              {saving ? UZ.loading : product ? UZ.save : UZ.add}
+            <button type="button" onClick={onClose} className="btn-secondary">Bekor qilish</button>
+            <button type="submit" disabled={saving} className="bg-indigo-600 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-indigo-700 transition-all disabled:opacity-50 shadow-md shadow-indigo-500/20 active:scale-[0.98]">
+              {saving ? 'Saqlanmoqda...' : product ? 'Saqlash' : "Qo'shish"}
             </button>
           </div>
         </form>
         {showImagePicker && <ImagePickerModal onSelect={(url) => setForm({ ...form, image_url: url })} onClose={() => setShowImagePicker(false)} />}
+        {showBarcodeScanner && <BarcodeScannerModal onClose={() => setShowBarcodeScanner(false)} onScan={(code) => { setForm(f => ({ ...f, barcode: code })); toast.success('Shtrix-kod aniqlandi: ' + code); }} />}
       </div>
     </div>
   );
@@ -243,17 +318,18 @@ function LabelPrintModal({ product, onClose }) {
       <div className="fixed inset-0 bg-black/50 backdrop-blur-sm modal-overlay" onClick={onClose} />
       <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-lg modal-content">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{UZ.labels}</h2>
-          <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"><HiOutlineXMark className="w-5 h-5" /></button>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Yorliq chop etish</h2>
+          <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"><HiOutlineXMark className="w-5 h-5" /></button>
         </div>
         <div className="p-6 space-y-6 print:p-2">
           <div className="text-center border-b pb-4 no-print">
-            <h3 className="font-bold text-gray-900 dark:text-white">{product.name}</h3>
-            <p className="text-sm text-gray-500">{product.product_code}</p>
+            <h3 className="font-bold text-gray-900 dark:text-white text-lg">{product.name}</h3>
+            <p className="text-sm text-gray-500 mt-1">{product.product_code}</p>
+            <p className="text-lg font-bold text-indigo-600 dark:text-indigo-400 mt-1">{formatCurrency(product.selling_price)}</p>
           </div>
           <div className="flex justify-center gap-8">
             <div className="text-center">
-              <p className="text-xs font-medium text-gray-500 mb-2">{UZ.barcode}</p>
+              <p className="text-xs font-medium text-gray-500 mb-2">Shtrix-kod</p>
               <BarcodeDisplay value={product.barcode || product.product_code} type="barcode" />
             </div>
             <div className="text-center">
@@ -263,8 +339,8 @@ function LabelPrintModal({ product, onClose }) {
           </div>
         </div>
         <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-100 dark:border-gray-700 no-print">
-          <button onClick={onClose} className="btn-secondary">{UZ.close}</button>
-          <button onClick={() => window.print()} className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-indigo-700">{UZ.print}</button>
+          <button onClick={onClose} className="btn-secondary">Yopish</button>
+          <button onClick={() => window.print()} className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-indigo-700 transition-all">Chop etish</button>
         </div>
       </div>
     </div>
@@ -284,13 +360,9 @@ function BulkPriceModal({ products, onClose, onApply }) {
       const updates = products.map(p => {
         const currentPrice = parseFloat(p[field]) || 0;
         let newPrice;
-        if (mode === 'percent') {
-          newPrice = Math.round(currentPrice * (1 + parseFloat(value) / 100));
-        } else if (mode === 'fixed') {
-          newPrice = currentPrice + parseFloat(value);
-        } else {
-          newPrice = parseFloat(value);
-        }
+        if (mode === 'percent') newPrice = Math.round(currentPrice * (1 + parseFloat(value) / 100));
+        else if (mode === 'fixed') newPrice = currentPrice + parseFloat(value);
+        else newPrice = parseFloat(value);
         return { id: p.id, [field]: Math.max(0, newPrice) };
       });
       await bulkAPI.updatePrices(updates);
@@ -298,9 +370,7 @@ function BulkPriceModal({ products, onClose, onApply }) {
       onApply();
     } catch (err) {
       toast.error(getErrorMessage(err, "Xatolik"));
-    } finally {
-      setApplying(false);
-    }
+    } finally { setApplying(false); }
   };
 
   return (
@@ -311,39 +381,35 @@ function BulkPriceModal({ products, onClose, onApply }) {
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
             <HiOutlineCurrencyDollar className="w-5 h-5" /> Narxlarni to'g'irlash
           </h2>
-          <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"><HiOutlineXMark className="w-5 h-5" /></button>
+          <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"><HiOutlineXMark className="w-5 h-5" /></button>
         </div>
         <div className="p-6 space-y-4">
           <p className="text-sm text-gray-500">{products.length} ta mahsulot tanlangan</p>
-          
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Qaysi narxni o'zgartirasiz?</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Qaysi narxni o'zgartirasiz?</label>
             <select value={field} onChange={(e) => setField(e.target.value)} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white">
               <option value="selling_price">Sotish narxi</option>
               <option value="purchase_price">Sotib narxi</option>
             </select>
           </div>
-
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">O'zgartirish usuli</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">O'zgartirish usuli</label>
             <div className="grid grid-cols-3 gap-2">
               {[['percent', 'Foiz (%)'], ['fixed', "Qo'shish"], ['exact', 'Aniq qiymat']].map(([m, l]) => (
-                <button key={m} onClick={() => setMode(m)} className={`py-2 px-3 rounded-lg text-sm font-medium border-2 transition-all ${mode === m ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'}`}>
+                <button key={m} onClick={() => setMode(m)} className={`py-2.5 px-3 rounded-lg text-sm font-medium border-2 transition-all ${mode === m ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 shadow-sm' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300'}`}>
                   {l}
                 </button>
               ))}
             </div>
           </div>
-
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
               {mode === 'percent' ? 'Foiz miqdori' : mode === 'fixed' ? "Qo'shiladigan summa" : 'Yangi narx'}
             </label>
             <input type="number" step="any" value={value} onChange={(e) => setValue(e.target.value)} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder={mode === 'percent' ? 'Masalan: 10' : 'Masalan: 5000'} />
           </div>
-
-          <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 text-sm">
-            <p className="text-gray-500">Namuna:</p>
+          <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4 text-sm space-y-1.5">
+            <p className="text-gray-500 font-medium">Namuna:</p>
             {products.slice(0, 3).map((p, i) => {
               const current = parseFloat(p[field]) || 0;
               let newP;
@@ -351,110 +417,17 @@ function BulkPriceModal({ products, onClose, onApply }) {
               else if (mode === 'fixed') newP = current + (parseFloat(value) || 0);
               else newP = parseFloat(value) || current;
               return (
-                <div key={i} className="flex justify-between mt-1">
+                <div key={i} className="flex justify-between">
                   <span className="text-gray-600 dark:text-gray-400 truncate">{p.name}</span>
                   <span className="font-medium">{formatCurrency(current)} → {formatCurrency(Math.max(0, newP))}</span>
                 </div>
               );
             })}
-            {products.length > 3 && <p className="text-gray-400 mt-1">...va yana {products.length - 3} ta</p>}
+            {products.length > 3 && <p className="text-gray-400">...va yana {products.length - 3} ta</p>}
           </div>
-
-          <button onClick={handleApply} disabled={applying || !value} className="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition-all disabled:opacity-50">
-            {applying ? UZ.loading : `Qo'llash (${products.length} ta)`}
+          <button onClick={handleApply} disabled={applying || !value} className="w-full bg-indigo-600 text-white py-3 rounded-xl font-semibold hover:bg-indigo-700 transition-all disabled:opacity-50 shadow-md shadow-indigo-500/20 active:scale-[0.98]">
+            {applying ? 'Qayta ishlanmoqda...' : `Qo'llash (${products.length} ta)`}
           </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function CSVImportModal({ onClose, onImport }) {
-  const [file, setFile] = useState(null);
-  const [mode, setMode] = useState('create');
-  const [importing, setImporting] = useState(false);
-  const fileRef = useRef(null);
-
-  const handleImport = async () => {
-    if (!file) { toast.error("Faylni tanlang"); return; }
-    setImporting(true);
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('mode', mode);
-      const { data } = await bulkAPI.importCSV(formData);
-      toast.success(`${data.imported} ta qo'shildi, ${data.updated || 0} ta yangilandi`);
-      if (data.errors?.length > 0) {
-        toast.error(`${data.errors.length} ta xatolik`);
-      }
-      onImport();
-    } catch (err) {
-      toast.error(getErrorMessage(err, "Import xatosi"));
-    } finally {
-      setImporting(false);
-    }
-  };
-
-  const handleExport = async () => {
-    try {
-      const { data } = await bulkAPI.exportCSV();
-      const url = window.URL.createObjectURL(new Blob([data]));
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'products_export.csv';
-      a.click();
-      window.URL.revokeObjectURL(url);
-      toast.success("CSV yuklab olindi");
-    } catch (err) {
-      toast.error("Eksport xatosi");
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm modal-overlay" onClick={onClose} />
-      <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-lg modal-content">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-            <HiOutlineDocumentArrowUp className="w-5 h-5" /> CSV Import / Eksport
-          </h2>
-          <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"><HiOutlineXMark className="w-5 h-5" /></button>
-        </div>
-        <div className="p-6 space-y-4">
-          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 text-sm">
-            <p className="font-medium text-blue-800 dark:text-blue-300 mb-2">CSV formati:</p>
-            <p className="text-blue-600 dark:text-blue-400">name, barcode, brand, category, selling_price, purchase_price, stock_quantity, minimum_stock, unit</p>
-            <p className="text-blue-500 dark:text-blue-400 mt-1 text-xs">name majburiy. barcode bo'sh bo'lsa avtomatik generatsiya qilinadi.</p>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Import rejimi</label>
-            <div className="grid grid-cols-2 gap-2">
-              <button onClick={() => setMode('create')} className={`py-2 px-3 rounded-lg text-sm font-medium border-2 transition-all ${mode === 'create' ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400' : 'border-gray-200 dark:border-gray-700'}`}>
-                Yangi qo'shish
-              </button>
-              <button onClick={() => setMode('update')} className={`py-2 px-3 rounded-lg text-sm font-medium border-2 transition-all ${mode === 'update' ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400' : 'border-gray-200 dark:border-gray-700'}`}>
-                Yangilash (barcode bo'yicha)
-              </button>
-            </div>
-          </div>
-
-          <div>
-            <input ref={fileRef} type="file" accept=".csv" onChange={(e) => setFile(e.target.files?.[0])} className="hidden" />
-            <button onClick={() => fileRef.current?.click()} className="w-full border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center hover:border-indigo-400 transition-colors">
-              <HiOutlineArrowUpTray className="w-8 h-8 mx-auto text-gray-400 mb-2" />
-              {file ? <p className="text-sm font-medium text-gray-900 dark:text-white">{file.name}</p> : <p className="text-sm text-gray-500">CSV faylni tanlang yoki tortib tashlang</p>}
-            </button>
-          </div>
-
-          <div className="flex gap-3">
-            <button onClick={handleExport} className="flex-1 btn-secondary flex items-center justify-center gap-2">
-              <HiOutlineArrowDownTray className="w-4 h-4" /> CSV yuklab olish
-            </button>
-            <button onClick={handleImport} disabled={importing || !file} className="flex-1 bg-indigo-600 text-white py-2 rounded-lg font-medium hover:bg-indigo-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2">
-              <HiOutlineArrowUpTray className="w-4 h-4" /> {importing ? UZ.loading : 'Import'}
-            </button>
-          </div>
         </div>
       </div>
     </div>
@@ -473,7 +446,6 @@ export default function Products() {
   const [deleteProduct, setDeleteProduct] = useState(null);
   const [labelProduct, setLabelProduct] = useState(null);
   const [showBulkPrice, setShowBulkPrice] = useState(false);
-  const [showCSVImport, setShowCSVImport] = useState(false);
   const [selectedProducts, setSelectedProducts] = useState(new Set());
   const searchTimeout = useRef(null);
 
@@ -513,19 +485,16 @@ export default function Products() {
   };
 
   const toggleSelectAll = () => {
-    if (selectedProducts.size === products.length) {
-      setSelectedProducts(new Set());
-    } else {
-      setSelectedProducts(new Set(products.map(p => p.id)));
-    }
+    if (selectedProducts.size === products.length) setSelectedProducts(new Set());
+    else setSelectedProducts(new Set(products.map(p => p.id)));
   };
 
   const getSelectedProducts = () => products.filter(p => selectedProducts.has(p.id));
 
   const getStockStatus = (p) => {
-    if (p.stock_quantity === 0) return <span className="badge-danger">{UZ.outOfStockStatus}</span>;
-    if (p.stock_quantity <= p.minimum_stock) return <span className="badge-warning">{UZ.lowStockStatus}</span>;
-    return <span className="badge-success">{UZ.inStockStatus}</span>;
+    if (p.stock_quantity === 0) return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">{UZ.outOfStockStatus}</span>;
+    if (p.minimum_stock > 0 && p.stock_quantity <= p.minimum_stock) return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">{UZ.lowStockStatus}</span>;
+    return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">{UZ.inStockStatus}</span>;
   };
 
   return (
@@ -533,18 +502,15 @@ export default function Products() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-fade-in-down">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{UZ.productsTitle}</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{pagination.total} {UZ.total}</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{pagination.total} ta mahsulot</p>
         </div>
         <div className="flex gap-2 flex-wrap">
-          <button onClick={() => setShowCSVImport(true)} className="bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 px-3 py-2 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-all flex items-center gap-2 text-sm">
-            <HiOutlineDocumentArrowUp className="w-4 h-4" /> CSV
-          </button>
           {selectedProducts.size > 0 && (
-            <button onClick={() => setShowBulkPrice(true)} className="bg-blue-600 text-white px-3 py-2 rounded-lg font-medium hover:bg-blue-700 transition-all flex items-center gap-2 text-sm animate-scale-in">
+            <button onClick={() => setShowBulkPrice(true)} className="bg-blue-600 text-white px-3 py-2 rounded-lg font-medium hover:bg-blue-700 transition-all flex items-center gap-2 text-sm shadow-md shadow-blue-500/20 active:scale-[0.98]">
               <HiOutlineCurrencyDollar className="w-4 h-4" /> Narx o'zgartirish ({selectedProducts.size})
             </button>
           )}
-          <button onClick={() => { setEditProduct(null); setShowModal(true); }} className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-indigo-700 transition-all flex items-center gap-2 shadow-md shadow-indigo-500/20">
+          <button onClick={() => { setEditProduct(null); setShowModal(true); }} className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-indigo-700 transition-all flex items-center gap-2 shadow-md shadow-indigo-500/20 active:scale-[0.98]">
             <HiOutlinePlus className="w-5 h-5" /> {UZ.addProduct}
           </button>
         </div>
@@ -554,18 +520,21 @@ export default function Products() {
         <div className="flex flex-col sm:flex-row gap-3 mb-4">
           <div className="relative flex-1">
             <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input type="text" placeholder={UZ.search + ' (nom, kod, shtrix-kod, brend)...'} value={search} onChange={(e) => setSearch(e.target.value)} className="input-field pl-10 dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
+            <input type="text" placeholder="Mahsulot qidirish (nom, kod, shtrix-kod, brend)..." value={search} onChange={(e) => setSearch(e.target.value)} className="input-field pl-10 dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
           </div>
           <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className="input-field w-auto sm:w-48 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-            <option value="">{UZ.allCategories}</option>
-            {categories.map((c) => <option key={c.id} value={c.id}>{c.name} ({c.product_count})</option>)}
+            <option value="">Barcha kategoriyalar</option>
+            {categories.filter(c => c.product_count > 0).map((c) => <option key={c.id} value={c.id}>{c.name} ({c.product_count})</option>)}
           </select>
         </div>
 
         {loading ? (
           <div className="flex items-center justify-center h-32"><div className="animate-spin h-6 w-6 border-4 border-indigo-500 border-t-transparent rounded-full" /></div>
         ) : products.length === 0 ? (
-          <div className="text-center py-12 text-gray-400">{UZ.noData}</div>
+          <div className="text-center py-12">
+            <HiOutlineMagnifyingGlass className="w-10 h-10 mx-auto text-gray-300 dark:text-gray-600 mb-2" />
+            <p className="text-gray-400">Mahsulot topilmadi</p>
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -574,13 +543,13 @@ export default function Products() {
                   <th className="pb-3 font-medium w-8">
                     <input type="checkbox" checked={selectedProducts.size === products.length && products.length > 0} onChange={toggleSelectAll} className="w-4 h-4 rounded border-gray-300 text-indigo-600" />
                   </th>
-                  <th className="pb-3 font-medium">{UZ.productsTitle}</th>
-                  <th className="pb-3 font-medium">{UZ.productCode}</th>
-                  <th className="pb-3 font-medium hidden md:table-cell">{UZ.category}</th>
-                  <th className="pb-3 font-medium text-right">{UZ.sellingPrice.replace(' *','')}</th>
-                  <th className="pb-3 font-medium text-right">{UZ.stockQuantity}</th>
-                  <th className="pb-3 font-medium">{UZ.status}</th>
-                  <th className="pb-3 font-medium text-right">{UZ.actions}</th>
+                  <th className="pb-3 font-medium">Mahsulot</th>
+                  <th className="pb-3 font-medium hidden md:table-cell">Kod</th>
+                  <th className="pb-3 font-medium hidden lg:table-cell">Kategoriya</th>
+                  <th className="pb-3 font-medium text-right">Sotish narxi</th>
+                  <th className="pb-3 font-medium text-right">Miqdor</th>
+                  <th className="pb-3 font-medium">Holat</th>
+                  <th className="pb-3 font-medium text-right">Amallar</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
@@ -593,26 +562,28 @@ export default function Products() {
                       <div className="flex items-center gap-3">
                         <ProductImage src={product.image_url} name={product.name} />
                         <div>
-                          <p className="font-medium text-gray-900 dark:text-white">{product.name}</p>
-                          {product.brand && <p className="text-xs text-gray-500">{product.brand}</p>}
+                          <p className="font-semibold text-gray-900 dark:text-white">{product.name}</p>
+                          {product.brand && <p className="text-xs text-gray-500 mt-0.5">{product.brand}</p>}
                         </div>
                       </div>
                     </td>
-                    <td className="py-3 text-gray-600 dark:text-gray-400 font-mono text-xs">{product.product_code}</td>
-                    <td className="py-3 text-gray-600 dark:text-gray-400 hidden md:table-cell">{product.category_name || '-'}</td>
-                    <td className="py-3 text-right font-semibold text-gray-900 dark:text-white">{formatCurrency(product.selling_price)}</td>
+                    <td className="py-3 text-gray-600 dark:text-gray-400 font-mono text-xs hidden md:table-cell">{product.product_code}</td>
+                    <td className="py-3 text-gray-600 dark:text-gray-400 hidden lg:table-cell">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">{product.category_name || '-'}</span>
+                    </td>
+                    <td className="py-3 text-right font-bold text-gray-900 dark:text-white">{formatCurrency(product.selling_price)}</td>
                     <td className="py-3 text-right">
-                      <span className={`font-medium ${product.stock_quantity <= product.minimum_stock ? 'text-red-600' : 'text-gray-900 dark:text-white'}`}>
+                      <span className={`font-semibold ${product.stock_quantity <= (product.minimum_stock || 0) && product.minimum_stock > 0 ? 'text-amber-600 dark:text-amber-400' : product.stock_quantity === 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-white'}`}>
                         {product.stock_quantity}
                       </span>
-                      <span className="text-gray-400 text-xs ml-1">{product.unit}</span>
+                      <span className="text-gray-400 text-xs ml-1">{UNIT_LABELS[product.unit] || product.unit}</span>
                     </td>
                     <td className="py-3">{getStockStatus(product)}</td>
                     <td className="py-3">
                       <div className="flex items-center justify-end gap-1">
-                        <button onClick={() => setLabelProduct(product)} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500" title={UZ.labels}><HiOutlineQrCode className="w-4 h-4" /></button>
-                        <button onClick={() => { setEditProduct(product); setShowModal(true); }} className="p-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-600" title={UZ.edit}><HiOutlinePencil className="w-4 h-4" /></button>
-                        <button onClick={() => setDeleteProduct(product)} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600" title={UZ.delete}><HiOutlineTrash className="w-4 h-4" /></button>
+                        <button onClick={() => setLabelProduct(product)} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 transition-colors" title="Yorliq"><HiOutlineQrCode className="w-4 h-4" /></button>
+                        <button onClick={() => { setEditProduct(product); setShowModal(true); }} className="p-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-600 transition-colors" title="Tahrirlash"><HiOutlinePencil className="w-4 h-4" /></button>
+                        <button onClick={() => setDeleteProduct(product)} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 transition-colors" title="O'chirish"><HiOutlineTrash className="w-4 h-4" /></button>
                       </div>
                     </td>
                   </tr>
@@ -626,7 +597,7 @@ export default function Products() {
           <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
             <p className="text-sm text-gray-500">Sahifa {pagination.page} / {pagination.totalPages} ({pagination.total} ta)</p>
             <div className="flex gap-1">
-              <button disabled={pagination.page <= 1} onClick={() => loadProducts(pagination.page - 1)} className="px-3 py-1 rounded-lg text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 disabled:opacity-50">Oldingi</button>
+              <button disabled={pagination.page <= 1} onClick={() => loadProducts(pagination.page - 1)} className="px-3 py-1 rounded-lg text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 disabled:opacity-50 transition-colors">Oldingi</button>
               {Array.from({ length: Math.min(pagination.totalPages, 7) }, (_, i) => {
                 let p;
                 if (pagination.totalPages <= 7) p = i + 1;
@@ -634,10 +605,10 @@ export default function Products() {
                 else if (pagination.page >= pagination.totalPages - 3) p = pagination.totalPages - 6 + i;
                 else p = pagination.page - 3 + i;
                 return (
-                  <button key={p} onClick={() => loadProducts(p)} className={`px-3 py-1 rounded-lg text-sm font-medium ${p === pagination.page ? 'bg-indigo-600 text-white' : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400'}`}>{p}</button>
+                  <button key={p} onClick={() => loadProducts(p)} className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${p === pagination.page ? 'bg-indigo-600 text-white shadow-md' : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400'}`}>{p}</button>
                 );
               })}
-              <button disabled={pagination.page >= pagination.totalPages} onClick={() => loadProducts(pagination.page + 1)} className="px-3 py-1 rounded-lg text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 disabled:opacity-50">Keyingi</button>
+              <button disabled={pagination.page >= pagination.totalPages} onClick={() => loadProducts(pagination.page + 1)} className="px-3 py-1 rounded-lg text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 disabled:opacity-50 transition-colors">Keyingi</button>
             </div>
           </div>
         )}
@@ -653,7 +624,7 @@ export default function Products() {
               <div className="mx-auto w-16 h-16 rounded-2xl bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center mb-4 shadow-lg shadow-red-500/25">
                 <HiOutlineTrash className="w-8 h-8 text-white" />
               </div>
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white">{UZ.deleteProduct}</h3>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white">Mahsulotni o'chirish</h3>
               <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
                 <p className="text-sm text-gray-600 dark:text-gray-400">O'chirilayotgan mahsulot:</p>
                 <p className="font-semibold text-gray-900 dark:text-white mt-1">{deleteProduct.name}</p>
@@ -661,9 +632,9 @@ export default function Products() {
               </div>
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-3">Bu amalni bekor qilib bo'lmaydi. Davom etasizmi?</p>
               <div className="flex justify-center gap-3 mt-6">
-                <button onClick={() => setDeleteProduct(null)} className="flex-1 btn-secondary">{UZ.cancel}</button>
+                <button onClick={() => setDeleteProduct(null)} className="flex-1 btn-secondary">Bekor qilish</button>
                 <button onClick={handleDelete} className="flex-1 bg-gradient-to-r from-red-500 to-red-600 text-white px-4 py-2.5 rounded-lg font-semibold hover:from-red-600 hover:to-red-700 transition-all shadow-lg shadow-red-500/25 active:scale-[0.98]">
-                  {UZ.delete}
+                  O'chirish
                 </button>
               </div>
             </div>
@@ -673,7 +644,6 @@ export default function Products() {
 
       {labelProduct && <LabelPrintModal product={labelProduct} onClose={() => setLabelProduct(null)} />}
       {showBulkPrice && <BulkPriceModal products={getSelectedProducts()} onClose={() => setShowBulkPrice(false)} onApply={() => { setShowBulkPrice(false); setSelectedProducts(new Set()); loadProducts(pagination.page); }} />}
-      {showCSVImport && <CSVImportModal onClose={() => setShowCSVImport(false)} onImport={() => { setShowCSVImport(false); loadProducts(); }} />}
     </div>
   );
 }

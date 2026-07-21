@@ -13,7 +13,7 @@ export default function Profile() {
 
       <div className="card">
         <div className="flex items-center gap-4 mb-6">
-          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center shadow-lg">
+          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center shadow-lg shadow-indigo-500/25">
             <span className="text-2xl font-bold text-white">{user?.name?.charAt(0) || 'U'}</span>
           </div>
           <div>

@@ -19,7 +19,7 @@ export default function Settings() {
     catch (err) { toast.error(getErrorMessage(err)); } finally { setSaving(false); }
   };
 
-  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin h-8 w-8 border-4 border-emerald-500 border-t-transparent rounded-full" /></div>;
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin h-8 w-8 border-4 border-indigo-500 border-t-transparent rounded-full" /></div>;
 
   return (
     <div className="max-w-3xl space-y-6">
@@ -57,7 +57,7 @@ export default function Settings() {
           </div>
         </div>
         <div className="flex justify-end">
-          <button type="submit" disabled={saving} className="bg-emerald-600 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-emerald-700 transition-all disabled:opacity-50 flex items-center gap-2">
+          <button type="submit" disabled={saving} className="bg-indigo-600 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-indigo-700 transition-all disabled:opacity-50 flex items-center gap-2 shadow-md shadow-indigo-500/20 active:scale-[0.98]">
             <HiOutlineCheckCircle className="w-5 h-5" /> {saving ? UZ.loading : UZ.saveSettings}
           </button>
         </div>

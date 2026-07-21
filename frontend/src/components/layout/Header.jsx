@@ -96,7 +96,7 @@ export default function Header({ onMenuClick }) {
                       </div>
                       <button
                         onClick={() => dismissItem(item.id)}
-                        className="p-1 rounded-md text-gray-300 hover:text-gray-500 hover:bg-gray-200 dark:hover:text-gray-400 dark:hover:bg-gray-600 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0 mt-0.5"
+                        className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-200 dark:hover:text-gray-300 dark:hover:bg-gray-600 transition-colors flex-shrink-0 mt-0.5"
                         title="Yashirish"
                       >
                         <HiOutlineXMark className="w-3.5 h-3.5" />

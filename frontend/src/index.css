@@ -181,6 +181,7 @@
 .stagger-3 { animation-delay: 0.15s; animation-fill-mode: both; }
 .stagger-4 { animation-delay: 0.2s; animation-fill-mode: both; }
 .stagger-5 { animation-delay: 0.25s; animation-fill-mode: both; }
+.stagger-6 { animation-delay: 0.30s; animation-fill-mode: both; }
 
 .hover-lift {
   @apply transition-all duration-200;
@@ -208,4 +209,45 @@
   body {
     background: white;
   }
+}
+
+/* Touch device optimizations */
+@media (hover: none) and (pointer: coarse) {
+  .hover-lift:hover {
+    transform: none;
+    box-shadow: none;
+  }
+  
+  button, a {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* Tablet-specific adjustments */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .card {
+    @apply p-5;
+  }
+}
+
+/* Smooth scroll */
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Focus visible for keyboard navigation */
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 2px solid #6366f1;
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+/* Selection color */
+::selection {
+  background-color: rgba(99, 102, 241, 0.2);
+  color: inherit;
 }

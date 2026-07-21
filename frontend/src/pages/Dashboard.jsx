@@ -7,7 +7,6 @@ import {
   HiOutlineArrowTrendingUp, HiOutlineUsers, HiOutlineClock, HiOutlineCalculator,
   HiOutlineArrowRight, HiOutlineFire, HiOutlineChartBar
 } from 'react-icons/hi2';
-import toast from 'react-hot-toast';
 
 function StatCard({ icon: Icon, label, value, subvalue, gradient, index, onClick }) {
   return (
@@ -53,7 +52,9 @@ export default function Dashboard() {
       const { data } = await dashboardAPI.get();
       setData(data);
     } catch {
-      if (!silent) toast.error("Dashboard yuklanmadi");
+      if (!silent) {
+        setData(null);
+      }
     } finally {
       setLoading(false);
     }
@@ -88,6 +89,20 @@ export default function Dashboard() {
         <div className="text-center">
           <div className="animate-spin h-10 w-10 border-4 border-indigo-500 border-t-transparent rounded-full mx-auto mb-3" />
           <p className="text-sm text-gray-400">Yuklanmoqda...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="w-16 h-16 rounded-2xl bg-amber-100 dark:bg-amber-900/20 flex items-center justify-center mx-auto mb-3">
+            <HiOutlineExclamationTriangle className="w-8 h-8 text-amber-500" />
+          </div>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Dashboard ma'lumotlari yuklanmadi</p>
+          <button onClick={() => { setLoading(true); loadDashboard(); }} className="mt-3 text-sm text-indigo-600 dark:text-indigo-400 hover:underline font-medium">Qayta urinish</button>
         </div>
       </div>
     );

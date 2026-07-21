@@ -9,3 +9,5 @@ setup-startup.ps1
 start-backend.bat
 *.db
 *.db-journal
+*.db-shm
+*.db-wal

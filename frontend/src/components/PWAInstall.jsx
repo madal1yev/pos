@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FiDownload, FiX } from 'react-icons/fi';
+import { HiOutlineArrowDownTray, HiOutlineXMark } from 'react-icons/hi2';
 
 export default function PWAInstall() {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
@@ -53,7 +53,7 @@ export default function PWAInstall() {
     <div className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-80 z-50">
       <div className="bg-indigo-600 text-white rounded-2xl shadow-2xl p-4 flex items-center gap-3">
         <div className="flex-shrink-0 w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
-          <FiDownload className="w-5 h-5" />
+          <HiOutlineArrowDownTray className="w-5 h-5" />
         </div>
         <div className="flex-1 min-w-0">
           <p className="font-semibold text-sm">Ilovani o'rnating</p>
@@ -69,7 +69,7 @@ export default function PWAInstall() {
           onClick={handleDismiss}
           className="flex-shrink-0 text-white/60 hover:text-white transition-colors"
         >
-          <FiX className="w-4 h-4" />
+          <HiOutlineXMark className="w-4 h-4" />
         </button>
       </div>
     </div>
