@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { salesAPI } from '../services/api';
 import { UZ, formatCurrency } from '../utils/uzbek';
-import { HiOutlineMagnifyingGlass, HiOutlineEye, HiOutlineXMark, HiOutlinePrinter, HiOutlineCalendarDays, HiOutlineArrowPath } from 'react-icons/hi2';
+import { HiOutlineMagnifyingGlass, HiOutlineEye, HiOutlineXMark, HiOutlinePrinter, HiOutlineCalendarDays, HiOutlineArrowPath, HiOutlineClipboardDocumentList } from 'react-icons/hi2';
 import { emitDataChanged } from '../utils/events';
 import toast from 'react-hot-toast';
 
