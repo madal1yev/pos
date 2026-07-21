@@ -107,55 +107,69 @@ function ImagePickerModal({ onSelect, onClose }) {
     ? Object.values(PRODUCT_CATEGORIES).flat().filter(img => img.name.toLowerCase().includes(search.toLowerCase())).slice(0, 60)
     : PRODUCT_CATEGORIES[activeTab] || [];
 
+  const productCount = filteredImages.length;
+
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
       <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700">
+      <div className="relative bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-full max-w-3xl max-h-[88vh] flex flex-col">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 dark:border-gray-700">
           <div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Mahsulot rasmi tanlang</h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{filteredImages.length} ta rasm mavjud</p>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white">Rasm tanlang</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{activeTab} — {productCount} ta rasm</p>
           </div>
-          <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"><HiOutlineXMark className="w-5 h-5" /></button>
+          <button onClick={onClose} className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"><HiOutlineXMark className="w-5 h-5" /></button>
         </div>
-        <div className="px-5 pt-4">
+
+        <div className="px-6 pt-4">
           <div className="relative">
-            <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input type="text" placeholder="Rasm qidirish... (masalan: cola, olma, sut)" value={search} onChange={(e) => setSearch(e.target.value)} className="input-field pl-10 dark:bg-gray-700 dark:border-gray-600 dark:text-white" autoFocus />
+            <HiOutlineMagnifyingGlass className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input type="text" placeholder="Rasm qidirish..." value={search} onChange={(e) => setSearch(e.target.value)} className="input-field pl-10 h-10 dark:bg-gray-700 dark:border-gray-600 dark:text-white" autoFocus />
           </div>
         </div>
+
         {!search && (
-          <div className="flex gap-1.5 px-5 pt-3 overflow-x-auto pb-1 scrollbar-none">
-            {categories.map((cat) => (
-              <button key={cat} onClick={() => setActiveTab(cat)} className={`px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all ${activeTab === cat ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/25' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'}`}>
-                {cat}
-              </button>
-            ))}
+          <div className="flex gap-2 px-6 pt-4 overflow-x-auto pb-2 scrollbar-none">
+            {categories.map((cat) => {
+              const count = PRODUCT_CATEGORIES[cat]?.length || 0;
+              return (
+                <button key={cat} onClick={() => setActiveTab(cat)} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all flex-shrink-0 ${activeTab === cat ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/25' : 'bg-gray-50 dark:bg-gray-700/50 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600'}`}>
+                  <span>{cat}</span>
+                  <span className={`text-xs px-1.5 py-0.5 rounded-full ${activeTab === cat ? 'bg-white/20 text-white' : 'bg-gray-200 dark:bg-gray-600 text-gray-500 dark:text-gray-300'}`}>{count}</span>
+                </button>
+              );
+            })}
           </div>
         )}
-        <div className="flex-1 overflow-y-auto p-5">
-          <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-2.5">
+
+        <div className="flex-1 overflow-y-auto px-6 py-4">
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
             {filteredImages.map((img, i) => (
-              <button key={i} onClick={() => { onSelect(img.url); onClose(); }} className="group relative aspect-square rounded-xl overflow-hidden border-2 border-gray-100 dark:border-gray-700 hover:border-indigo-500 transition-all hover:shadow-lg hover:scale-[1.03] active:scale-[0.97]">
+              <button key={i} onClick={() => { onSelect(img.url); onClose(); }} className="relative aspect-square rounded-xl overflow-hidden border-2 border-gray-100 dark:border-gray-700 hover:border-indigo-500 transition-all duration-200 hover:shadow-xl hover:-translate-y-0.5 active:scale-[0.97] bg-gray-50 dark:bg-gray-700/30">
                 <img src={img.url} alt={img.name} className="w-full h-full object-cover" loading="lazy" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end">
-                  <span className="text-[9px] text-white font-semibold px-2 py-1.5 w-full text-center truncate">{img.name}</span>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 hover:opacity-100 transition-opacity flex flex-col justify-end p-2">
+                  <span className="text-xs font-semibold text-white truncate">{img.name}</span>
                 </div>
-                <div className="absolute top-1.5 right-1.5 w-5 h-5 bg-indigo-600 rounded-full items-center justify-center text-white text-xs shadow-md hidden group-hover:flex">
-                  <HiOutlinePlus className="w-3 h-3" />
+                <div className="absolute top-2 right-2 w-6 h-6 bg-indigo-600 rounded-full flex items-center justify-center text-white shadow-md opacity-0 hover:opacity-100 transition-opacity">
+                  <HiOutlinePlus className="w-3.5 h-3.5" />
                 </div>
               </button>
             ))}
           </div>
           {filteredImages.length === 0 && (
-            <div className="text-center py-12">
-              <HiOutlinePhoto className="w-10 h-10 mx-auto text-gray-300 dark:text-gray-600 mb-2" />
-              <p className="text-sm text-gray-400">Rasm topilmadi</p>
+            <div className="flex flex-col items-center justify-center py-16">
+              <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-3">
+                <HiOutlinePhoto className="w-8 h-8 text-gray-300 dark:text-gray-500" />
+              </div>
+              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Rasm topilmadi</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Boshqa kalit so'z bilan urinib ko'ring</p>
             </div>
           )}
         </div>
-        <div className="px-5 py-3 border-t border-gray-100 dark:border-gray-700 flex justify-end">
-          <button onClick={onClose} className="btn-secondary text-sm">Bekor qilish</button>
+
+        <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between">
+          <p className="text-xs text-gray-400">{search ? 'Qidiruv natijalari' : `${activeTab} — ${productCount} ta`}</p>
+          <button onClick={onClose} className="btn-secondary text-sm px-5 py-2">Bekor qilish</button>
         </div>
       </div>
     </div>
@@ -464,7 +478,23 @@ export default function Products() {
 
   useEffect(() => { debouncedSearch(search); }, [search, categoryFilter]);
 
-  const loadCategories = async () => { try { const { data } = await categoriesAPI.getAll(); setCategories(data?.categories || []); } catch { setCategories([]); } };
+  const loadCategories = async () => {
+    try {
+      const { data } = await categoriesAPI.getAll();
+      const cats = data?.categories || [];
+      const seen = new Map();
+      const deduped = cats.filter(c => {
+        const key = c.name.toLowerCase().trim();
+        if (seen.has(key)) {
+          seen.get(key).product_count += c.product_count || 0;
+          return false;
+        }
+        seen.set(key, c);
+        return true;
+      });
+      setCategories(deduped);
+    } catch { setCategories([]); }
+  };
   const loadProducts = async (page = 1) => {
     setLoading(true);
     try { const { data } = await productsAPI.getAll({ search, category_id: categoryFilter, page, limit: 50 }); setProducts(data?.products || []); setPagination(data?.pagination || { page: 1, total: 0 }); }
