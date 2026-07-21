@@ -81,8 +81,7 @@ export default function Analytics() {
     { key: 'overview', label: 'Umumiy', icon: HiOutlineChartBar },
     { key: 'daily', label: 'Kunlik', icon: HiOutlineCalendarDays },
     { key: 'monthly', label: 'Oylik', icon: HiOutlineArrowTrendingUp },
-    { key: 'top-products', label: 'TOP', icon: HiOutlineCube, count: data?.top_products?.length },
-    { key: 'inventory', label: 'Ombor', icon: HiOutlineDocumentChartBar, count: data?.summary?.total_products },
+    { key: 'top-products', label: 'TOP mahsulotlar', icon: HiOutlineCube, count: data?.top_products?.length },
   ];
 
   const paymentData = data?.payment_breakdown?.map(p => ({
@@ -357,7 +356,7 @@ export default function Analytics() {
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <SummaryCard icon={HiOutlineArrowTrendingUp} label="Oylik daromad" value={formatCurrency(data.summary?.total_revenue)} sub={`${months[month - 1]} ${year}`} color="text-indigo-600 dark:text-indigo-400" trend="up" />
-                <SummaryCard icon={HiOutlineShoppingCart} label="Sotuvlar soni" value={data.summary?.total_sales || 0} sub="tranzaksiya" color="text-gray-900 dark:text-white" />
+                <SummaryCard icon={HiOutlineShoppingCart} label="Sotuvlar soni" value={data.summary?.total_sales || 0} sub={months[month - 1]} color="text-gray-900 dark:text-white" />
                 <SummaryCard icon={HiOutlineFire} label="Sof daromad" value={formatCurrency(data.summary?.net_revenue || data.summary?.total_revenue)} color="text-emerald-600 dark:text-emerald-400" trend="up" />
                 <SummaryCard icon={HiOutlineCurrencyDollar} label="O'rtacha chek" value={formatCurrency(data.summary?.total_sales ? data.summary.total_revenue / data.summary.total_sales : 0)} color="text-violet-600 dark:text-violet-400" />
               </div>

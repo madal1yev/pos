@@ -189,3 +189,14 @@ export const formatCurrency = (amount) => {
 export const formatNumber = (num) => {
   return Number(num || 0).toLocaleString('uz-UZ');
 };
+
+const WEEKDAYS = ['Yakshanba', 'Dushanba', 'Seshanba', 'Chorshanba', 'Payshanba', 'Juma', 'Shanba'];
+const MONTHS = [
+  'Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'Iyun',
+  'Iyul', 'Avgust', 'Sentabr', 'Oktabr', 'Noyabr', 'Dekabr',
+];
+
+export const formatUzbekDate = (date = new Date()) => {
+  const d = date instanceof Date ? date : new Date(date);
+  return `${WEEKDAYS[d.getDay()]}, ${d.getDate()} ${MONTHS[d.getMonth()]}`;
+};

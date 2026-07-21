@@ -12,7 +12,8 @@ exports.getAll = async (req, res, next) => {
 
     if (search) {
       paramCount++;
-      where.push(`(p.name LIKE $${paramCount} OR p.product_code LIKE $${paramCount} OR p.barcode LIKE $${paramCount})`);
+      const likeOp = db.isSqlite ? 'LIKE' : 'ILIKE';
+      where.push(`(p.name ${likeOp} $${paramCount} OR p.product_code ${likeOp} $${paramCount} OR p.barcode ${likeOp} $${paramCount} OR p.description ${likeOp} $${paramCount})`);
       params.push(`%${search}%`);
     }
 

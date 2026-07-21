@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { productsAPI, categoriesAPI, bulkAPI } from '../services/api';
 import { UZ, formatCurrency } from '../utils/uzbek';
 import { getErrorMessage } from '../utils/errors';
@@ -462,12 +462,11 @@ export default function Products() {
     return () => window.removeEventListener('pos:data-changed', handler);
   }, [pagination.page]);
 
-  const debouncedSearch = useCallback((val) => {
+  useEffect(() => {
     clearTimeout(searchTimeout.current);
     searchTimeout.current = setTimeout(() => { loadProducts(1); }, 300);
-  }, []);
-
-  useEffect(() => { debouncedSearch(search); }, [search, categoryFilter]);
+    return () => clearTimeout(searchTimeout.current);
+  }, [search, categoryFilter]);
 
   const loadCategories = async () => {
     try {
@@ -541,7 +540,7 @@ export default function Products() {
         <div className="flex flex-col sm:flex-row gap-3 mb-4">
           <div className="relative flex-1">
             <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input type="text" placeholder="Mahsulot qidirish (nom, kod, shtrix-kod, brend)..." value={search} onChange={(e) => setSearch(e.target.value)} className="input-field pl-10 dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
+            <input type="text" placeholder="Mahsulot qidirish (nom, kod, shtrix-kod, tavsif)..." value={search} onChange={(e) => setSearch(e.target.value)} className="input-field pl-10 dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
           </div>
           <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className="input-field w-auto sm:w-48 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
             <option value="">Barcha kategoriyalar</option>

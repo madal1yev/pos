@@ -284,9 +284,9 @@ export default function Reports() {
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <SummaryCard icon={HiOutlineArrowTrendingUp} label="Oylik daromad" value={formatCurrency(data.summary?.total_revenue)} sub={`${months[month - 1]} ${year}`} color="text-indigo-600 dark:text-indigo-400" trend="up" />
-                <SummaryCard icon={HiOutlineShoppingCart} label="Sotuvlar soni" value={data.summary?.total_sales || 0} sub="tranzaksiya" color="text-gray-900 dark:text-white" />
+                <SummaryCard icon={HiOutlineShoppingCart} label="Sotuvlar soni" value={data.summary?.total_sales || 0} sub="ta" color="text-gray-900 dark:text-white" />
                 <SummaryCard icon={HiOutlineFire} label="Sof daromad" value={formatCurrency(data.summary?.net_revenue || data.summary?.total_revenue)} sub="To'lovlar chegirilgan" color="text-emerald-600 dark:text-emerald-400" trend="up" />
-                <SummaryCard icon={HiOutlineCurrencyDollar} label="O'rtacha chek" value={formatCurrency(data.summary?.total_sales ? data.summary.total_revenue / data.summary.total_sales : 0)} sub={data.summary?.total_sales ? `${data.summary.total_sales} ta tranzaksiya` : ''} color="text-violet-600 dark:text-violet-400" />
+                <SummaryCard icon={HiOutlineCurrencyDollar} label="O'rtacha chek" value={formatCurrency(data.summary?.total_sales ? data.summary.total_revenue / data.summary.total_sales : 0)} sub={data.summary?.total_sales ? `${data.summary.total_sales} ta sotuv` : ''} color="text-violet-600 dark:text-violet-400" />
               </div>
 
               <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">

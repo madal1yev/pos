@@ -6,6 +6,16 @@ const cookieParser = require('cookie-parser');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
 
+const fs = require('fs');
+
+const uploadsDir = path.join(__dirname, '../uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+  console.log('📁 uploads papkasi yaratildi');
+}
+
+const klentBot = require('./klentBot');
+
 const authRoutes = require('./routes/auth');
 const productRoutes = require('./routes/products');
 const categoryRoutes = require('./routes/categories');
@@ -14,6 +24,7 @@ const reportRoutes = require('./routes/reports');
 const settingsRoutes = require('./routes/settings');
 const dashboardRoutes = require('./routes/dashboard');
 const bulkRoutes = require('./routes/bulk');
+const uploadRoutes = require('./routes/upload');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -57,6 +68,7 @@ app.use('/api/reports', reportRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/bulk', bulkRoutes);
+app.use('/api/upload', uploadRoutes);
 
 // Health check
 app.get('/api/health', async (req, res) => {
@@ -94,13 +106,14 @@ app.use((err, req, res, next) => {
 app.listen(PORT, () => {
   console.log(`POS Server running on port ${PORT}`);
 
-  if (process.env.TELEGRAM_BOT_TOKEN) {
-    try {
-      require('./bot');
-      console.log('Telegram bot started alongside server');
-    } catch (err) {
-      console.error('Bot startup error:', err.message);
-    }
+  try {
+    require('./bot');
+    console.log('🤖 Asosiy bot (@foodsPOS_bot) ishga tushdi');
+
+    // Start @klentlarchek_bot long polling (for admin notifications)
+    klentBot.startPolling();
+  } catch (err) {
+    console.log('⚠️ Botlarni ishga tushirishda xatolik:', err.message);
   }
 });
 

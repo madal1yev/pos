@@ -448,6 +448,7 @@ function ReceiptModal({ sale, onClose }) {
               <p key={i} className="text-xs text-gray-500">{line}</p>
             ))}
           </div>
+          {settings?.store_phone && <div className="text-center mt-2"><p className="text-xs text-gray-400">{settings.store_phone}</p></div>}
         </div>
         <div className="flex justify-center gap-3 px-6 py-4 border-t border-gray-100 dark:border-gray-700 no-print">
           <button onClick={() => window.print()} className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-indigo-700">{UZ.print}</button>

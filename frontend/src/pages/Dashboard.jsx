@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { dashboardAPI } from '../services/api';
-import { UZ, formatCurrency } from '../utils/uzbek';
+import { UZ, formatCurrency, formatUzbekDate } from '../utils/uzbek';
 import {
   HiOutlineBanknotes, HiOutlineShoppingCart, HiOutlineCube, HiOutlineExclamationTriangle,
   HiOutlineArrowTrendingUp, HiOutlineUsers, HiOutlineClock, HiOutlineCalculator,
@@ -114,7 +114,7 @@ export default function Dashboard() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{UZ.dashboardTitle}</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            Bugun: {new Date().toLocaleDateString('uz-UZ', { weekday: 'long', day: 'numeric', month: 'long' })}
+            Bugun: {formatUzbekDate()}
           </p>
         </div>
         <button onClick={() => navigate('/analytics')} className="flex items-center gap-2 px-4 py-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-xl text-sm font-medium hover:bg-indigo-100 dark:hover:bg-indigo-900/30 transition-all">
@@ -137,7 +137,7 @@ export default function Dashboard() {
           icon={HiOutlineShoppingCart}
           label="Sotuvlar soni"
           value={todayCount}
-          subvalue={`${monthCount} ta oylik`}
+          subvalue={todayCount > 0 ? `Bugun ${todayCount} ta` : ''}
           gradient="bg-gradient-to-br from-blue-500 to-blue-600"
         />
         <StatCard
@@ -166,7 +166,7 @@ export default function Dashboard() {
             <p className="text-sm font-medium opacity-90">Oylik daromad</p>
           </div>
           <p className="text-3xl font-bold">{formatCurrency(monthRevenue)}</p>
-          <p className="text-sm opacity-75 mt-1">{monthCount} ta tranzaksiya</p>
+          <p className="text-sm opacity-75 mt-1">{monthCount} ta sotuv</p>
         </div>
 
         <div className="card animate-fade-in-up stagger-3 bg-gradient-to-br from-blue-500 to-blue-600 text-white">

@@ -72,9 +72,9 @@ function InvoiceModal({ saleId, onClose }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="fixed inset-0 bg-black/50 backdrop-blur-sm modal-overlay" onClick={onClose} />
       <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto modal-content">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800 z-10 no-print">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800 z-10 no-print">
           <div>
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{UZ.invoice}</h2>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Chek</h2>
             <p className="text-xs text-gray-400">#{invoice?.invoice_number}</p>
           </div>
           <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"><HiOutlineXMark className="w-5 h-5" /></button>
@@ -92,7 +92,7 @@ function InvoiceModal({ saleId, onClose }) {
 
           <div className="border-t border-b border-dashed border-gray-200 dark:border-gray-600 py-3 my-4">
             <div className="grid grid-cols-2 gap-1 text-xs text-gray-500">
-              <span>{UZ.invoice}:</span><span className="text-right font-medium text-gray-900 dark:text-white font-mono">{invoice?.invoice_number}</span>
+              <span>Chek:</span><span className="text-right font-medium text-gray-900 dark:text-white font-mono">{invoice?.invoice_number}</span>
               <span>{UZ.date}:</span><span className="text-right text-gray-900 dark:text-white">{new Date(invoice?.created_at).toLocaleString('uz-UZ')}</span>
               <span>{UZ.cashier}:</span><span className="text-right text-gray-900 dark:text-white">{invoice?.cashier_name}</span>
               <span>{UZ.payment}:</span>
@@ -187,7 +187,7 @@ export default function Sales() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-fade-in-down">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{UZ.salesTitle}</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{pagination.total} tranzaksiya</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{pagination.total} ta sotuv</p>
         </div>
         {sales.length > 0 && (
           <div className="flex items-center gap-2 px-4 py-2 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl">
@@ -201,7 +201,7 @@ export default function Sales() {
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
             <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input type="text" placeholder={`${UZ.search}... (chia, mijoz, tranzaksiya)`} value={search} onChange={(e) => setSearch(e.target.value)} className="input-field pl-10 dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
+            <input type="text" placeholder={`${UZ.search}... (chek, mijoz)`} value={search} onChange={(e) => setSearch(e.target.value)} className="input-field pl-10 dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
           </div>
           <select value={paymentFilter} onChange={(e) => setPaymentFilter(e.target.value)} className="input-field w-auto sm:w-40 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
             <option value="">Barcha usul</option>

@@ -12,7 +12,8 @@ exports.getAll = async (req, res, next) => {
 
     if (search) {
       paramCount++;
-      where.push(`(s.customer_name LIKE $${paramCount} OR s.invoice_number LIKE $${paramCount} OR u.name LIKE $${paramCount})`);
+      const likeOp = db.isSqlite ? 'LIKE' : 'ILIKE';
+      where.push(`(s.customer_name ${likeOp} $${paramCount} OR s.invoice_number ${likeOp} $${paramCount} OR COALESCE(u.name, '') ${likeOp} $${paramCount})`);
       params.push(`%${search}%`);
     }
 
@@ -24,13 +25,15 @@ exports.getAll = async (req, res, next) => {
 
     if (from_date) {
       paramCount++;
-      where.push(`s.created_at >= $${paramCount}`);
+      const dateVal = db.isSqlite ? `date($${paramCount})` : `$${paramCount}::date`;
+      where.push(`date(s.created_at) >= ${dateVal}`);
       params.push(from_date);
     }
 
     if (to_date) {
       paramCount++;
-      where.push(`date(s.created_at) <= date($${paramCount})`);
+      const dateVal = db.isSqlite ? `date($${paramCount})` : `$${paramCount}::date`;
+      where.push(`date(s.created_at) <= ${dateVal}`);
       params.push(to_date);
     }
 
