@@ -7,7 +7,7 @@ if (DATABASE_URL) {
   const { Pool } = require('pg');
   const pool = new Pool({
     connectionString: DATABASE_URL,
-    ssl: DATABASE_URL.includes('render.com') ? { rejectUnauthorized: false } : false,
+    ssl: { rejectUnauthorized: false },
   });
 
   const db = {
