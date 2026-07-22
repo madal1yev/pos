@@ -69,7 +69,7 @@ module.exports = async (req, res) => {
       ];
       
       for (const sql of indexes) {
-        try { await db.query(sql); } catch (e) { /* index exists */ }
+        try { await db.query(sql); } catch (e) { console.warn('Index warning:', e.message); }
       }
       
       // Seed data
@@ -81,6 +81,25 @@ module.exports = async (req, res) => {
           await db.query(`INSERT INTO settings (store_name, store_phone, currency, currency_symbol, tax_percentage, receipt_footer) VALUES ('Oziq-ovqat Do''koni', '+998 90 123 45 67', 'UZS', 'so''m', 0, 'Xaridingiz uchun rahmat! Yana kutamiz!')`);
         }
       } catch (e) { console.log('Seed settings:', e.message); }
+      
+      // Seed categories
+      try {
+        const r = await db.query(`SELECT id FROM categories LIMIT 1`);
+        if (r.rows.length === 0) {
+          await db.query(`INSERT INTO categories (name, description) VALUES
+            ('Sut mahsulotlari', 'Sut, qatiq, pishloq va boshqa sut mahsulotlari'),
+            ('Non mahsulotlari', 'Non, bulochka, keks va boshqa non mahsulotlari'),
+            ('Go''sht mahsulotlari', 'Qo''y, mol, tovuq go''shtlari va yarim tayyor mahsulotlar'),
+            ('Mevalar', 'Yangi mevalar va rezavorlar'),
+            ('Sabzavotlar', 'Yangi sabzavotlar va ko''katlar'),
+            ('Ichimliklar', 'Suv, sharbat, gazak va boshqa ichimliklar'),
+            ('Gazaklar', 'Chipslar, pechenye, konfet va boshqa gazaklar'),
+            ('Don va quruq mahsulotlar', 'Guruch, makaron, un va boshqa quruq mahsulotlar'),
+            ('Ziravorlar', 'Tuz, qalampir, sos va boshqa ziravorlar'),
+            ('Muzlatilgan mahsulotlar', 'Muzlatilgan go''sht, baliq va tayyor ovqatlar')
+          ON CONFLICT DO NOTHING`);
+        }
+      } catch (e) { console.log('Seed categories:', e.message); }
       
       try {
         const r = await db.query(`SELECT id FROM users WHERE email = 'admin@pos.uz' LIMIT 1`);
