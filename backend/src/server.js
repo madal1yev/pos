@@ -108,18 +108,22 @@ app.use((err, req, res, next) => {
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`POS Server running on port ${PORT}`);
+// Vercel serverless uchun: app.listen() ni chaqirmaymiz
+// Vercel serverless function o'zi requestlarni handle qiladi
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`POS Server running on port ${PORT}`);
 
-  try {
-    require('./bot');
-    console.log('🤖 Asosiy bot (@foodsPOS_bot) ishga tushdi');
+    try {
+      require('./bot');
+      console.log('🤖 Asosiy bot (@foodsPOS_bot) ishga tushdi');
 
-    // Start @klentlarchek_bot long polling (for admin notifications)
-    klentBot.startPolling();
-  } catch (err) {
-    console.log('⚠️ Botlarni ishga tushirishda xatolik:', err.message);
-  }
-});
+      // Start @klentlarchek_bot long polling (for admin notifications)
+      klentBot.startPolling();
+    } catch (err) {
+      console.log('⚠️ Botlarni ishga tushirishda xatolik:', err.message);
+    }
+  });
+}
 
 module.exports = app;
