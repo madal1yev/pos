@@ -1,29 +1,29 @@
 // Vercel serverless entry point for POS Backend
-const path = require('path');
-const fs = require('fs');
+// Vercel serverless da better-sqlite3 ishlamaydi (native module)
+// PostgreSQL kerak! DATABASE_URL env var orqali ulanish
 
-// SQLite database file path (for Vercel serverless - ephemeral but works)
-const DB_PATH = path.join(__dirname, '..', 'pos_database.db');
+let app;
 
-// Run SQLite migration on cold start (tables will be created fresh)
 try {
-  if (!process.env.DATABASE_URL) {
-    // Only for SQLite mode
-    const Database = require('better-sqlite3');
-    const dbExists = fs.existsSync(DB_PATH);
-    const sqlite = new Database(DB_PATH);
-    sqlite.pragma('journal_mode = WAL');
-    sqlite.pragma('foreign_keys = ON');
-    sqlite.close();
-    
-    // Run the migration to ensure all tables exist
-    const { execSync } = require('child_process');
-    execSync('node migrations/run.js', { cwd: path.join(__dirname, '..'), stdio: 'pipe', timeout: 30000 });
-    console.log('✅ Vercel: DB migration completed (SQLite)');
-  }
+  app = require('../src/server');
 } catch (err) {
-  console.error('⚠️ Vercel: Migration xatosi:', err.message);
+  console.error('❌ Server yuklanmadi:', err.message);
+  // Fallback: minimal Express app
+  const express = require('express');
+  app = express();
+  app.get('/api/health', (req, res) => {
+    res.json({
+      status: 'error',
+      message: 'Backend not configured for serverless. Set DATABASE_URL (PostgreSQL) env var.',
+      error: err.message,
+    });
+  });
+  app.all('*', (req, res) => {
+    res.status(503).json({
+      error: 'Backend not available',
+      message: 'Please set DATABASE_URL environment variable for PostgreSQL connection.',
+    });
+  });
 }
 
-const app = require('../src/server');
 module.exports = app;
