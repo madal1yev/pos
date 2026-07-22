@@ -5,7 +5,7 @@ services:
     region: oregon
     plan: free
     buildCommand: cd backend && npm install
-    startCommand: cd backend && node src/server.js
+    startCommand: cd backend && node migrations/pg-migrate.js && node src/server.js
     envVars:
       - key: NODE_ENV
         value: production
@@ -14,6 +14,12 @@ services:
       - key: JWT_SECRET
         generateValue: true
       - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: KLENT_BOT_TOKEN
+        sync: false
+      - key: KLENT_ADMIN_USERNAME
+        sync: false
+      - key: KLENT_ADMIN_CHAT_ID
         sync: false
       - key: FRONTEND_URL
         value: https://frontend-smoky-three-96.vercel.app

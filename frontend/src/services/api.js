@@ -1,6 +1,13 @@
 import axios from 'axios';
 
-const API_BASE = import.meta.env.VITE_API_URL || '/api';
+// Production: VITE_API_URL dan foydalanadi (masalan: https://pos-backend.onrender.com)
+// Local: '/api' (Vite proxy orqali localhost:5000 ga yonaltiriladi)
+const VITE_API_URL = import.meta.env.VITE_API_URL;
+let API_BASE = '/api';
+if (VITE_API_URL) {
+  const base = VITE_API_URL.replace(/\/+$/, '');
+  API_BASE = base.endsWith('/api') ? base : `${base}/api`;
+}
 
 const api = axios.create({
   baseURL: API_BASE,

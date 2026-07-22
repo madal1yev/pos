@@ -38,17 +38,18 @@ if (process.env.NODE_ENV === 'production') {
 
 // Security
 app.use(helmet({ crossOriginResourcePolicy: false }));
+
 app.use(cors({
   origin: process.env.FRONTEND_URL
-    ? process.env.FRONTEND_URL.split(',')
+    ? process.env.FRONTEND_URL.split(',').map(s => s.trim())
     : ['http://localhost:3000', 'http://localhost:5173'],
   credentials: true,
 }));
 
-// Rate limiting
+// Rate limiting - higher limit for production
 const limiter = rateLimit({
   windowMs: 1 * 60 * 1000,
-  max: 1000,
+  max: process.env.NODE_ENV === 'production' ? 5000 : 1000,
   message: { error: 'Too many requests, please try again later.' },
 });
 app.use('/api/', limiter);
