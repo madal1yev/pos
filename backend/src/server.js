@@ -8,10 +8,15 @@ const path = require('path');
 
 const fs = require('fs');
 
-const uploadsDir = path.join(__dirname, '../uploads');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-  console.log('📁 uploads papkasi yaratildi');
+// Vercel serverless da /tmp dan foydalanamiz
+const uploadsDir = path.join(__dirname, process.env.VERCEL ? '/tmp/uploads' : '../uploads');
+try {
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+    console.log('📁 uploads papkasi yaratildi: ' + uploadsDir);
+  }
+} catch (err) {
+  console.log('⚠️ uploads papkasini yaratib bo\'lmadi (Vercel serverless):', err.message);
 }
 
 const klentBot = require('./klentBot');
