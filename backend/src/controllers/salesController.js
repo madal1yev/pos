@@ -103,7 +103,7 @@ exports.getById = async (req, res, next) => {
 
 exports.create = async (req, res, next) => {
   try {
-    const { customer_name, payment_method, received_amount, items, notes } = req.body;
+    const { customer_name, payment_method, received_amount, items, notes, delivery_address } = req.body;
     const invoiceNumber = generateInvoiceNumber();
 
     const settingsResult = await db.query('SELECT tax_percentage FROM settings LIMIT 1');
@@ -139,10 +139,10 @@ exports.create = async (req, res, next) => {
     const changeAmount = Math.max(0, (received_amount || 0) - totalAmount);
 
     const saleResult = await db.query(
-      `INSERT INTO sales (user_id, customer_name, total_amount, payment_method, received_amount, change_amount, invoice_number, notes)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+      `INSERT INTO sales (user_id, customer_name, total_amount, payment_method, received_amount, change_amount, invoice_number, notes, delivery_address)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
       [req.user.id, customer_name || null, totalAmount, payment_method,
-        received_amount || totalAmount, changeAmount, invoiceNumber, notes || null]
+        received_amount || totalAmount, changeAmount, invoiceNumber, notes || null, delivery_address || null]
     );
 
     const sale = saleResult.rows[0];

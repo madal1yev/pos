@@ -133,8 +133,8 @@ async function createOrder(chatId, username, firstName, items, totalAmount, deli
   }
 
   const saleResult = await db.query(
-    `INSERT INTO sales (invoice_number, customer_name, total_amount, payment_method, received_amount, change_amount, notes) VALUES ($1, $2, $3, 'telegram', $3, 0, $4) RETURNING *`,
-    [invoiceNumber, username ? `@${username}` : firstName || 'Telegram foydalanuvchi', totalAmount, notes]
+    `INSERT INTO sales (invoice_number, customer_name, total_amount, payment_method, received_amount, change_amount, notes, delivery_address) VALUES ($1, $2, $3, 'telegram', $3, 0, $4, $5) RETURNING *`,
+    [invoiceNumber, username ? `@${username}` : firstName || 'Telegram foydalanuvchi', totalAmount, notes, deliveryAddress || null]
   );
 
   if (!saleResult || !saleResult.rows || !saleResult.rows[0]) {

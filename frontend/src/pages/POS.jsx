@@ -322,6 +322,8 @@ function CheckoutModal({ total, taxRate, onClose, onComplete }) {
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [receivedAmount, setReceivedAmount] = useState(total.toFixed(0));
   const [customerName, setCustomerName] = useState('');
+  const [deliveryAddress, setDeliveryAddress] = useState('');
+  const [showDelivery, setShowDelivery] = useState(false);
   const [processing, setProcessing] = useState(false);
   const change = Math.max(0, parseFloat(receivedAmount || 0) - total);
   const taxAmount = Math.round(total * taxRate / (1 + taxRate));
@@ -330,7 +332,12 @@ function CheckoutModal({ total, taxRate, onClose, onComplete }) {
   const handleComplete = async () => {
     if (parseFloat(receivedAmount) < total) { toast.error("Qabul qilingan summa kam"); return; }
     setProcessing(true);
-    await onComplete({ payment_method: paymentMethod, received_amount: parseFloat(receivedAmount), customer_name: customerName || undefined });
+    await onComplete({
+      payment_method: paymentMethod,
+      received_amount: parseFloat(receivedAmount),
+      customer_name: customerName || undefined,
+      delivery_address: showDelivery ? (deliveryAddress || undefined) : undefined,
+    });
     setProcessing(false);
   };
 
@@ -358,6 +365,23 @@ function CheckoutModal({ total, taxRate, onClose, onComplete }) {
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">{UZ.customerName}</label>
             <input type="text" value={customerName} onChange={(e) => setCustomerName(e.target.value)} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder={UZ.walkInCustomer} />
           </div>
+          <div>
+            <button onClick={() => setShowDelivery(!showDelivery)} className={`w-full flex items-center justify-between p-3 rounded-xl border-2 transition-all ${showDelivery ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20' : 'border-gray-200 dark:border-gray-700 hover:border-indigo-300'}`}>
+              <div className="flex items-center gap-2">
+                <span className="text-lg">🚚</span>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Yetkazib berish</span>
+              </div>
+              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${showDelivery ? 'border-indigo-500 bg-indigo-500' : 'border-gray-300'}`}>
+                {showDelivery && <span className="w-2 h-2 rounded-full bg-white"></span>}
+              </div>
+            </button>
+          </div>
+          {showDelivery && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">🚚 Yetkazib berish manzili</label>
+              <textarea value={deliveryAddress} onChange={(e) => setDeliveryAddress(e.target.value)} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Manzilni kiriting..." rows={2} />
+            </div>
+          )}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{UZ.paymentMethod}</label>
             <div className="grid grid-cols-3 gap-2">

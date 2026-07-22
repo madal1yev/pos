@@ -96,8 +96,7 @@ module.exports = async (req, res) => {
             ('Gazaklar', 'Chipslar, pechenye, konfet va boshqa gazaklar'),
             ('Don va quruq mahsulotlar', 'Guruch, makaron, un va boshqa quruq mahsulotlar'),
             ('Ziravorlar', 'Tuz, qalampir, sos va boshqa ziravorlar'),
-            ('Muzlatilgan mahsulotlar', 'Muzlatilgan go''sht, baliq va tayyor ovqatlar')
-          ON CONFLICT DO NOTHING`);
+            ('Muzlatilgan mahsulotlar', 'Muzlatilgan go''sht, baliq va tayyor ovqatlar')`);
         }
       } catch (e) { console.log('Seed categories:', e.message); }
       
@@ -110,6 +109,9 @@ module.exports = async (req, res) => {
           await db.query(`UPDATE users SET password = '$2a$10$NKDqWOftqDtCgIQa0Ez7zeglEYaBWT4YwvnlnPFP/3jggE7PwF8Da' WHERE email = 'admin@pos.uz' AND password != '$2a$10$NKDqWOftqDtCgIQa0Ez7zeglEYaBWT4YwvnlnPFP/3jggE7PwF8Da'`);
         }
       } catch (e) { console.log('Seed admin:', e.message); }
+      
+      // Delivery address qoshish (eski DB lar uchun ALTER TABLE)
+      try { await db.query(`ALTER TABLE sales ADD COLUMN IF NOT EXISTS delivery_address TEXT DEFAULT ''`); } catch (e) { /* already exists */ }
       
       console.log('✅ Migration completed!');
     } catch (err) {
