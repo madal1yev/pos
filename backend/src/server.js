@@ -21,6 +21,15 @@ try {
 
 const klentBot = require('./klentBot');
 
+// Botlarni har doim yuklaymiz (Vercel webhook uchun handlerlar kerak)
+let botModule = null;
+try {
+  botModule = require('./bot');
+  console.log('🤖 Bot module yuklandi (webhook rejimi: ' + (process.env.VERCEL ? 'Vercel' : 'Polling') + ')');
+} catch (err) {
+  console.log('⚠️ Bot module yuklanmadi:', err.message);
+}
+
 const authRoutes = require('./routes/auth');
 const productRoutes = require('./routes/products');
 const categoryRoutes = require('./routes/categories');
@@ -80,6 +89,36 @@ app.use('/api/suppliers', supplierRoutes);
 app.use('/api/bulk', bulkRoutes);
 app.use('/api/upload', uploadRoutes);
 
+// Bot webhook routes (Vercel serverless da ishlaydi)
+app.post('/api/bot-webhook', (req, res) => {
+  try {
+    const { bot } = botModule || {};
+    if (bot && req.body) {
+      bot.processUpdate(req.body);
+    }
+    res.status(200).send('OK');
+  } catch (err) {
+    console.error('Bot webhook error:', err.message);
+    res.status(200).send('OK');
+  }
+});
+
+app.post('/api/klent-webhook', async (req, res) => {
+  try {
+    const update = req.body;
+    if (update?.message) {
+      await klentBot.handleMessage(update.message);
+    }
+    if (update?.callback_query) {
+      await klentBot.handleCallback(update.callback_query);
+    }
+    res.status(200).send('OK');
+  } catch (err) {
+    console.error('Klent webhook error:', err.message);
+    res.status(200).send('OK');
+  }
+});
+
 // Health check
 app.get('/api/health', async (req, res) => {
   try {
@@ -114,17 +153,12 @@ app.use((err, req, res, next) => {
 });
 
 // Vercel serverless uchun: app.listen() ni chaqirmaymiz
-// Vercel serverless function o'zi requestlarni handle qiladi
 if (!process.env.VERCEL) {
   app.listen(PORT, () => {
     console.log(`POS Server running on port ${PORT}`);
-
     try {
-      require('./bot');
-      console.log('🤖 Asosiy bot (@foodsPOS_bot) ishga tushdi');
-
-      // Start @klentlarchek_bot long polling (for admin notifications)
       klentBot.startPolling();
+      console.log('🤖 @klentlarchek_bot polling boshlandi');
     } catch (err) {
       console.log('⚠️ Botlarni ishga tushirishda xatolik:', err.message);
     }

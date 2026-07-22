@@ -9,11 +9,15 @@ const ADMIN_USERNAME = 'azizvc_m';
 const ADMIN_DISPLAY = 'azizvc\\_m';
 let ADMIN_CHAT_ID = process.env.ADMIN_TELEGRAM_ID || null;
 
-const bot = new TelegramBot(BOT_TOKEN, { polling: true });
+// Vercel serverless da polling ishlamaydi, webhook ishlatamiz
+const usePolling = !process.env.VERCEL;
+const bot = new TelegramBot(BOT_TOKEN, usePolling ? { polling: true } : {});
 
 const userSessions = new Map();
 
-bot.on('polling_error', (err) => console.error('Polling error:', err.message));
+if (usePolling) {
+  bot.on('polling_error', (err) => console.error('Polling error:', err.message));
+}
 bot.on('webhook_error', (err) => console.error('Webhook error:', err.message));
 bot.on('error', (err) => console.error('Bot error:', err.message));
 
@@ -1307,9 +1311,11 @@ bot.on('location', async (msg) => {
   }
 });
 
+if (!process.env.VERCEL) {
+  console.log('🤖 Telegram bot ishga tushdi!');
+  console.log(`👤 Admin: @${ADMIN_USERNAME}`);
+  console.log(`🔗 Asosiy bot: https://t.me/foodsPOS_bot`);
+  console.log(`🔔 Xabarnoma boti: https://t.me/klentlarchek_bot`);
+}
 
-
-console.log('🤖 Telegram bot ishga tushdi!');
-console.log(`👤 Admin: @${ADMIN_USERNAME}`);
-console.log(`🔗 Asosiy bot: https://t.me/foodsPOS_bot`);
-console.log(`🔔 Xabarnoma boti: https://t.me/klentlarchek_bot`);
+module.exports = { bot, getSession, getLang, clearSession, safeSend, safeEdit, ADMIN_CHAT_ID, ADMIN_USERNAME, ADMIN_DISPLAY, userSessions };
