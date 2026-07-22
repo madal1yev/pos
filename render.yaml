@@ -1,29 +1,25 @@
 services:
-  - type: web
-    name: pos-backend
+  # Backend API - Vercel da, Render kerak emas
+  # Lekin botlar uchun alohida service kerak
+
+  # Bot service - 24/7 ishlaydi
+  - type: worker
+    name: pos-bots
     runtime: node
-    region: oregon
-    plan: free
+    repo: https://github.com/madal1yev/pos
+    branch: main
     buildCommand: cd backend && npm install
-    startCommand: cd backend && node migrations/pg-migrate.js && node src/server.js
+    startCommand: cd backend && node standalone-bot.js
+    healthCheckPath: /
+    autoDeploy: true
     envVars:
       - key: NODE_ENV
         value: production
       - key: DATABASE_URL
         sync: false
-      - key: JWT_SECRET
-        generateValue: true
       - key: TELEGRAM_BOT_TOKEN
         sync: false
       - key: KLENT_BOT_TOKEN
         sync: false
       - key: KLENT_ADMIN_USERNAME
-        sync: false
-      - key: KLENT_ADMIN_CHAT_ID
-        sync: false
-      - key: FRONTEND_URL
-        value: https://frontend-smoky-three-96.vercel.app
-      - key: PORT
-        value: 5000
-    healthCheckPath: /api/health
-    autoDeploy: true
+        value: azizvc_m
