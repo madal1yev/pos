@@ -1,5 +1,11 @@
 {
   "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/[...path]" },
     { "source": "/((?!assets/|manifest\\.webmanifest|sw\\.js|workbox-.*\\.js).*)", "destination": "/index.html" }
-  ]
+  ],
+  "functions": {
+    "api/[...path].js": {
+      "maxDuration": 30
+    }
+  }
 }
