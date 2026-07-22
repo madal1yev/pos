@@ -85,7 +85,7 @@ module.exports = async (req, res) => {
       try {
         const r = await db.query(`SELECT id FROM users WHERE email = 'admin@pos.uz' LIMIT 1`);
         if (r.rows.length === 0) {
-          await db.query(`INSERT INTO users (name, email, password, role_id) VALUES ('Admin', 'admin@pos.uz', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 1)`);
+          await db.query(`INSERT INTO users (name, email, password, role_id) VALUES ('Admin', 'admin@pos.uz', '$2a$10$NKDqWOftqDtCgIQa0Ez7zeglEYaBWT4YwvnlnPFP/3jggE7PwF8Da', 1)`);
         }
       } catch (e) { console.log('Seed admin:', e.message); }
       
