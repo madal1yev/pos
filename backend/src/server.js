@@ -91,8 +91,8 @@ app.get('/api/health', async (req, res) => {
   }
 });
 
-// Auto-migrate on startup in production
-if (process.env.NODE_ENV === 'production') {
+// Auto-migrate on startup in production (Vercel serverless da api/index.js ishlaydi)
+if (process.env.NODE_ENV === 'production' && !process.env.VERCEL) {
   console.log(`Database: ${process.env.DATABASE_URL ? 'PostgreSQL' : 'SQLite (⚠️ ma\'lumotlar saqlanmaydi!)'}`);
   (async () => {
     try {
