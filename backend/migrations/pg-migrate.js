@@ -100,6 +100,45 @@ CREATE TABLE IF NOT EXISTS inventory_logs (
 
 CREATE INDEX IF NOT EXISTS idx_inventory_logs_product ON inventory_logs(product_id);
 
+CREATE TABLE IF NOT EXISTS customers (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(200) NOT NULL,
+  phone VARCHAR(30),
+  email VARCHAR(100),
+  address TEXT,
+  type VARCHAR(20) DEFAULT 'regular',
+  tax_id VARCHAR(50),
+  notes TEXT,
+  total_purchases DECIMAL(14,2) DEFAULT 0,
+  total_paid DECIMAL(14,2) DEFAULT 0,
+  debt DECIMAL(14,2) DEFAULT 0,
+  bonus_points INTEGER DEFAULT 0,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_customers_phone ON customers(phone);
+CREATE INDEX IF NOT EXISTS idx_customers_name ON customers(name);
+
+CREATE TABLE IF NOT EXISTS suppliers (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(200) NOT NULL,
+  phone VARCHAR(30),
+  email VARCHAR(100),
+  address TEXT,
+  contact_person VARCHAR(200),
+  tax_id VARCHAR(50),
+  notes TEXT,
+  total_purchases DECIMAL(14,2) DEFAULT 0,
+  total_paid DECIMAL(14,2) DEFAULT 0,
+  debt DECIMAL(14,2) DEFAULT 0,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_suppliers_phone ON suppliers(phone);
+CREATE INDEX IF NOT EXISTS idx_suppliers_name ON suppliers(name);
+
 CREATE TABLE IF NOT EXISTS settings (
   id SERIAL PRIMARY KEY,
   store_name VARCHAR(100) DEFAULT 'My Store',

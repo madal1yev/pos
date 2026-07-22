@@ -106,6 +106,45 @@ CREATE TABLE IF NOT EXISTS inventory_logs (
 CREATE INDEX IF NOT EXISTS idx_inventory_logs_product ON inventory_logs(product_id);
 CREATE INDEX IF NOT EXISTS idx_inventory_logs_created ON inventory_logs(created_at);
 
+CREATE TABLE IF NOT EXISTS customers (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  phone TEXT,
+  email TEXT,
+  address TEXT,
+  type TEXT DEFAULT 'regular',
+  tax_id TEXT,
+  notes TEXT,
+  total_purchases REAL DEFAULT 0,
+  total_paid REAL DEFAULT 0,
+  debt REAL DEFAULT 0,
+  bonus_points INTEGER DEFAULT 0,
+  created_at TEXT DEFAULT (datetime('now')),
+  updated_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_customers_phone ON customers(phone);
+CREATE INDEX IF NOT EXISTS idx_customers_name ON customers(name);
+
+CREATE TABLE IF NOT EXISTS suppliers (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  phone TEXT,
+  email TEXT,
+  address TEXT,
+  contact_person TEXT,
+  tax_id TEXT,
+  notes TEXT,
+  total_purchases REAL DEFAULT 0,
+  total_paid REAL DEFAULT 0,
+  debt REAL DEFAULT 0,
+  created_at TEXT DEFAULT (datetime('now')),
+  updated_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_suppliers_phone ON suppliers(phone);
+CREATE INDEX IF NOT EXISTS idx_suppliers_name ON suppliers(name);
+
 CREATE TABLE IF NOT EXISTS settings (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   store_name TEXT DEFAULT 'My Store',
