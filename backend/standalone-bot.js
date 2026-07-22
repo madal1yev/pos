@@ -26,8 +26,13 @@ console.log('✅ PostgreSQL ga ulandı');
 
 // @foodsPOS_bot ni ishga tushirish (bot.js ichida polling avtomatik boshlanadi)
 console.log('🤖 @foodsPOS_bot ishga tushirilmoqda...');
-require('./src/bot');
-console.log('✅ @foodsPOS_bot ishga tushdi');
+try {
+  require('./src/bot');
+  console.log('✅ @foodsPOS_bot ishga tushdi');
+} catch (err) {
+  console.error('❌ @foodsPOS_bot ishga tushmadi:', err.message);
+  process.exit(1);
+}
 
 // @klentlarchek_bot ni ishga tushirish
 console.log('🤖 @klentlarchek_bot ishga tushirilmoqda...');

@@ -10,7 +10,6 @@ services:
     branch: main
     buildCommand: cd backend && npm install
     startCommand: cd backend && node standalone-bot.js
-    healthCheckPath: /
     autoDeploy: true
     envVars:
       - key: NODE_ENV
