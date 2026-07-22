@@ -2,16 +2,25 @@ const db = require('../config/db');
 
 exports.getAll = async (req, res, next) => {
   try {
-    const result = await db.query(
-      `SELECT c.*, 
+    let query;
+    if (db.isSqlite) {
+      query = `SELECT c.*, 
         COUNT(p.id) as product_count,
         cp.name as parent_name
        FROM categories c 
        LEFT JOIN products p ON p.category_id = c.id
        LEFT JOIN categories cp ON c.parent_id = cp.id
        GROUP BY c.id 
-       ORDER BY c.sort_order ASC, c.name ASC`
-    );
+       ORDER BY c.sort_order ASC, c.name ASC`;
+    } else {
+      query = `SELECT c.*, 
+        (SELECT COUNT(*) FROM products p WHERE p.category_id = c.id) as product_count,
+        cp.name as parent_name
+       FROM categories c 
+       LEFT JOIN categories cp ON c.parent_id = cp.id
+       ORDER BY c.sort_order ASC, c.name ASC`;
+    }
+    const result = await db.query(query);
 
     // Build tree structure
     const categories = result.rows;

@@ -69,7 +69,7 @@ export default function Dashboard() {
   }, [loadDashboard]);
 
   useEffect(() => {
-    const interval = setInterval(() => loadDashboard(true), 60000);
+    const interval = setInterval(() => loadDashboard(true), 30000);
     return () => clearInterval(interval);
   }, [loadDashboard]);
 
