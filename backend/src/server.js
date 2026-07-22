@@ -23,6 +23,8 @@ const salesRoutes = require('./routes/sales');
 const reportRoutes = require('./routes/reports');
 const settingsRoutes = require('./routes/settings');
 const dashboardRoutes = require('./routes/dashboard');
+const customerRoutes = require('./routes/customers');
+const supplierRoutes = require('./routes/suppliers');
 const bulkRoutes = require('./routes/bulk');
 const uploadRoutes = require('./routes/upload');
 
@@ -67,6 +69,8 @@ app.use('/api/sales', salesRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/customers', customerRoutes);
+app.use('/api/suppliers', supplierRoutes);
 app.use('/api/bulk', bulkRoutes);
 app.use('/api/upload', uploadRoutes);
 

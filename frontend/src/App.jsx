@@ -5,6 +5,8 @@ import Layout from './components/layout/Layout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Products from './pages/Products';
+import Customers from './pages/Customers';
+import Suppliers from './pages/Suppliers';
 import POS from './pages/POS';
 import Sales from './pages/Sales';
 import Reports from './pages/Reports';
@@ -34,6 +36,8 @@ function App() {
           <Route path="/" element={<ProtectedRoute><Layout dark={dark} toggleDark={toggle} /></ProtectedRoute>}>
             <Route index element={<Dashboard />} />
             <Route path="products" element={<Products />} />
+            <Route path="customers" element={<Customers />} />
+            <Route path="suppliers" element={<Suppliers />} />
             <Route path="pos" element={<POS />} />
             <Route path="sales" element={<Sales />} />
             <Route path="reports" element={<Reports />} />

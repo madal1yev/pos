@@ -98,6 +98,24 @@ export const settingsAPI = {
   update: (data) => api.put('/settings', data),
 };
 
+// Customers
+export const customersAPI = {
+  getAll: (params) => api.get('/customers', { params }),
+  getById: (id) => api.get(`/customers/${id}`),
+  create: (data) => api.post('/customers', data),
+  update: (id, data) => api.put(`/customers/${id}`, data),
+  delete: (id) => api.delete(`/customers/${id}`),
+};
+
+// Suppliers
+export const suppliersAPI = {
+  getAll: (params) => api.get('/suppliers', { params }),
+  getById: (id) => api.get(`/suppliers/${id}`),
+  create: (data) => api.post('/suppliers', data),
+  update: (id, data) => api.put(`/suppliers/${id}`, data),
+  delete: (id) => api.delete(`/suppliers/${id}`),
+};
+
 // Bulk operations
 export const bulkAPI = {
   updatePrices: (updates) => api.post('/bulk/bulk-update-prices', { updates }),

@@ -12,6 +12,8 @@ const navItems = [
   { to: '/', icon: HiOutlineHome, label: UZ.dashboard },
   { to: '/pos', icon: HiOutlineCalculator, label: UZ.pos, accent: true },
   { to: '/products', icon: HiOutlineCube, label: UZ.products },
+  { to: '/customers', icon: HiOutlineClipboardDocumentList, label: 'Mijozlar' },
+  { to: '/suppliers', icon: HiOutlineClipboardDocumentList, label: 'Yetkazib beruvchilar' },
   { to: '/sales', icon: HiOutlineClipboardDocumentList, label: UZ.sales },
   { to: '/reports', icon: HiOutlineChartBar, label: UZ.reports },
   { to: '/analytics', icon: HiOutlineDocumentChartBar, label: 'Tahlillar' },
