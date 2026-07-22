@@ -37,6 +37,8 @@ export default defineConfig({
         cleanupOutdatedCaches: true,
         navigateFallback: 'index.html',
         navigateFallbackAllowlist: [/^(?!\/api\/)/, /^(?!\/_)/],
+        sourcemap: false,
+        inlineWorkboxRuntime: false,
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
