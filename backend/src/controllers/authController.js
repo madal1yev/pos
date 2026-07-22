@@ -2,8 +2,11 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('../config/db');
 
+// JWT_SECRET - .env dan yoki fallback (sayt sotilganda o'zgartirish kerak!)
+const JWT_SECRET = process.env.JWT_SECRET || 'pos-system-2026-fallback-secret-key';
+
 const generateToken = (userId, remember) => {
-  return jwt.sign({ userId }, process.env.JWT_SECRET, {
+  return jwt.sign({ userId }, JWT_SECRET, {
     expiresIn: remember ? '30d' : '1d',
   });
 };

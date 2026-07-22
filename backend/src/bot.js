@@ -189,10 +189,12 @@ async function sendAdminNotification(chatId, username, firstName, session, invoi
   const customerName = username ? `@${username}` : firstName || 'Telegram foydalanuvchi';
 
   // Get admin chat ID for @klentlarchek_bot
-  const klentAdminChatId = klentBot.getAdminChatId();
+  // Try klent bot's own admin chat ID first, fall back to main bot's admin chat ID
+  const klentAdminChatId = klentBot.getAdminChatId() || ADMIN_CHAT_ID;
 
   if (klentAdminChatId) {
     // Send via @klentlarchek_bot with full details and action buttons
+    // This is the PRIMARY notification - admin receives it from @klentlarchek_bot
     await klentBot.sendOrderNotification({
       adminChatId: klentAdminChatId,
       invoiceNumber,
@@ -206,29 +208,27 @@ async function sendAdminNotification(chatId, username, firstName, session, invoi
       totalAmount: total,
     });
   } else {
-    console.log(`⚠️ @klentlarchek_bot: Admin chat ID topilmadi. Admin @azizvc_m @klentlarchek_bot ga /start bosishi kerak.`);
-  }
+    console.log(`⚠️ @klentlarchek_bot: Admin chat ID topilmadi.`);
 
-  // Also send via main bot as fallback notification
-  if (ADMIN_CHAT_ID) {
-    const { text } = buildOrderSummaryText(chatId, session.cart, false);
-    const deliveryLine = deliveryAddress
-      ? `🚚 ${escMd(deliveryAddress)}`
-      : '🏪 Olib ketish';
-    const phoneText = phone ? `\n📞 ${escMd(phone)}` : '';
+    // Fallback: send via main bot if admin has started @foodsPOS_bot
+    if (ADMIN_CHAT_ID) {
+      const { text } = buildOrderSummaryText(chatId, session.cart, false);
+      const deliveryLine = deliveryAddress
+        ? `🚚 ${escMd(deliveryAddress)}`
+        : '🏪 Olib ketish';
+      const phoneText = phone ? `\n📞 ${escMd(phone)}` : '';
 
-    const backupText =
-      `🔔 *YANGI BUYURTMA!*  #${invoiceNumber}\n\n` +
-      `${text}\n` +
-      `💰 *Jami: ${formatCurrency(total)}*\n\n` +
-      `👤 ${escMd(customerName)}${phoneText}\n` +
-      `🆔 Chat ID: \`${chatId}\`\n` +
-      `📋 Chek: \`${invoiceNumber}\`\n` +
-      `⏰ ${new Date().toLocaleString('uz-UZ', { timeZone: 'Asia/Tashkent' })}\n`;
+      const backupText =
+        `🔔 *YANGI BUYURTMA!*  #${invoiceNumber}\n\n` +
+        `${text}\n` +
+        `💰 *Jami: ${formatCurrency(total)}*\n\n` +
+        `👤 ${escMd(customerName)}${phoneText}\n` +
+        `🆔 Chat ID: \`${chatId}\`\n` +
+        `📋 Chek: \`${invoiceNumber}\`\n` +
+        `⏰ ${new Date().toLocaleString('uz-UZ', { timeZone: 'Asia/Tashkent' })}\n`;
 
-    await bot.sendMessage(ADMIN_CHAT_ID, backupText, { parse_mode: 'Markdown' }).catch(() => {});
-  } else {
-    console.log(`⚠️ Asosiy bot: Admin chat ID topilmadi. @${ADMIN_USERNAME} botga /start bosishi kerak.`);
+      await bot.sendMessage(ADMIN_CHAT_ID, backupText, { parse_mode: 'Markdown' }).catch(() => {});
+    }
   }
 }
 
@@ -247,7 +247,7 @@ async function placeOrder(chatId, messageId, username, firstName, session, deliv
     return;
   }
 
-  const { text, total } = buildOrderSummaryText(chatId, session.cart, true);
+  const total = session.cart.reduce((s, i) => s + i.subtotal, 0);
 
   const deliveryLine = deliveryAddress
     ? t(lang, 'deliveryText', { address: escMd(deliveryAddress) })
@@ -260,10 +260,11 @@ async function placeOrder(chatId, messageId, username, firstName, session, deliv
 
   clearSession(chatId);
 
+  // Customer gets a SIMPLE confirmation (no full itemized receipt)
   const userMsg = t(lang, 'orderSuccess', {
-    items: text,
-    delivery: deliveryLine,
     invoice: invoiceNumber,
+    total: formatCurrency(total),
+    delivery: deliveryLine,
     admin: ADMIN_DISPLAY
   });
 
@@ -504,6 +505,12 @@ bot.onText(/\/start/, async (msg) => {
   if (username === ADMIN_USERNAME) {
     ADMIN_CHAT_ID = chatId;
     console.log(`✅ Admin aniqlandi: @${username}, Chat ID: ${chatId}`);
+
+    // Send admin a silent welcome (no bot links exposed)
+    const adminWelcome =
+      `👋 *Xush kelibsiz, Admin!* ✅\n\n` +
+      `Bot to'liq ishga tushdi. Buyurtmalar avtomatik tarzda qabul qilinadi.`;
+    await safeSend(chatId, adminWelcome);
   }
 
   const session = getSession(chatId);

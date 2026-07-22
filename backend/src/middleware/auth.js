@@ -1,6 +1,9 @@
 const jwt = require('jsonwebtoken');
 const db = require('../config/db');
 
+// JWT_SECRET - .env dan yoki fallback
+const JWT_SECRET = process.env.JWT_SECRET || 'pos-system-2026-fallback-secret-key';
+
 const auth = async (req, res, next) => {
   try {
     const token = req.headers.authorization?.replace('Bearer ', '') || req.cookies?.token;
@@ -8,7 +11,7 @@ const auth = async (req, res, next) => {
       return res.status(401).json({ error: 'Access denied. No token provided.' });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, JWT_SECRET);
     const result = await db.query(
       `SELECT u.id, u.name, u.email, u.is_active, r.name as role 
        FROM users u LEFT JOIN roles r ON u.role_id = r.id 

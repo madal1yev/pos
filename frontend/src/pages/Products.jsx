@@ -3,8 +3,7 @@ import { productsAPI, categoriesAPI, bulkAPI } from '../services/api';
 import { UZ, formatCurrency } from '../utils/uzbek';
 import { getErrorMessage } from '../utils/errors';
 import { emitDataChanged } from '../utils/events';
-import PRODUCT_CATEGORIES from '../utils/productImages';
-import { HiOutlinePlus, HiOutlineMagnifyingGlass, HiOutlinePencil, HiOutlineTrash, HiOutlineQrCode, HiOutlineXMark, HiOutlinePhoto, HiOutlineCurrencyDollar, HiOutlineCamera } from 'react-icons/hi2';
+import { HiOutlinePlus, HiOutlineMagnifyingGlass, HiOutlinePencil, HiOutlineTrash, HiOutlineQrCode, HiOutlineXMark, HiOutlinePhoto, HiOutlineCurrencyDollar, HiOutlineCamera, HiOutlineChevronDown } from 'react-icons/hi2';
 import JsBarcode from 'jsbarcode';
 import QRCode from 'qrcode';
 import { Html5Qrcode } from 'html5-qrcode';
@@ -98,84 +97,6 @@ function BarcodeScannerModal({ onClose, onScan }) {
   );
 }
 
-function ImagePickerModal({ onSelect, onClose }) {
-  const [activeTab, setActiveTab] = useState(Object.keys(PRODUCT_CATEGORIES)[0]);
-  const [search, setSearch] = useState('');
-  const categories = Object.keys(PRODUCT_CATEGORIES);
-
-  const filteredImages = search
-    ? Object.values(PRODUCT_CATEGORIES).flat().filter(img => img.name.toLowerCase().includes(search.toLowerCase())).slice(0, 60)
-    : PRODUCT_CATEGORIES[activeTab] || [];
-
-  const productCount = filteredImages.length;
-
-  return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-full max-w-3xl max-h-[88vh] flex flex-col">
-        <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 dark:border-gray-700">
-          <div>
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white">Rasm tanlang</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{activeTab} — {productCount} ta rasm</p>
-          </div>
-          <button onClick={onClose} className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"><HiOutlineXMark className="w-5 h-5" /></button>
-        </div>
-
-        <div className="px-6 pt-4">
-          <div className="relative">
-            <HiOutlineMagnifyingGlass className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input type="text" placeholder="Rasm qidirish..." value={search} onChange={(e) => setSearch(e.target.value)} className="input-field pl-10 h-10 dark:bg-gray-700 dark:border-gray-600 dark:text-white" autoFocus />
-          </div>
-        </div>
-
-        {!search && (
-          <div className="flex gap-2 px-6 pt-4 overflow-x-auto pb-2 scrollbar-none">
-            {categories.map((cat) => {
-              const count = PRODUCT_CATEGORIES[cat]?.length || 0;
-              return (
-                <button key={cat} onClick={() => setActiveTab(cat)} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all flex-shrink-0 ${activeTab === cat ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/25' : 'bg-gray-50 dark:bg-gray-700/50 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600'}`}>
-                  <span>{cat}</span>
-                  <span className={`text-xs px-1.5 py-0.5 rounded-full ${activeTab === cat ? 'bg-white/20 text-white' : 'bg-gray-200 dark:bg-gray-600 text-gray-500 dark:text-gray-300'}`}>{count}</span>
-                </button>
-              );
-            })}
-          </div>
-        )}
-
-        <div className="flex-1 overflow-y-auto px-6 py-4">
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
-            {filteredImages.map((img, i) => (
-              <button key={i} onClick={() => { onSelect(img.url); onClose(); }} className="relative aspect-square rounded-xl overflow-hidden border-2 border-gray-100 dark:border-gray-700 hover:border-indigo-500 transition-all duration-200 hover:shadow-xl hover:-translate-y-0.5 active:scale-[0.97] bg-gray-50 dark:bg-gray-700/30">
-                <img src={img.url} alt={img.name} className="w-full h-full object-cover" loading="lazy" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 hover:opacity-100 transition-opacity flex flex-col justify-end p-2">
-                  <span className="text-xs font-semibold text-white truncate">{img.name}</span>
-                </div>
-                <div className="absolute top-2 right-2 w-6 h-6 bg-indigo-600 rounded-full flex items-center justify-center text-white shadow-md opacity-0 hover:opacity-100 transition-opacity">
-                  <HiOutlinePlus className="w-3.5 h-3.5" />
-                </div>
-              </button>
-            ))}
-          </div>
-          {filteredImages.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-16">
-              <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-3">
-                <HiOutlinePhoto className="w-8 h-8 text-gray-300 dark:text-gray-500" />
-              </div>
-              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Rasm topilmadi</p>
-              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Boshqa kalit so'z bilan urinib ko'ring</p>
-            </div>
-          )}
-        </div>
-
-        <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between">
-          <p className="text-xs text-gray-400">{search ? 'Qidiruv natijalari' : `${activeTab} — ${productCount} ta`}</p>
-          <button onClick={onClose} className="btn-secondary text-sm px-5 py-2">Bekor qilish</button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function ProductModal({ product, categories, onClose, onSave }) {
   const [form, setForm] = useState({
     name: product?.name || '', category_id: product?.category_id || '',
@@ -186,7 +107,6 @@ function ProductModal({ product, categories, onClose, onSave }) {
     description: product?.description || '', status: product?.status || 'active',
   });
   const [saving, setSaving] = useState(false);
-  const [showImagePicker, setShowImagePicker] = useState(false);
   const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
   const barcodeSvgRef = useRef(null);
 
@@ -229,10 +149,13 @@ function ProductModal({ product, categories, onClose, onSave }) {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Kategoriya</label>
-              <select value={form.category_id} onChange={(e) => setForm({ ...form, category_id: e.target.value })} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                <option value="">Kategoriya tanlash</option>
-                {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
+              <div className="relative">
+                <select value={form.category_id} onChange={(e) => setForm({ ...form, category_id: e.target.value })} className="input-field w-full appearance-none dark:bg-gray-700 dark:border-gray-600 dark:text-white pr-10 cursor-pointer">
+                  <option value="">Kategoriya tanlash</option>
+                  {categories.map((c) => <option key={c.id} value={c.id}>{c.name} {c.product_count > 0 ? `(${c.product_count})` : ''}</option>)}
+                </select>
+                <HiOutlineChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+              </div>
             </div>
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Shtrix-kod</label>
@@ -253,29 +176,35 @@ function ProductModal({ product, categories, onClose, onSave }) {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">O'lchov birligi</label>
-              <select value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                {UNIT_OPTIONS.map((u) => <option key={u.value} value={u.value}>{u.label}</option>)}
-              </select>
+              <div className="relative">
+                <select value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })} className="input-field w-full appearance-none dark:bg-gray-700 dark:border-gray-600 dark:text-white pr-10 cursor-pointer">
+                  {UNIT_OPTIONS.map((u) => <option key={u.value} value={u.value}>{u.label}</option>)}
+                </select>
+                <HiOutlineChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+              </div>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Sotish narxi *</label>
-              <input type="number" step="0.01" value={form.selling_price} onChange={(e) => setForm({ ...form, selling_price: e.target.value })} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="0" required />
+              <input type="number" step="0.01" min="0" value={form.selling_price} onChange={(e) => setForm({ ...form, selling_price: e.target.value })} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="0" required />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Mavjud miqdor</label>
-              <input type="number" value={form.stock_quantity} onChange={(e) => setForm({ ...form, stock_quantity: e.target.value })} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="0" />
+              <input type="number" min="0" value={form.stock_quantity} onChange={(e) => setForm({ ...form, stock_quantity: e.target.value })} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="0" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Minimal zaxira</label>
-              <input type="number" value={form.minimum_stock} onChange={(e) => setForm({ ...form, minimum_stock: e.target.value })} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="0" />
+              <input type="number" min="0" value={form.minimum_stock} onChange={(e) => setForm({ ...form, minimum_stock: e.target.value })} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="0" />
               <p className="text-[11px] text-gray-400 mt-1">Bu miqdordan kam qolganda ogohlantirish beriladi</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Holat</label>
-              <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                <option value="active">Faol</option>
-                <option value="inactive">Nofaol</option>
-              </select>
+              <div className="relative">
+                <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })} className="input-field w-full appearance-none dark:bg-gray-700 dark:border-gray-600 dark:text-white pr-10 cursor-pointer">
+                  <option value="active">Faol</option>
+                  <option value="inactive">Nofaol</option>
+                </select>
+                <HiOutlineChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+              </div>
             </div>
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Tavsif</label>
@@ -283,24 +212,16 @@ function ProductModal({ product, categories, onClose, onSave }) {
             </div>
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                <span className="flex items-center gap-1.5"><HiOutlinePhoto className="w-4 h-4" /> Mahsulot rasmi</span>
+                <span className="flex items-center gap-1.5"><HiOutlinePhoto className="w-4 h-4" /> Mahsulot rasmi (URL)</span>
               </label>
               <div className="flex gap-3">
-                <div className="flex-1">
-                  <input type="url" value={form.image_url} onChange={(e) => setForm({ ...form, image_url: e.target.value })} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="URL kiriting yoki quyidagi tugmani bosing" />
-                </div>
-                <button type="button" onClick={() => setShowImagePicker(true)} className="px-4 py-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-lg text-sm font-medium hover:bg-indigo-100 dark:hover:bg-indigo-900/30 transition-colors flex items-center gap-2 border border-indigo-200 dark:border-indigo-800 whitespace-nowrap">
-                  <HiOutlineCamera className="w-4 h-4" /> Tanlash
-                </button>
+                <input type="url" value={form.image_url} onChange={(e) => setForm({ ...form, image_url: e.target.value })} className="input-field flex-1 dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Rasm URL manzilini kiriting" />
               </div>
               {form.image_url && (
                 <div className="mt-3 relative inline-block">
                   <img src={form.image_url} alt="Ko'rish" className="w-24 h-24 rounded-xl object-cover border-2 border-gray-200 dark:border-gray-700 shadow-sm" onError={(e) => { e.target.style.display='none'; toast.error('Rasm yuklanmadi'); }} />
                   <button type="button" onClick={() => setForm({ ...form, image_url: '' })} className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 shadow-md transition-colors"><HiOutlineXMark className="w-3.5 h-3.5" /></button>
                 </div>
-              )}
-              {!form.image_url && (
-                <p className="text-[11px] text-gray-400 mt-1.5">Rasm tanlamangsa, avtomatik ravishda tanlab qo'yiladi</p>
               )}
             </div>
           </div>
@@ -311,7 +232,6 @@ function ProductModal({ product, categories, onClose, onSave }) {
             </button>
           </div>
         </form>
-        {showImagePicker && <ImagePickerModal onSelect={(url) => setForm({ ...form, image_url: url })} onClose={() => setShowImagePicker(false)} />}
         {showBarcodeScanner && <BarcodeScannerModal onClose={() => setShowBarcodeScanner(false)} onScan={(code) => { setForm(f => ({ ...f, barcode: code })); toast.success('Shtrix-kod aniqlandi: ' + code); }} />}
       </div>
     </div>

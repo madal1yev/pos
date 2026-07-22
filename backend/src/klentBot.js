@@ -5,7 +5,7 @@
  * It uses long polling (fetch-based) so it works without needing a webhook URL.
  */
 
-const KLENT_BOT_TOKEN = process.env.KLENT_BOT_TOKEN || '8903269723:AAGrBjoCF8PENRZS5TNsm4iZNbmvx0aEZhI';
+const KLENT_BOT_TOKEN = process.env.KLENT_BOT_TOKEN || '8803269723:AAGrBjoCF8PENRZS5TNsm4iZNbmvx0aEZhI';
 const MAIN_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '8805705606:AAG5TRIJjU-kMR9F0GkFlh4JcIJK95euYiE';
 const API_BASE = `https://api.telegram.org/bot${KLENT_BOT_TOKEN}`;
 const ADMIN_USERNAME = process.env.KLENT_ADMIN_USERNAME || 'azizvc_m';
@@ -13,8 +13,14 @@ const ADMIN_USERNAME = process.env.KLENT_ADMIN_USERNAME || 'azizvc_m';
 // Store order data keyed by invoice number for callback handling
 const pendingOrders = new Map();
 
-// Admin chat ID cache (captured via polling when admin messages the bot)
-let ADMIN_CHAT_ID = null;
+// Admin chat ID - first from .env, then captured via polling
+let ADMIN_CHAT_ID = process.env.KLENT_ADMIN_CHAT_ID 
+  ? parseInt(process.env.KLENT_ADMIN_CHAT_ID) 
+  : null;
+
+if (ADMIN_CHAT_ID) {
+  console.log(`✅ @klentlarchek_bot: Admin chat ID .env dan yuklandi: ${ADMIN_CHAT_ID}`);
+}
 
 // Polling state
 let pollingActive = false;
@@ -235,32 +241,36 @@ function cleanupOrder(invoiceNumber, delayMs = 60000) {
  * Handle callback query from @klentlarchek_bot (admin button clicks)
  */
 async function handleCallback(callbackQuery) {
-  const data = callbackQuery.data || '';
-  const chatId = callbackQuery.message?.chat?.id;
-  const messageId = callbackQuery.message?.message_id;
-  const from = callbackQuery.from;
+  try {
+    const data = callbackQuery.data || '';
+    const chatId = callbackQuery.message?.chat?.id;
+    const messageId = callbackQuery.message?.message_id;
+    const from = callbackQuery.from;
 
-  if (!data.startsWith('klent_')) return;
+    if (!data.startsWith('klent_')) return;
 
-  // Capture admin chat ID on any interaction
-  ADMIN_CHAT_ID = chatId;
-  const adminName = from?.username ? `@${from.username}` : from?.first_name || 'Admin';
+    // Capture admin chat ID on any interaction
+    ADMIN_CHAT_ID = chatId;
+    const adminName = from?.username ? `@${from.username}` : from?.first_name || 'Admin';
 
-  await answerCallbackQuery(callbackQuery.id);
+    await answerCallbackQuery(callbackQuery.id);
 
-  const parts = data.split('_');
-  const action = parts[1];
-  const invoiceNumber = parts.slice(2).join('_');
+    const parts = data.split('_');
+    const action = parts[1];
+    const invoiceNumber = parts.slice(2).join('_');
 
-  const order = pendingOrders.get(invoiceNumber);
+    const order = pendingOrders.get(invoiceNumber);
 
-  if (!order) {
-    await editMessageText(chatId, messageId,
-      `❌ *Buyurtma topilmadi!*\n\n#${invoiceNumber} raqamli buyurtma topilmadi.`,
-      { reply_markup: { inline_keyboard: [] } }
-    );
-    return;
-  }
+    if (!order) {
+      console.log(`⚠️ @klentlarchek_bot: Buyurtma topilmadi - #${invoiceNumber} (muddati o'tgan yoki server qayta ishga tushgan)`);
+      await editMessageText(chatId, messageId,
+        `❌ *Buyurtma topilmadi!*\n\n#${invoiceNumber} raqamli buyurtma topilmadi.\n\nEhtimol, server qayta ishga tushgan bo'lishi mumkin.`,
+        { reply_markup: { inline_keyboard: [] } }
+      );
+      return;
+    }
+
+  console.log(`✅ @klentlarchek_bot: ${action} #${invoiceNumber} - ${adminName}`);
 
   switch (action) {
     case 'accept': {
@@ -299,11 +309,12 @@ async function handleCallback(callbackQuery) {
         `⏰ ${new Date().toLocaleString('uz-UZ', { timeZone: 'Asia/Tashkent' })}`,
         { reply_markup: { inline_keyboard: [] } }
       );
-      // Notify customer
+      // Notify customer about rejection
       await notifyCustomerViaMainBot(order.customerChatId,
-        `❌ *Buyurtmangiz rad etildi.*\n\n` +
-        `📋 Chek: \`${invoiceNumber}\`\n\n` +
-        `Iltimos, boshqa mahsulotlarga buyurtma bering yoki admin bilan bog'laning.\n` +
+        `❌ *Buyurtmangiz admin tomonidan rad etildi!*\n\n` +
+        `📋 Chek: \`${invoiceNumber}\`\n` +
+        `💰 Jami: *${formatCurrency(order.totalAmount)}*\n\n` +
+        `Agar boshqa savolingiz bo'lsa, admin bilan bog'lanishingiz mumkin.\n` +
         `📞 Admin: @${ADMIN_USERNAME}`
       );
       cleanupOrder(invoiceNumber, 3600000);
@@ -311,6 +322,7 @@ async function handleCallback(callbackQuery) {
     }
 
     case 'contact': {
+      const customerChatLink = `tg://user?id=${order.customerChatId}`;
       await editMessageText(chatId, messageId,
         `📞 *MIJOZ BILAN BOG'LANISH*  #${invoiceNumber}\n\n` +
         `👤 *Mijoz:* ${escMd(order.customerName)}\n` +
@@ -318,8 +330,15 @@ async function handleCallback(callbackQuery) {
         `🆔 *Chat ID:* \`${order.customerChatId}\`\n` +
         `${order.deliveryAddress ? `📍 *Manzil:* ${escMd(order.deliveryAddress)}\n` : '🏪 *Olib ketish*\n'}` +
         `📝 Mijoz bilan bog'lanib, buyurtma tafsilotlarini aniqlashtiring.\n\n` +
-        `👉 Mijozga xabar yuborish uchun @${ADMIN_USERNAME} orqali yozing.`,
-        { reply_markup: { inline_keyboard: [[{ text: '⬅️ Orqaga', callback_data: `klent_back_${invoiceNumber}` }]] } }
+        `👇 Quyidagi tugma orqali mijoz bilan suhbatni oching:`,
+        {
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: '✉️ Mijozga xabar yozish', url: customerChatLink }],
+              [{ text: '⬅️ Orqaga', callback_data: `klent_back_${invoiceNumber}` }],
+            ],
+          },
+        }
       );
       break;
     }
@@ -381,19 +400,32 @@ async function handleCallback(callbackQuery) {
       break;
     }
   }
+  } catch (err) {
+    console.error('❌ @klentlarchek_bot handleCallback xatosi:', err.message);
+  }
 }
 
 /**
  * Notify customer via the MAIN bot (foodsPOS_bot)
  */
 async function notifyCustomerViaMainBot(chatId, text) {
-  if (!chatId) return;
+  if (!chatId) {
+    console.log('⚠️ notifyCustomer: chat ID yo\'q');
+    return;
+  }
   try {
-    await fetch(`https://api.telegram.org/bot${MAIN_BOT_TOKEN}/sendMessage`, {
+    console.log(`📤 notifyCustomer: mijozga xabar yuborilmoqda (chatId: ${chatId})`);
+    const res = await fetch(`https://api.telegram.org/bot${MAIN_BOT_TOKEN}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'Markdown' }),
     });
+    const data = await res.json();
+    if (!data.ok) {
+      console.error('📤 notifyCustomer error:', data.description);
+    } else {
+      console.log('✅ notifyCustomer: xabar yuborildi');
+    }
   } catch (err) {
     console.error('📤 notifyCustomer error:', err.message);
   }
@@ -435,6 +467,37 @@ async function startPolling() {
   console.log('🤖 @klentlarchek_bot long polling started');
 
   let offset = 0;
+
+  // If admin chat ID not set from .env, try to find it from existing updates
+  if (!ADMIN_CHAT_ID) {
+    try {
+      const findRes = await fetch(`${API_BASE}/getUpdates`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          offset: 0,
+          timeout: 2,
+          allowed_updates: ['message'],
+          limit: 200,
+        }),
+      });
+      const findData = await findRes.json();
+      if (findData.ok && findData.result) {
+        for (const update of findData.result) {
+          const msg = update.message;
+          if (msg && msg.from?.username === ADMIN_USERNAME) {
+            ADMIN_CHAT_ID = msg.chat.id;
+            offset = Math.max(offset, update.update_id + 1);
+            console.log(`✅ @klentlarchek_bot: Admin chat ID avtomatik topildi: ${ADMIN_CHAT_ID} (eski xabarlardan)`);
+            break;
+          }
+          offset = Math.max(offset, update.update_id + 1);
+        }
+      }
+    } catch (findErr) {
+      console.error('⚠️ @klentlarchek_bot admin chat ID qidirish xatosi:', findErr.message);
+    }
+  }
 
   while (pollingActive) {
     try {
