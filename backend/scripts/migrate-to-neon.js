@@ -165,7 +165,7 @@ async function migrate() {
         const exists = await pg.query('SELECT id FROM sales WHERE id = $1', [sale.id]);
         if (exists.rows.length === 0) {
           // Debug: saqlanayotgan malumot
-          if (!sale.total_amount || isNaN(sale.total_amount)) {
+          if (sale.total_amount == null || isNaN(Number(sale.total_amount))) {
             console.log(`  ⚠️ Savdo #${sale.invoice_number}: total_amount=${JSON.stringify(sale.total_amount)}, notes=${JSON.stringify((sale.notes || '').slice(0,50))}`);
             // Skip this sale if total_amount is invalid
             continue;
