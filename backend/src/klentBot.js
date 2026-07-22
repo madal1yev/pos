@@ -9,6 +9,7 @@ const KLENT_BOT_TOKEN = process.env.KLENT_BOT_TOKEN || '8803269723:AAGrBjoCF8PEN
 const MAIN_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '8805705606:AAG5TRIJjU-kMR9F0GkFlh4JcIJK95euYiE';
 const API_BASE = `https://api.telegram.org/bot${KLENT_BOT_TOKEN}`;
 const ADMIN_USERNAME = process.env.KLENT_ADMIN_USERNAME || 'azizvc_m';
+const db = require('./config/db');
 
 // Store order data keyed by invoice number for callback handling
 const pendingOrders = new Map();
@@ -122,6 +123,19 @@ async function handleMessage(msg) {
   if (username === ADMIN_USERNAME) {
     ADMIN_CHAT_ID = chatId;
     console.log(`✅ @klentlarchek_bot: Admin aniqlandi: @${username}, Chat ID: ${chatId}`);
+
+    // Save admin chat ID to database for persistence across server restarts
+    try {
+      const existing = await db.query('SELECT id FROM settings LIMIT 1');
+      if (existing.rows.length > 0) {
+        await db.query(`UPDATE settings SET admin_telegram = $1, updated_at = ${db.isSqlite ? "datetime('now')" : 'NOW()'} WHERE id = $2`, [String(chatId), existing.rows[0].id]);
+      } else {
+        await db.query(`INSERT INTO settings (store_name, admin_telegram) VALUES ('My Store', $1)`, [String(chatId)]);
+      }
+      console.log('✅ @klentlarchek_bot: Admin chat ID saqlandi (settings)');
+    } catch (dbErr) {
+      console.log('⚠️ @klentlarchek_bot: Admin chat ID ni saqlashda xatolik:', dbErr.message);
+    }
 
     if (text.startsWith('/start')) {
       await sendMessage(chatId,
@@ -252,6 +266,16 @@ async function handleCallback(callbackQuery) {
     // Capture admin chat ID on any interaction
     ADMIN_CHAT_ID = chatId;
     const adminName = from?.username ? `@${from.username}` : from?.first_name || 'Admin';
+
+    // Persist to DB
+    try {
+      const existing = await db.query('SELECT id FROM settings LIMIT 1');
+      if (existing.rows.length > 0) {
+        await db.query(`UPDATE settings SET admin_telegram = $1, updated_at = ${db.isSqlite ? "datetime('now')" : 'NOW()'} WHERE id = $2`, [String(chatId), existing.rows[0].id]);
+      } else {
+        await db.query(`INSERT INTO settings (store_name, admin_telegram) VALUES ('My Store', $1)`, [String(chatId)]);
+      }
+    } catch (dbErr) {}
 
     await answerCallbackQuery(callbackQuery.id);
 
@@ -468,7 +492,23 @@ async function startPolling() {
 
   let offset = 0;
 
-  // If admin chat ID not set from .env, try to find it from existing updates
+  // If admin chat ID not set from .env, try to load from database first
+  if (!ADMIN_CHAT_ID) {
+    try {
+      const settingsResult = await db.query(`SELECT admin_telegram FROM settings LIMIT 1`);
+      if (settingsResult.rows.length > 0 && settingsResult.rows[0].admin_telegram) {
+        const savedId = settingsResult.rows[0].admin_telegram;
+        if (savedId && !isNaN(Number(savedId))) {
+          ADMIN_CHAT_ID = Number(savedId);
+          console.log(`✅ @klentlarchek_bot: Admin chat ID DB dan yuklandi: ${ADMIN_CHAT_ID}`);
+        }
+      }
+    } catch (dbErr) {
+      console.log('⚠️ @klentlarchek_bot: Admin chat ID ni DB dan yuklashda xatolik:', dbErr.message);
+    }
+  }
+
+  // If still not set, try to find it from existing updates
   if (!ADMIN_CHAT_ID) {
     try {
       const findRes = await fetch(`${API_BASE}/getUpdates`, {

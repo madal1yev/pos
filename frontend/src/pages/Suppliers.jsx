@@ -9,7 +9,7 @@ function SupplierModal({ supplier, onClose, onSave }) {
   const [form, setForm] = useState({
     name: supplier?.name || '', phone: supplier?.phone || '',
     email: supplier?.email || '', address: supplier?.address || '',
-    contact_person: supplier?.contact_person || '', tax_id: supplier?.tax_id || '', notes: supplier?.notes || '',
+    contact_person: supplier?.contact_person || '', notes: supplier?.notes || '',
   });
   const [saving, setSaving] = useState(false);
 
@@ -52,10 +52,6 @@ function SupplierModal({ supplier, onClose, onSave }) {
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Aloqa shaxsi</label>
               <input type="text" value={form.contact_person} onChange={(e) => setForm({...form, contact_person: e.target.value})} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Ism familiya" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">INN/STIR</label>
-              <input type="text" value={form.tax_id} onChange={(e) => setForm({...form, tax_id: e.target.value})} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
             </div>
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Izoh</label>

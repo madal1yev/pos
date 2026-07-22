@@ -9,7 +9,7 @@ function CustomerModal({ customer, onClose, onSave }) {
   const [form, setForm] = useState({
     name: customer?.name || '', phone: customer?.phone || '',
     email: customer?.email || '', address: customer?.address || '',
-    type: customer?.type || 'regular', tax_id: customer?.tax_id || '', notes: customer?.notes || '',
+    type: customer?.type || 'regular', notes: customer?.notes || '',
   });
   const [saving, setSaving] = useState(false);
 
@@ -55,10 +55,6 @@ function CustomerModal({ customer, onClose, onSave }) {
                 <option value="regular">Jismoniy shaxs</option>
                 <option value="business">Yuridik shaxs</option>
               </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">INN/STIR</label>
-              <input type="text" value={form.tax_id} onChange={(e) => setForm({...form, tax_id: e.target.value})} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
             </div>
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Izoh</label>

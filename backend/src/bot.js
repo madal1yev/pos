@@ -188,9 +188,27 @@ async function sendAdminNotification(chatId, username, firstName, session, invoi
   const phone = session.phone || '';
   const customerName = username ? `@${username}` : firstName || 'Telegram foydalanuvchi';
 
-  // Get admin chat ID for @klentlarchek_bot
-  // Try klent bot's own admin chat ID first, fall back to main bot's admin chat ID
-  const klentAdminChatId = klentBot.getAdminChatId() || ADMIN_CHAT_ID;
+  // Get admin chat ID - try from DB if not in memory (for cold starts)
+  let klentAdminChatId = klentBot.getAdminChatId();
+  if (!klentAdminChatId) {
+    klentAdminChatId = ADMIN_CHAT_ID;
+  }
+  if (!klentAdminChatId) {
+    // Cold start - try loading from database
+    try {
+      const settingsResult = await db.query(`SELECT admin_telegram FROM settings LIMIT 1`);
+      if (settingsResult.rows.length > 0 && settingsResult.rows[0].admin_telegram) {
+        const savedId = settingsResult.rows[0].admin_telegram;
+        if (savedId && !isNaN(Number(savedId))) {
+          klentAdminChatId = Number(savedId);
+          ADMIN_CHAT_ID = Number(savedId);
+          console.log(`✅ Admin chat ID DB dan yuklandi: ${klentAdminChatId}`);
+        }
+      }
+    } catch (dbErr) {
+      console.log('⚠️ Admin chat ID ni DB dan yuklashda xatolik:', dbErr.message);
+    }
+  }
 
   if (klentAdminChatId) {
     // Send via @klentlarchek_bot with full details and action buttons
@@ -505,6 +523,20 @@ bot.onText(/\/start/, async (msg) => {
   if (username === ADMIN_USERNAME) {
     ADMIN_CHAT_ID = chatId;
     console.log(`✅ Admin aniqlandi: @${username}, Chat ID: ${chatId}`);
+
+    // Save admin chat ID to database for persistence across server restarts
+    try {
+      // Check if settings table has any row
+      const existing = await db.query('SELECT id FROM settings LIMIT 1');
+      if (existing.rows.length > 0) {
+        await db.query(`UPDATE settings SET admin_telegram = $1, updated_at = ${db.isSqlite ? "datetime('now')" : 'NOW()'} WHERE id = $2`, [String(chatId), existing.rows[0].id]);
+      } else {
+        await db.query(`INSERT INTO settings (store_name, admin_telegram) VALUES ('My Store', $1)`, [String(chatId)]);
+      }
+      console.log('✅ Admin chat ID saqlandi (settings)');
+    } catch (dbErr) {
+      console.log('⚠️ Admin chat ID ni saqlashda xatolik:', dbErr.message);
+    }
 
     // Send admin a silent welcome (no bot links exposed)
     const adminWelcome =
