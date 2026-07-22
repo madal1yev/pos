@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { salesAPI } from '../services/api';
-import { UZ, formatCurrency } from '../utils/uzbek';
+import { UZ, formatCurrency, formatTashkentDate, formatTashkentShort } from '../utils/uzbek';
 import { HiOutlineMagnifyingGlass, HiOutlineEye, HiOutlineXMark, HiOutlinePrinter, HiOutlineCalendarDays, HiOutlineArrowPath, HiOutlineClipboardDocumentList } from 'react-icons/hi2';
 import { emitDataChanged } from '../utils/events';
 import toast from 'react-hot-toast';
@@ -41,7 +41,7 @@ function InvoiceModal({ saleId, onClose }) {
       ${invoice?.settings?.store_phone ? `<div class="center">${invoice.settings.store_phone}</div>` : ''}
       <div class="border-top center">
         <div>Chek: ${invoice?.invoice_number}</div>
-        <div>Sana: ${new Date(invoice?.created_at).toLocaleString('uz-UZ')}</div>
+        <div>Sana: ${formatTashkentDate(invoice?.created_at)}</div>
         <div>Kassir: ${invoice?.cashier_name}</div>
       </div>
       <table>${invoice?.items?.map(item => `<tr><td>${item.product_name} x${item.quantity}</td><td class="right bold">${formatCurrency(item.subtotal)}</td></tr>`).join('')}</table>
@@ -93,7 +93,7 @@ function InvoiceModal({ saleId, onClose }) {
           <div className="border-t border-b border-dashed border-gray-200 dark:border-gray-600 py-3 my-4">
             <div className="grid grid-cols-2 gap-1 text-xs text-gray-500">
               <span>Chek:</span><span className="text-right font-medium text-gray-900 dark:text-white font-mono">{invoice?.invoice_number}</span>
-              <span>{UZ.date}:</span><span className="text-right text-gray-900 dark:text-white">{new Date(invoice?.created_at).toLocaleString('uz-UZ')}</span>
+              <span>{UZ.date}:</span><span className="text-right text-gray-900 dark:text-white">{formatTashkentDate(invoice?.created_at)}</span>
               <span>{UZ.cashier}:</span><span className="text-right text-gray-900 dark:text-white">{invoice?.cashier_name}</span>
               <span>{UZ.payment}:</span>
               <span className="text-right">
@@ -268,7 +268,7 @@ export default function Sales() {
                       }`}>{sale.payment_method === 'cash' ? UZ.cash : sale.payment_method === 'card' ? UZ.card : UZ.other}</span>
                     </td>
                     <td className="py-3.5 px-4 text-right font-bold text-gray-900 dark:text-white text-base">{formatCurrency(sale.total_amount)}</td>
-                    <td className="py-3.5 px-4 text-right text-gray-500 text-xs">{new Date(sale.created_at).toLocaleDateString('uz-UZ', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</td>
+                    <td className="py-3.5 px-4 text-right text-gray-500 text-xs">{formatTashkentShort(sale.created_at)}</td>
                     <td className="py-3.5 px-4 text-right">
                       <button className="p-1.5 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 transition-colors">
                         <HiOutlineEye className="w-4 h-4" />

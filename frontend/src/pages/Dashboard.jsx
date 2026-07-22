@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { dashboardAPI } from '../services/api';
-import { UZ, formatCurrency, formatUzbekDate } from '../utils/uzbek';
+import { UZ, formatCurrency, formatUzbekDate, formatTashkentTime } from '../utils/uzbek';
 import {
   HiOutlineBanknotes, HiOutlineShoppingCart, HiOutlineCube, HiOutlineExclamationTriangle,
   HiOutlineArrowTrendingUp, HiOutlineUsers, HiOutlineClock, HiOutlineCalculator,
@@ -227,7 +227,7 @@ export default function Dashboard() {
                       }`}>{sale.payment_method === 'cash' ? UZ.cash : sale.payment_method === 'card' ? UZ.card : UZ.other}</span>
                     </td>
                     <td className="py-3 text-right font-semibold text-gray-900 dark:text-white">{formatCurrency(sale.total_amount)}</td>
-                    <td className="py-3 text-right text-gray-500 text-xs">{new Date(sale.created_at).toLocaleTimeString('uz-UZ')}</td>
+                    <td className="py-3 text-right text-gray-500 text-xs">{formatTashkentTime(sale.created_at)}</td>
                   </tr>
                 ))}
               </tbody>

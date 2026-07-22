@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { reportsAPI, dashboardAPI } from '../services/api';
-import { UZ, formatCurrency } from '../utils/uzbek';
+import { UZ, formatCurrency, formatTashkentTime } from '../utils/uzbek';
 import {
   HiOutlineChartBar, HiOutlineCube, HiOutlineArrowTrendingUp, HiOutlineCalendarDays,
   HiOutlineDocumentChartBar, HiOutlineBanknotes, HiOutlineShoppingCart, HiOutlineExclamationTriangle,
@@ -251,7 +251,7 @@ export default function Analytics() {
                               </span>
                             </td>
                             <td className="py-3 px-4 text-right font-bold text-gray-900 dark:text-white">{formatCurrency(s.total_amount)}</td>
-                            <td className="py-3 px-4 text-right text-gray-400 text-xs">{new Date(s.created_at).toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })}</td>
+                            <td className="py-3 px-4 text-right text-gray-400 text-xs">{formatTashkentTime(s.created_at)}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -304,7 +304,7 @@ export default function Analytics() {
                               </span>
                             </td>
                             <td className="py-3 px-4 text-right font-bold text-gray-900 dark:text-white">{formatCurrency(s.total_amount)}</td>
-                            <td className="py-3 px-4 text-right text-gray-400 text-xs">{new Date(s.created_at).toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })}</td>
+                            <td className="py-3 px-4 text-right text-gray-400 text-xs">{formatTashkentTime(s.created_at)}</td>
                           </tr>
                         )) : <tr><td colSpan={5} className="py-12 text-center text-gray-400">Bu kunda sotuvlar yo'q</td></tr>}
                       </tbody>

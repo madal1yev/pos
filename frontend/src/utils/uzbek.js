@@ -200,3 +200,47 @@ export const formatUzbekDate = (date = new Date()) => {
   const d = date instanceof Date ? date : new Date(date);
   return `${WEEKDAYS[d.getDay()]}, ${d.getDate()} ${MONTHS[d.getMonth()]}`;
 };
+
+/**
+ * SQLite dan kelgan UTC vaqtini Toshkent vaqti (UTC+5) da formatlash
+ * @param {string} dateStr - SQLite dan kelgan UTC datetime string (masalan: "2026-07-22 13:32:00")
+ * @param {object} options - toLocaleString opsiyalari
+ * @returns {string} Toshkent vaqti bilan formatlangan sana
+ */
+export const formatTashkentDate = (dateStr, options = {}) => {
+  if (!dateStr) return '';
+  // SQLite UTC vaqtini Z bilan belgilab, UTC ekanligini bildiramiz
+  const normalized = dateStr.includes('Z') || dateStr.includes('+') || dateStr.includes('T')
+    ? dateStr
+    : dateStr.replace(' ', 'T') + 'Z';
+  const date = new Date(normalized);
+  if (isNaN(date.getTime())) return '';
+  const defaultOptions = {
+    timeZone: 'Asia/Tashkent',
+    ...options,
+  };
+  return date.toLocaleString('uz-UZ', defaultOptions);
+};
+
+/**
+ * Toshkent vaqti bilan faqat vaqtni ko'rsatish
+ */
+export const formatTashkentTime = (dateStr, options = {}) => {
+  return formatTashkentDate(dateStr, {
+    hour: '2-digit',
+    minute: '2-digit',
+    ...options,
+  });
+};
+
+/**
+ * Toshkent vaqti bilan qisqa sana + vaqt
+ */
+export const formatTashkentShort = (dateStr) => {
+  return formatTashkentDate(dateStr, {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};

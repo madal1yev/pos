@@ -315,7 +315,7 @@ async function handleCallback(callbackQuery) {
         `📋 Chek: \`${invoiceNumber}\`\n` +
         `💰 Jami: *${formatCurrency(order.totalAmount)}*\n\n` +
         `Agar boshqa savolingiz bo'lsa, admin bilan bog'lanishingiz mumkin.\n` +
-        `📞 Admin: @${ADMIN_USERNAME}`
+        `📞 Admin: @${escMd(ADMIN_USERNAME)}`
       );
       cleanupOrder(invoiceNumber, 3600000);
       break;
