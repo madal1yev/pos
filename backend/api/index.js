@@ -1,6 +1,25 @@
 // Vercel serverless entry point for POS Backend
-// Vercel serverless da better-sqlite3 ishlamaydi (native module)
-// PostgreSQL kerak! DATABASE_URL env var orqali ulanish
+// PostgreSQL DATABASE_URL env var orqali ulanish
+
+const path = require('path');
+
+// Production'da auto-migrate (PostgreSQL)
+if (process.env.DATABASE_URL) {
+  (async () => {
+    try {
+      const { execSync } = require('child_process');
+      console.log('🔧 Running PostgreSQL migration on cold start...');
+      execSync('node migrations/pg-migrate.js', {
+        cwd: path.join(__dirname, '..'),
+        stdio: 'inherit',
+        timeout: 30000,
+      });
+      console.log('✅ Migration completed');
+    } catch (err) {
+      console.error('⚠️ Migration xatosi (non-fatal):', err.message);
+    }
+  })();
+}
 
 let app;
 
