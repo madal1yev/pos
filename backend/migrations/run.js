@@ -26,9 +26,13 @@ CREATE TABLE IF NOT EXISTS categories (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT NOT NULL,
   description TEXT,
+  parent_id INTEGER REFERENCES categories(id) ON DELETE SET NULL,
+  sort_order INTEGER DEFAULT 0,
   created_at TEXT DEFAULT (datetime('now')),
   updated_at TEXT DEFAULT (datetime('now'))
 );
+
+CREATE INDEX IF NOT EXISTS idx_categories_parent ON categories(parent_id);
 
 CREATE TABLE IF NOT EXISTS products (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -37,6 +41,8 @@ CREATE TABLE IF NOT EXISTS products (
   product_code TEXT UNIQUE NOT NULL,
   barcode TEXT,
   qr_code TEXT,
+  brand TEXT,
+  purchase_price REAL DEFAULT 0,
   selling_price REAL NOT NULL DEFAULT 0,
   stock_quantity INTEGER DEFAULT 0,
   minimum_stock INTEGER DEFAULT 0,

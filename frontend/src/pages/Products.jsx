@@ -100,7 +100,7 @@ function BarcodeScannerModal({ onClose, onScan }) {
 function ProductModal({ product, categories, onClose, onSave }) {
   const [form, setForm] = useState({
     name: product?.name || '', category_id: product?.category_id || '',
-
+    brand: product?.brand || '', purchase_price: product?.purchase_price || '',
     selling_price: product?.selling_price || '', stock_quantity: product?.stock_quantity || 0,
     minimum_stock: product?.minimum_stock || 0, unit: product?.unit || 'pcs',
     barcode: product?.barcode || '', image_url: product?.image_url || '',
@@ -125,7 +125,7 @@ function ProductModal({ product, categories, onClose, onSave }) {
     e.preventDefault();
     setSaving(true);
     try {
-      const payload = { ...form, category_id: form.category_id ? parseInt(form.category_id) : null, selling_price: parseFloat(form.selling_price) || 0, stock_quantity: parseInt(form.stock_quantity) || 0, minimum_stock: parseInt(form.minimum_stock) || 0 };
+      const payload = { ...form, category_id: form.category_id ? parseInt(form.category_id) : null, brand: form.brand || null, purchase_price: parseFloat(form.purchase_price) || 0, selling_price: parseFloat(form.selling_price) || 0, stock_quantity: parseInt(form.stock_quantity) || 0, minimum_stock: parseInt(form.minimum_stock) || 0 };
       if (product) { await productsAPI.update(product.id, payload); toast.success("Mahsulot yangilandi"); }
       else { await productsAPI.create(payload); toast.success("Mahsulot qo'shildi"); }
       emitDataChanged();
@@ -146,6 +146,10 @@ function ProductModal({ product, categories, onClose, onSave }) {
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Mahsulot nomi *</label>
               <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Masalan: Coca-Cola 1L" required />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Brend</label>
+              <input type="text" value={form.brand} onChange={(e) => setForm({ ...form, brand: e.target.value })} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Masalan: Coca-Cola" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Kategoriya</label>
@@ -184,8 +188,19 @@ function ProductModal({ product, categories, onClose, onSave }) {
               </div>
             </div>
             <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Xarid narxi</label>
+              <input type="number" step="0.01" min="0" value={form.purchase_price} onChange={(e) => setForm({ ...form, purchase_price: e.target.value })} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="0" />
+            </div>
+            <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Sotish narxi *</label>
-              <input type="number" step="0.01" min="0" value={form.selling_price} onChange={(e) => setForm({ ...form, selling_price: e.target.value })} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="0" required />
+              <div className="relative">
+                <input type="number" step="0.01" min="0" value={form.selling_price} onChange={(e) => setForm({ ...form, selling_price: e.target.value })} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="0" required />
+                {parseFloat(form.purchase_price) > 0 && parseFloat(form.selling_price) > 0 && (
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold" style={{ color: parseFloat(form.selling_price) >= parseFloat(form.purchase_price) ? '#10b981' : '#ef4444' }}>
+                    +{Math.round(((parseFloat(form.selling_price) - parseFloat(form.purchase_price)) / parseFloat(form.purchase_price)) * 100)}%
+                  </span>
+                )}
+              </div>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Mavjud miqdor</label>
@@ -486,7 +501,9 @@ export default function Products() {
                   <th className="pb-3 font-medium">Mahsulot</th>
                   <th className="pb-3 font-medium hidden md:table-cell">Kod</th>
                   <th className="pb-3 font-medium hidden lg:table-cell">Kategoriya</th>
+                  <th className="pb-3 font-medium text-right hidden sm:table-cell">Xarid n.</th>
                   <th className="pb-3 font-medium text-right">Sotish narxi</th>
+                  <th className="pb-3 font-medium text-right hidden sm:table-cell">Foyda</th>
                   <th className="pb-3 font-medium text-right">Miqdor</th>
                   <th className="pb-3 font-medium">Holat</th>
                   <th className="pb-3 font-medium text-right">Amallar</th>
@@ -503,7 +520,7 @@ export default function Products() {
                         <ProductImage src={product.image_url} name={product.name} />
                         <div>
                           <p className="font-semibold text-gray-900 dark:text-white">{product.name}</p>
-
+                          {product.brand && <p className="text-[11px] text-gray-400">{product.brand}</p>}
                         </div>
                       </div>
                     </td>
@@ -511,7 +528,21 @@ export default function Products() {
                     <td className="py-3 text-gray-600 dark:text-gray-400 hidden lg:table-cell">
                       <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">{product.category_name || '-'}</span>
                     </td>
+                    <td className="py-3 text-right text-gray-500 hidden sm:table-cell">{product.purchase_price > 0 ? formatCurrency(product.purchase_price) : '-'}</td>
                     <td className="py-3 text-right font-bold text-gray-900 dark:text-white">{formatCurrency(product.selling_price)}</td>
+                    <td className="py-3 text-right hidden sm:table-cell">
+                      {product.purchase_price > 0 ? (() => {
+                        const profit = product.selling_price - product.purchase_price;
+                        const percent = Math.round((profit / product.purchase_price) * 100);
+                        const isProfitable = profit >= 0;
+                        return (
+                          <span className={`inline-flex items-center gap-1 text-xs font-bold ${isProfitable ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                            <span>{formatCurrency(profit)}</span>
+                            <span className={`px-1.5 py-0.5 rounded-md text-[10px] ${isProfitable ? 'bg-emerald-50 dark:bg-emerald-900/20' : 'bg-red-50 dark:bg-red-900/20'}`}>{isProfitable ? '+' : ''}{percent}%</span>
+                          </span>
+                        );
+                      })() : <span className="text-gray-300 dark:text-gray-600">-</span>}
+                    </td>
                     <td className="py-3 text-right">
                       <span className={`font-semibold ${product.stock_quantity < (product.minimum_stock || 0) && product.minimum_stock > 0 ? 'text-amber-600 dark:text-amber-400' : product.stock_quantity === 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-white'}`}>
                         {product.stock_quantity}

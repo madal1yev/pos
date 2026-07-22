@@ -25,9 +25,13 @@ CREATE TABLE IF NOT EXISTS categories (
   id SERIAL PRIMARY KEY,
   name VARCHAR(100) NOT NULL,
   description TEXT,
+  parent_id INTEGER REFERENCES categories(id) ON DELETE SET NULL,
+  sort_order INTEGER DEFAULT 0,
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW()
 );
+
+CREATE INDEX IF NOT EXISTS idx_categories_parent ON categories(parent_id);
 
 CREATE TABLE IF NOT EXISTS products (
   id SERIAL PRIMARY KEY,
@@ -36,6 +40,8 @@ CREATE TABLE IF NOT EXISTS products (
   product_code VARCHAR(50) UNIQUE NOT NULL,
   barcode VARCHAR(50),
   qr_code TEXT,
+  brand VARCHAR(100),
+  purchase_price DECIMAL(12,2) DEFAULT 0,
   selling_price DECIMAL(12,2) NOT NULL DEFAULT 0,
   stock_quantity INTEGER DEFAULT 0,
   minimum_stock INTEGER DEFAULT 0,
