@@ -1,11 +1,6 @@
 {
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/[...path]" },
+    { "source": "/api/(.*)", "destination": "https://pos-backend-xi-three.vercel.app/api/$1" },
     { "source": "/((?!assets/|manifest\\.webmanifest|sw\\.js|workbox-.*\\.js).*)", "destination": "/index.html" }
-  ],
-  "functions": {
-    "api/[...path].js": {
-      "maxDuration": 10
-    }
-  }
+  ]
 }
