@@ -1,10 +1,12 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../context/AuthContext';
+import { useSettingsStore } from '../../context/SettingsContext';
 import { UZ } from '../../utils/uzbek';
 import {
   HiOutlineHome, HiOutlineCube, HiOutlineCalculator, HiOutlineClipboardDocumentList,
   HiOutlineChartBar, HiOutlineCog, HiOutlineXMark, HiOutlineCurrencyDollar,
-  HiOutlineArrowRightOnRectangle, HiOutlineDocumentChartBar
+  HiOutlineArrowRightOnRectangle, HiOutlineDocumentChartBar, HiOutlineShoppingBag,
+  HiOutlineSquare3Stack3D
 } from 'react-icons/hi2';
 import { HiOutlineSun, HiOutlineMoon } from 'react-icons/hi';
 
@@ -12,6 +14,7 @@ const navItems = [
   { to: '/', icon: HiOutlineHome, label: UZ.dashboard },
   { to: '/pos', icon: HiOutlineCalculator, label: UZ.pos, accent: true },
   { to: '/products', icon: HiOutlineCube, label: UZ.products },
+  { to: '/categories', icon: HiOutlineSquare3Stack3D, label: 'Kategoriyalar' },
   { to: '/customers', icon: HiOutlineClipboardDocumentList, label: 'Mijozlar' },
   { to: '/suppliers', icon: HiOutlineClipboardDocumentList, label: 'Yetkazib beruvchilar' },
   { to: '/sales', icon: HiOutlineClipboardDocumentList, label: UZ.sales },
@@ -20,13 +23,30 @@ const navItems = [
   { to: '/settings', icon: HiOutlineCog, label: UZ.settings },
 ];
 
+const foodCategories = [
+  { id: 'pizza', label: 'Pitsa', emoji: '🍕', color: 'from-orange-400 to-red-500' },
+  { id: 'burgers', label: 'Burgerlar', emoji: '🍔', color: 'from-yellow-400 to-orange-500' },
+  { id: 'drinks', label: 'Ichimliklar', emoji: '🥤', color: 'from-blue-400 to-cyan-500' },
+  { id: 'salads', label: 'Salatlar', emoji: '🥗', color: 'from-green-400 to-emerald-500' },
+  { id: 'desserts', label: 'Shirinliklar', emoji: '🍰', color: 'from-pink-400 to-rose-500' },
+  { id: 'snacks', label: 'Yeguliklar', emoji: '🍿', color: 'from-amber-400 to-yellow-500' },
+];
+
 export default function Sidebar({ open, onClose, dark, toggleDark }) {
   const { user, logout } = useAuthStore();
+  const { settings } = useSettingsStore();
   const navigate = useNavigate();
+  const logoUrl = settings?.logo_url || '';
+  const storeName = settings?.store_name || "Oziq-ovqat Do'koni";
 
   const handleLogout = async () => {
     await logout();
     navigate('/login');
+  };
+
+  const handleCategoryClick = (catId) => {
+    navigate(`/products?category=${catId}`);
+    onClose();
   };
 
   const linkClass = ({ isActive }) =>
@@ -45,12 +65,19 @@ export default function Sidebar({ open, onClose, dark, toggleDark }) {
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full overflow-hidden">
+      {/* Logo / Store Brand */}
       <div className="px-5 py-5 flex items-center gap-3 flex-shrink-0">
-        <div className="w-9 h-9 bg-gradient-to-br from-indigo-500 to-indigo-700 rounded-xl flex items-center justify-center shadow-lg">
-          <span className="text-white text-lg">&#127829;</span>
-        </div>
-        <div>
-          <h1 className="text-lg font-bold text-gray-900 dark:text-white">Oziq-ovqat</h1>
+        {logoUrl ? (
+          <div className="w-10 h-10 rounded-xl overflow-hidden border-2 border-gray-200 dark:border-gray-700 shadow-md flex-shrink-0">
+            <img src={logoUrl} alt="Logo" className="w-full h-full object-cover" />
+          </div>
+        ) : (
+          <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-indigo-700 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
+            <span className="text-white text-lg">&#127829;</span>
+          </div>
+        )}
+        <div className="flex-1 min-w-0">
+          <h1 className="text-lg font-bold text-gray-900 dark:text-white truncate">{storeName}</h1>
           <p className="text-[10px] text-gray-500 dark:text-gray-400 font-medium">Do'kon POS tizimi</p>
         </div>
         <button onClick={onClose} className="lg:hidden ml-auto p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800">
@@ -58,6 +85,31 @@ export default function Sidebar({ open, onClose, dark, toggleDark }) {
         </button>
       </div>
 
+      {/* Food Categories */}
+      <div className="px-3 py-2 flex-shrink-0">
+        <div className="flex items-center gap-2 px-3 mb-2">
+          <HiOutlineShoppingBag className="w-4 h-4 text-gray-400" />
+          <span className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Oziq-ovqatlar</span>
+        </div>
+        <div className="grid grid-cols-3 gap-1.5 px-1">
+          {foodCategories.map((cat) => (
+            <button
+              key={cat.id}
+              onClick={() => handleCategoryClick(cat.id)}
+              className="flex flex-col items-center gap-1 p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-all group cursor-pointer"
+            >
+              <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${cat.color} flex items-center justify-center shadow-md group-hover:scale-110 transition-transform`}>
+                <span className="text-lg">{cat.emoji}</span>
+              </div>
+              <span className="text-[10px] font-medium text-gray-600 dark:text-gray-400 leading-tight text-center">{cat.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="mx-4 my-1 border-t border-gray-100 dark:border-gray-800" />
+
+      {/* Navigation */}
       <nav className="flex-1 px-3 py-2 space-y-0.5 overflow-y-auto min-h-0">
         {navItems.map((item) => (
           <NavLink
@@ -73,6 +125,7 @@ export default function Sidebar({ open, onClose, dark, toggleDark }) {
         ))}
       </nav>
 
+      {/* Footer */}
       <div className="p-4 border-t border-gray-100 dark:border-gray-800 space-y-2 flex-shrink-0">
         <button onClick={toggleDark} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 rounded-lg transition-colors">
           {dark ? <HiOutlineSun className="w-5 h-5" /> : <HiOutlineMoon className="w-5 h-5" />}

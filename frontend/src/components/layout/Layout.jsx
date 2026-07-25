@@ -1,10 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Header from './Header';
+import { useSettingsStore } from '../../context/SettingsContext';
 
 export default function Layout({ dark, toggleDark }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const loadSettings = useSettingsStore((s) => s.loadSettings);
+
+  useEffect(() => { loadSettings(); }, []);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex">

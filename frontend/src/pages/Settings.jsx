@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import api, { settingsAPI } from '../services/api';
+import { useSettingsStore } from '../context/SettingsContext';
 import { UZ } from '../utils/uzbek';
 import { getErrorMessage } from '../utils/errors';
 import { emitDataChanged } from '../utils/events';
@@ -18,12 +19,19 @@ export default function Settings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const updateGlobalSettings = useSettingsStore((s) => s.updateSettings);
 
   useEffect(() => { (async () => { try { const { data } = await settingsAPI.get(); if (data.settings) setSettings(s => ({ ...s, ...Object.fromEntries(Object.entries(data.settings).map(([k,v]) => [k, v ?? ''])) })); } catch {} finally { setLoading(false); } })(); }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault(); setSaving(true);
-    try { await settingsAPI.update({ ...settings, tax_percentage: parseFloat(settings.tax_percentage) || 0, low_stock_threshold: parseInt(settings.low_stock_threshold) || 10 }); toast.success(UZ.settingsSaved); emitDataChanged(); }
+    try {
+      const payload = { ...settings, tax_percentage: parseFloat(settings.tax_percentage) || 0, low_stock_threshold: parseInt(settings.low_stock_threshold) || 10 };
+      await settingsAPI.update(payload);
+      updateGlobalSettings(payload);
+      toast.success(UZ.settingsSaved);
+      emitDataChanged();
+    }
     catch (err) { toast.error(getErrorMessage(err)); } finally { setSaving(false); }
   };
 
@@ -34,6 +42,7 @@ export default function Settings() {
     try {
       const url = await uploadImage(file);
       setSettings(s => ({ ...s, logo_url: url }));
+      updateGlobalSettings({ logo_url: url });
       toast.success('Logo yuklandi');
     } catch { toast.error('Logo yuklanmadi'); } finally { setUploading(false); }
   };

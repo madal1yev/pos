@@ -87,6 +87,7 @@ if (DATABASE_URL) {
     const migrations = [
       { table: 'sales', column: 'delivery_address', sql: "ALTER TABLE sales ADD COLUMN delivery_address TEXT" },
       { table: 'settings', column: 'admin_telegram', sql: "ALTER TABLE settings ADD COLUMN admin_telegram TEXT" },
+      { table: 'categories', column: 'emoji', sql: "ALTER TABLE categories ADD COLUMN emoji TEXT DEFAULT '📁'" },
     ];
     for (const m of migrations) {
       try {

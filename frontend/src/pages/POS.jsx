@@ -4,7 +4,7 @@ import { productsAPI, salesAPI, settingsAPI } from '../services/api';
 import { UZ, formatCurrency } from '../utils/uzbek';
 import { getErrorMessage } from '../utils/errors';
 import { emitDataChanged } from '../utils/events';
-import { HiOutlineMinus, HiOutlinePlus, HiOutlineTrash, HiOutlineCamera, HiOutlineMagnifyingGlass, HiOutlineCheckCircle, HiOutlineXMark, HiOutlineShoppingCart, HiOutlineCalculator } from 'react-icons/hi2';
+import { HiOutlineMinus, HiOutlinePlus, HiOutlineTrash, HiOutlineCamera, HiOutlineMagnifyingGlass, HiOutlineCheckCircle, HiOutlineXMark, HiOutlineShoppingCart, HiOutlineCalculator, HiOutlinePause, HiOutlinePlay, HiOutlineTag } from 'react-icons/hi2';
 import { Html5Qrcode } from 'html5-qrcode';
 import toast from 'react-hot-toast';
 
@@ -471,6 +471,11 @@ function ReceiptModal({ sale, onClose }) {
         <div className="p-4 sm:p-6 print:p-0 bg-neutral-100 dark:bg-gray-800">
           <div id="receipt-content" className="thermal-receipt mx-auto w-[320px] max-w-full bg-white text-black border border-neutral-200 shadow-sm p-4 font-mono text-[11px] leading-tight print:border-0 print:shadow-none">
             <div className="text-center border-b border-dashed border-black pb-2">
+              {settings?.logo_url && (
+                <div className="flex justify-center mb-2">
+                  <img src={settings.logo_url} alt="Logo" className="h-12 w-12 object-contain" />
+                </div>
+              )}
               {receiptHeader && <p className="mb-1 whitespace-pre-line">{receiptHeader}</p>}
               <p className="text-[10px] tracking-[0.25em] uppercase">Savdo cheki</p>
               <p className="mt-1 text-base font-bold uppercase break-words">{storeName}</p>
@@ -542,7 +547,7 @@ function ReceiptModal({ sale, onClose }) {
 }
 
 export default function POS() {
-  const { items, addItem, updateQuantity, removeItem, clearCart, getTotal, getItemCount } = useCartStore();
+  const { items, addItem, updateQuantity, updateDiscount, removeItem, clearCart, getTotal, getItemCount, holdOrder, resumeOrder, heldOrders, removeHeldOrder, currentHoldId } = useCartStore();
   const [products, setProducts] = useState([]);
   const [search, setSearch] = useState('');
   const [showScanner, setShowScanner] = useState(false);
@@ -551,6 +556,8 @@ export default function POS() {
   const [taxRate, setTaxRate] = useState(0);
   const [quantityProduct, setQuantityProduct] = useState(null);
   const [showCalcModal, setShowCalcModal] = useState(false);
+  const [showHeldOrders, setShowHeldOrders] = useState(false);
+  const [editingDiscount, setEditingDiscount] = useState(null);
   const searchRef = useRef(null);
   const barcodeBuffer = useRef('');
   const barcodeTimer = useRef(null);
@@ -599,6 +606,24 @@ export default function POS() {
     const added = addItem(product, quantity, unit);
     if (!added) toast.error(UZ.notEnoughStock);
     else toast.success(`${product.name} ${quantity} ${unit} ${UZ.productAdded}`);
+  };
+
+  const handleHoldOrder = () => {
+    if (items.length === 0) { toast.error("Savat bo'sh"); return; }
+    holdOrder();
+    toast.success("Buyurtma saqlandi");
+  };
+
+  const handleResumeOrder = (holdId) => {
+    resumeOrder(holdId);
+    setShowHeldOrders(false);
+    toast.success("Buyurtma qaytarildi");
+  };
+
+  const handleDiscountApply = (productId, value) => {
+    const num = parseFloat(value) || 0;
+    updateDiscount(productId, num);
+    setEditingDiscount(null);
   };
 
   const handleCheckout = async (info) => {
@@ -657,11 +682,23 @@ export default function POS() {
                 {items.length > 0 && <p className="text-[10px] text-gray-400">{items.length} {UZ.items} / {getItemCount()} dona</p>}
               </div>
             </div>
-            {items.length > 0 && (
-              <button onClick={clearCart} className="text-xs text-red-500 hover:text-red-600 font-medium px-2 py-1 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
-                {UZ.clear}
-              </button>
-            )}
+            <div className="flex items-center gap-1">
+              {heldOrders.length > 0 && (
+                <button onClick={() => setShowHeldOrders(true)} className="relative text-xs text-amber-600 hover:text-amber-700 font-medium px-2 py-1 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors flex items-center gap-1">
+                  <HiOutlinePause className="w-3.5 h-3.5" /> Saqlangan ({heldOrders.length})
+                </button>
+              )}
+              {items.length > 0 && (
+                <>
+                  <button onClick={handleHoldOrder} className="text-xs text-amber-600 hover:text-amber-700 font-medium px-2 py-1 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors flex items-center gap-1" title="Buyurtmani saqlash">
+                    <HiOutlinePause className="w-3.5 h-3.5" /> Saqlash
+                  </button>
+                  <button onClick={clearCart} className="text-xs text-red-500 hover:text-red-600 font-medium px-2 py-1 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                    {UZ.clear}
+                  </button>
+                </>
+              )}
+            </div>
           </div>
           <div className="flex-1 overflow-y-auto space-y-1.5 pr-1">
             {items.length === 0 ? (
@@ -698,9 +735,23 @@ export default function POS() {
                 </div>
                 <div className="flex flex-col items-end gap-1 min-w-[70px]">
                   <p className="text-xs font-bold text-gray-900 dark:text-white">{formatCurrency(item.subtotal)}</p>
-                  <button onClick={() => removeItem(item.product_id)} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-400 hover:text-red-600 transition-colors">
-                    <HiOutlineTrash className="w-3.5 h-3.5" />
-                  </button>
+                  <div className="flex items-center gap-0.5">
+                    <button onClick={() => setEditingDiscount(editingDiscount === item.product_id ? null : item.product_id)} className={`p-1 rounded-md transition-colors ${item.discount > 0 ? 'text-orange-500 bg-orange-50 dark:bg-orange-900/20' : 'text-gray-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-900/20'}`} title="Chegirma">
+                      <HiOutlineTag className="w-3 h-3" />
+                    </button>
+                    <button onClick={() => removeItem(item.product_id)} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-400 hover:text-red-600 transition-colors">
+                      <HiOutlineTrash className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                  {editingDiscount === item.product_id && (
+                    <div className="flex items-center gap-1 mt-0.5 animate-fade-in">
+                      <input type="number" defaultValue={item.discount || 0} onBlur={(e) => handleDiscountApply(item.product_id, e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') handleDiscountApply(item.product_id, e.target.value); }} className="w-16 text-[10px] px-1.5 py-1 rounded border border-orange-300 dark:border-orange-700 bg-white dark:bg-gray-700 text-gray-900 dark:text-white outline-none focus:border-orange-500" placeholder="Chegirma" autoFocus />
+                      <span className="text-[10px] text-gray-400">so'm</span>
+                    </div>
+                  )}
+                  {item.discount > 0 && editingDiscount !== item.product_id && (
+                    <span className="text-[9px] text-orange-500 font-medium">-{formatCurrency(item.discount)}</span>
+                  )}
                 </div>
               </div>
             ))}
@@ -758,6 +809,43 @@ export default function POS() {
             </div>
             <div className="p-4">
               <CalculatorPanel onInput={() => {}} onClose={() => setShowCalcModal(false)} />
+            </div>
+          </div>
+        </div>
+      )}
+      {showHeldOrders && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm modal-overlay" onClick={() => setShowHeldOrders(false)} />
+          <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md modal-content max-h-[80vh] flex flex-col">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Saqlangan buyurtmalar</h2>
+              <button onClick={() => setShowHeldOrders(false)} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"><HiOutlineXMark className="w-5 h-5" /></button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 space-y-2">
+              {heldOrders.length === 0 ? (
+                <div className="text-center py-8 text-gray-400">
+                  <HiOutlinePause className="w-10 h-10 mx-auto mb-2 text-gray-300" />
+                  <p className="text-sm">Saqlangan buyurtmalar yo'q</p>
+                </div>
+              ) : heldOrders.map((order) => (
+                <div key={order.id} className={`p-3 rounded-xl border transition-all ${order.id === currentHoldId ? 'border-indigo-300 bg-indigo-50 dark:bg-indigo-900/20 dark:border-indigo-700' : 'border-gray-200 dark:border-gray-700 hover:border-indigo-200'}`}>
+                  <div className="flex items-center justify-between">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{order.name}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">{order.items.length} mahsulot / {formatCurrency(order.total)}</p>
+                      <p className="text-[10px] text-gray-400 mt-0.5">{new Date(order.heldAt).toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })}</p>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <button onClick={() => handleResumeOrder(order.id)} className="p-2 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-200 dark:hover:bg-indigo-900/50 transition-colors" title="Davom ettirish">
+                        <HiOutlinePlay className="w-4 h-4" />
+                      </button>
+                      <button onClick={() => removeHeldOrder(order.id)} className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-400 hover:text-red-600 transition-colors" title="O'chirish">
+                        <HiOutlineTrash className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>

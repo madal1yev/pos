@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../context/AuthContext';
+import { useSettingsStore } from '../context/SettingsContext';
 import { UZ } from '../utils/uzbek';
 import { getErrorMessage } from '../utils/errors';
 import { HiOutlineEye, HiOutlineEyeSlash } from 'react-icons/hi2';
@@ -12,7 +13,12 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(false);
   const { login, loading, error, clearError, isAuthenticated } = useAuthStore();
+  const { settings, loadSettings } = useSettingsStore();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    loadSettings();
+  }, []);
 
   useEffect(() => {
     if (isAuthenticated()) navigate('/', { replace: true });
@@ -37,10 +43,16 @@ export default function Login() {
       
       <div className="w-full max-w-md relative z-10">
         <div className="text-center mb-8 animate-fade-in-down">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-indigo-500 to-indigo-700 rounded-2xl shadow-xl shadow-indigo-500/30 mb-5">
-            <span className="text-4xl">🏪</span>
-          </div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">Oziq-ovqat Do'koni</h1>
+          {settings?.logo_url ? (
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl shadow-xl shadow-indigo-500/30 mb-5 overflow-hidden border-2 border-white dark:border-gray-700">
+              <img src={settings.logo_url} alt="Logo" className="w-full h-full object-cover" />
+            </div>
+          ) : (
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-indigo-500 to-indigo-700 rounded-2xl shadow-xl shadow-indigo-500/30 mb-5">
+              <span className="text-4xl">🏪</span>
+            </div>
+          )}
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">{settings?.store_name || "Oziq-ovqat Do'koni"}</h1>
           <p className="text-gray-500 dark:text-gray-400 mt-2 text-sm">POS tizimiga xush kelibsiz</p>
         </div>
 

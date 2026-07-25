@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
-import { productsAPI, categoriesAPI, bulkAPI } from '../services/api';
+import api, { productsAPI, categoriesAPI, bulkAPI } from '../services/api';
 import { UZ, formatCurrency } from '../utils/uzbek';
 import { getErrorMessage } from '../utils/errors';
 import { emitDataChanged } from '../utils/events';
-import { HiOutlinePlus, HiOutlineMagnifyingGlass, HiOutlinePencil, HiOutlineTrash, HiOutlineQrCode, HiOutlineXMark, HiOutlinePhoto, HiOutlineCurrencyDollar, HiOutlineCamera, HiOutlineChevronDown, HiOutlineCheckCircle } from 'react-icons/hi2';
+import { HiOutlinePlus, HiOutlineMagnifyingGlass, HiOutlinePencil, HiOutlineTrash, HiOutlineQrCode, HiOutlineXMark, HiOutlinePhoto, HiOutlineCurrencyDollar, HiOutlineCamera, HiOutlineChevronDown, HiOutlineCheckCircle, HiOutlineCloudArrowUp, HiOutlineArrowDownTray, HiOutlineArrowUpTray } from 'react-icons/hi2';
 import JsBarcode from 'jsbarcode';
 import QRCode from 'qrcode';
 import { Html5Qrcode } from 'html5-qrcode';
@@ -227,10 +227,26 @@ function ProductModal({ product, categories, onClose, onSave }) {
             </div>
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                <span className="flex items-center gap-1.5"><HiOutlinePhoto className="w-4 h-4" /> Mahsulot rasmi (URL)</span>
+                <span className="flex items-center gap-1.5"><HiOutlinePhoto className="w-4 h-4" /> Mahsulot rasmi</span>
               </label>
-              <div className="flex gap-3">
-                <input type="url" value={form.image_url} onChange={(e) => setForm({ ...form, image_url: e.target.value })} className="input-field flex-1 dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Rasm URL manzilini kiriting" />
+              <div className="flex gap-3 items-start">
+                <div className="flex-1">
+                  <input type="url" value={form.image_url} onChange={(e) => setForm({ ...form, image_url: e.target.value })} className="input-field w-full dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="URL manzilini kiriting" />
+                </div>
+                <label className="cursor-pointer px-3 py-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-lg text-sm font-medium hover:bg-indigo-100 dark:hover:bg-indigo-900/30 transition-colors border border-indigo-200 dark:border-indigo-800 flex items-center gap-1.5 whitespace-nowrap flex-shrink-0">
+                  <HiOutlineCloudArrowUp className="w-4 h-4" /> Yuklash
+                  <input type="file" accept="image/*" onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const fd = new FormData();
+                    fd.append('image', file);
+                    try {
+                      const { data } = await api.post('/upload/image', fd);
+                      setForm(f => ({ ...f, image_url: data.url }));
+                      toast.success('Rasm yuklandi');
+                    } catch { toast.error('Rasm yuklanmadi'); }
+                  }} className="hidden" />
+                </label>
               </div>
               {form.image_url && (
                 <div className="mt-3 relative inline-block">
@@ -592,6 +608,35 @@ export default function Products() {
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{pagination.total} ta mahsulot</p>
         </div>
         <div className="flex gap-2 flex-wrap">
+          <label className="cursor-pointer bg-emerald-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-emerald-700 transition-all flex items-center gap-2 shadow-md shadow-emerald-500/20 active:scale-[0.98]">
+            <HiOutlineArrowUpTray className="w-5 h-5" /> Import CSV
+            <input type="file" accept=".csv" onChange={async (e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              const fd = new FormData();
+              fd.append('file', file);
+              try {
+                const { data } = await bulkAPI.importCSV(fd);
+                toast.success(`${data.imported || 0} ta mahsulot import qilindi`);
+                loadProducts();
+                emitDataChanged();
+              } catch (err) { toast.error(getErrorMessage(err, 'Import xatosi')); }
+              e.target.value = '';
+            }} className="hidden" />
+          </label>
+          <button onClick={async () => {
+            try {
+              const { data } = await bulkAPI.exportCSV();
+              const blob = new Blob([data], { type: 'text/csv' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url; a.download = 'mahsulotlar.csv'; a.click();
+              URL.revokeObjectURL(url);
+              toast.success('CSV yuklab olindi');
+            } catch (err) { toast.error('Export xatosi'); }
+          }} className="bg-white dark:bg-gray-800 text-emerald-700 dark:text-emerald-300 px-4 py-2 rounded-lg font-medium hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-all flex items-center gap-2 border border-emerald-200 dark:border-emerald-800">
+            <HiOutlineArrowDownTray className="w-5 h-5" /> Export CSV
+          </button>
           <button onClick={() => { setEditProduct(null); setShowModal(true); }} className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-indigo-700 transition-all flex items-center gap-2 shadow-md shadow-indigo-500/20 active:scale-[0.98]">
             <HiOutlinePlus className="w-5 h-5" /> {UZ.addProduct}
           </button>

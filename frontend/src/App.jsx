@@ -13,6 +13,7 @@ import Reports from './pages/Reports';
 import Analytics from './pages/Analytics';
 import Settings from './pages/Settings';
 import Profile from './pages/Profile';
+import Categories from './pages/Categories';
 import PWAInstall from './components/PWAInstall';
 import ErrorBoundary from './components/ErrorBoundary';
 import { useDarkMode } from './hooks/useDarkMode';
@@ -43,6 +44,7 @@ function App() {
             <Route path="reports" element={<Reports />} />
             <Route path="analytics" element={<Analytics />} />
             <Route path="settings" element={<Settings />} />
+            <Route path="categories" element={<Categories />} />
             <Route path="profile" element={<Profile />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />

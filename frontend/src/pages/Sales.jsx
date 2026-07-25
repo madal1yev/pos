@@ -37,6 +37,7 @@ function InvoiceModal({ saleId, onClose }) {
         .right { text-align: right; }
       </style></head><body>
       <div class="center bold large">${invoice?.settings?.store_name || "Do'kon"}</div>
+      ${invoice?.settings?.logo_url ? `<div class="center"><img src="${invoice.settings.logo_url}" style="height:60px;max-width:60px;object-fit:contain;margin:0 auto;" /></div>` : ''}
       ${invoice?.settings?.store_address ? `<div class="center">${invoice.settings.store_address}</div>` : ''}
       ${invoice?.settings?.store_phone ? `<div class="center">${invoice.settings.store_phone}</div>` : ''}
       <div class="border-top center">
@@ -82,9 +83,15 @@ function InvoiceModal({ saleId, onClose }) {
 
         <div ref={receiptRef} className="p-6">
           <div className="text-center mb-5">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center mx-auto mb-3">
-              <span className="text-white text-xl">🧾</span>
-            </div>
+            {invoice?.settings?.logo_url ? (
+              <div className="mb-3">
+                <img src={invoice.settings.logo_url} alt="Logo" className="h-14 w-14 object-contain mx-auto rounded-xl" />
+              </div>
+            ) : (
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center mx-auto mb-3">
+                <span className="text-white text-xl">🧾</span>
+              </div>
+            )}
             <h3 className="font-bold text-lg text-gray-900 dark:text-white">{invoice?.settings?.store_name || "Oziq-ovqat do'koni"}</h3>
             {invoice?.settings?.store_address && <p className="text-xs text-gray-500 mt-0.5">{invoice.settings.store_address}</p>}
             {invoice?.settings?.store_phone && <p className="text-xs text-gray-500">{invoice.settings.store_phone}</p>}
