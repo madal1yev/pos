@@ -41,10 +41,12 @@ export default function Settings() {
     setUploading(true);
     try {
       const url = await uploadImage(file);
-      setSettings(s => ({ ...s, logo_url: url }));
+      const newSettings = { ...settings, logo_url: url };
+      setSettings(newSettings);
       updateGlobalSettings({ logo_url: url });
-      toast.success('Logo yuklandi');
-    } catch { toast.error('Logo yuklanmadi'); } finally { setUploading(false); }
+      await settingsAPI.update(newSettings);
+      toast.success('Logo yuklandi va saqlandi');
+    } catch (err) { toast.error(getErrorMessage(err, 'Logo yuklanmadi')); } finally { setUploading(false); }
   };
 
   if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin h-8 w-8 border-4 border-indigo-500 border-t-transparent rounded-full" /></div>;

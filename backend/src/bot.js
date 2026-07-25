@@ -758,18 +758,19 @@ bot.onText(/\/products/, async (msg) => {
   await typing(chatId);
 
   const { rows: categories } = await getCategories();
-  const activeCategories = categories.filter(c => c.product_count > 0);
 
-  if (activeCategories.length === 0) {
+  if (categories.length === 0) {
     await safeSend(chatId, t(lang, 'noProducts'));
     return;
   }
 
   const buttons = [];
-  for (let i = 0; i < activeCategories.length; i += 2) {
-    const row = [{ text: `${activeCategories[i].name} (${activeCategories[i].product_count})`, callback_data: `cat_${activeCategories[i].id}` }];
-    if (activeCategories[i + 1]) {
-      row.push({ text: `${activeCategories[i + 1].name} (${activeCategories[i + 1].product_count})`, callback_data: `cat_${activeCategories[i + 1].id}` });
+  for (let i = 0; i < categories.length; i += 2) {
+    const emoji1 = categories[i].emoji || '';
+    const row = [{ text: `${emoji1} ${categories[i].name} (${categories[i].product_count})`, callback_data: `cat_${categories[i].id}` }];
+    if (categories[i + 1]) {
+      const emoji2 = categories[i + 1].emoji || '';
+      row.push({ text: `${emoji2} ${categories[i + 1].name} (${categories[i + 1].product_count})`, callback_data: `cat_${categories[i + 1].id}` });
     }
     buttons.push(row);
   }
@@ -869,19 +870,21 @@ bot.on('callback_query', async (query) => {
       await typing(chatId);
       const { rows: categories } = await getCategories();
       const buttons = [];
-      const activeCategories = categories.filter(c => c.product_count > 0);
+      const allCategories = categories.length > 0 ? categories : [];
 
-      if (activeCategories.length === 0) {
+      if (allCategories.length === 0) {
         await safeEdit(chatId, query.message.message_id, t(lang, 'noProducts'), {
           reply_markup: { inline_keyboard: [[{ text: t(lang, 'back'), callback_data: 'back_main' }]] }
         });
         return;
       }
 
-      for (let i = 0; i < activeCategories.length; i += 2) {
-        const row = [{ text: `${activeCategories[i].name} (${activeCategories[i].product_count})`, callback_data: `cat_${activeCategories[i].id}` }];
-        if (activeCategories[i + 1]) {
-          row.push({ text: `${activeCategories[i + 1].name} (${activeCategories[i + 1].product_count})`, callback_data: `cat_${activeCategories[i + 1].id}` });
+      for (let i = 0; i < allCategories.length; i += 2) {
+        const emoji1 = allCategories[i].emoji || '';
+        const row = [{ text: `${emoji1} ${allCategories[i].name} (${allCategories[i].product_count})`, callback_data: `cat_${allCategories[i].id}` }];
+        if (allCategories[i + 1]) {
+          const emoji2 = allCategories[i + 1].emoji || '';
+          row.push({ text: `${emoji2} ${allCategories[i + 1].name} (${allCategories[i + 1].product_count})`, callback_data: `cat_${allCategories[i + 1].id}` });
         }
         buttons.push(row);
       }
