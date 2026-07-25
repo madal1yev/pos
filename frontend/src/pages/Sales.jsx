@@ -81,73 +81,73 @@ function InvoiceModal({ saleId, onClose }) {
           <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"><HiOutlineXMark className="w-5 h-5" /></button>
         </div>
 
-        <div ref={receiptRef} className="p-6">
-          <div className="text-center mb-5">
-            {invoice?.settings?.logo_url ? (
-              <div className="mb-3">
-                <img src={invoice.settings.logo_url} alt="Logo" className="h-14 w-14 object-contain mx-auto rounded-xl" />
-              </div>
-            ) : (
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center mx-auto mb-3">
-                <span className="text-white text-xl">🧾</span>
-              </div>
-            )}
-            <h3 className="font-bold text-lg text-gray-900 dark:text-white">{invoice?.settings?.store_name || "Oziq-ovqat do'koni"}</h3>
-            {invoice?.settings?.store_address && <p className="text-xs text-gray-500 mt-0.5">{invoice.settings.store_address}</p>}
-            {invoice?.settings?.store_phone && <p className="text-xs text-gray-500">{invoice.settings.store_phone}</p>}
-          </div>
-
-          <div className="border-t border-b border-dashed border-gray-200 dark:border-gray-600 py-3 my-4">
-            <div className="grid grid-cols-2 gap-1 text-xs text-gray-500">
-              <span>Chek:</span><span className="text-right font-medium text-gray-900 dark:text-white font-mono">{invoice?.invoice_number}</span>
-              <span>{UZ.date}:</span><span className="text-right text-gray-900 dark:text-white">{formatTashkentDate(invoice?.created_at)}</span>
-              <span>{UZ.cashier}:</span><span className="text-right text-gray-900 dark:text-white">{invoice?.cashier_name}</span>
-              <span>{UZ.payment}:</span>
-              <span className="text-right">
-                <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold ${
-                  invoice?.payment_method === 'cash' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' :
-                  invoice?.payment_method === 'card' ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
-                  invoice?.payment_method === 'telegram' ? 'bg-sky-50 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400' :
-                  'bg-violet-50 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400'
-                }`}>{invoice?.payment_method === 'cash' ? UZ.cash : invoice?.payment_method === 'card' ? UZ.card : invoice?.payment_method === 'telegram' ? '🤖 Telegram' : UZ.other}</span>
-              </span>
-            </div>
-          </div>
-
-          <div className="space-y-2 mb-4">
-            {invoice?.items?.map((item, i) => (
-              <div key={i} className="flex items-center justify-between py-1.5">
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 dark:text-white">{item.product_name}</p>
-                  <p className="text-xs text-gray-400">{item.quantity} x {formatCurrency(item.price)}</p>
+        <div ref={receiptRef} className="p-4 sm:p-6 print:p-0 bg-gray-100 dark:bg-gray-800">
+          <div className="mx-auto w-[320px] max-w-full bg-white text-black border border-gray-200 shadow-sm p-4 font-mono text-[11px] leading-tight print:border-0 print:shadow-none">
+            <div className="text-center border-b border-dashed border-black pb-2 mb-2">
+              {invoice?.settings?.logo_url ? (
+                <div className="flex justify-center mb-2">
+                  <img src={invoice.settings.logo_url} alt="Logo" className="h-12 w-12 object-contain" />
                 </div>
-                <span className="text-sm font-bold text-gray-900 dark:text-white ml-3">{formatCurrency(item.subtotal)}</span>
+              ) : (
+                <div className="w-12 h-12 rounded-xl bg-gray-200 flex items-center justify-center mx-auto mb-2">
+                  <span className="text-xl">🧾</span>
+                </div>
+              )}
+              <p className="text-[10px] tracking-[0.25em] uppercase">Savdo cheki</p>
+              <p className="mt-1 text-base font-bold uppercase break-words">{invoice?.settings?.store_name || "Oziq-ovqat do'koni"}</p>
+              {invoice?.settings?.store_address && <p className="mt-1 break-words">Manzil: {invoice.settings.store_address}</p>}
+              {invoice?.settings?.store_phone && <p>Telefon: {invoice.settings.store_phone}</p>}
+            </div>
+
+            <div className="py-2 border-b border-dashed border-black space-y-1">
+              <div className="flex justify-between gap-3"><span>Chek:</span><span className="font-bold text-right break-all font-mono">{invoice?.invoice_number}</span></div>
+              <div className="flex justify-between"><span>Sana:</span><span>{formatTashkentDate(invoice?.created_at)}</span></div>
+              <div className="flex justify-between"><span>Kassir:</span><span>{invoice?.cashier_name}</span></div>
+              <div className="flex justify-between"><span>To'lov:</span><span className="font-semibold">{invoice?.payment_method === 'cash' ? '💵 Naqd' : invoice?.payment_method === 'card' ? '💳 Karta' : invoice?.payment_method === 'telegram' ? '🤖 Telegram' : 'Boshqa'}</span></div>
+            </div>
+
+            <div className="py-2 border-b border-dashed border-black">
+              <div className="grid grid-cols-[1fr_72px] gap-2 pb-1 border-b border-black/70 font-bold uppercase text-[10px]">
+                <span>Mahsulot</span>
+                <span className="text-right">Summa</span>
               </div>
-            ))}
-          </div>
+              <div className="space-y-2 pt-2">
+                {invoice?.items?.map((item, i) => {
+                  const qty = Number(item.quantity || 0);
+                  const price = Number(item.price || 0);
+                  const subtotal = Number(item.subtotal || price * qty || 0);
+                  return (
+                    <div key={i}>
+                      <div className="font-bold break-words">{i + 1}. {item.product_name}</div>
+                      <div className="grid grid-cols-[1fr_72px] gap-2">
+                        <span>{qty} x {formatCurrency(price)}</span>
+                        <span className="text-right font-bold">{formatCurrency(subtotal)}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
 
-          <div className="border-t border-gray-200 dark:border-gray-600 pt-3 space-y-2">
-            <div className="flex justify-between">
-              <span className="text-gray-500">{UZ.receivedAmount}</span>
-              <span className="font-medium text-gray-900 dark:text-white">{formatCurrency(invoice?.received_amount)}</span>
+            <div className="py-2 border-b border-dashed border-black space-y-1">
+              <div className="flex justify-between items-end pt-1 text-sm font-bold uppercase">
+                <span>Jami:</span>
+                <span>{formatCurrency(invoice?.total_amount)}</span>
+              </div>
             </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500">{UZ.change}</span>
-              <span className="font-bold text-indigo-600 dark:text-indigo-400 text-lg">{formatCurrency(invoice?.change_amount)}</span>
+
+            <div className="py-2 border-b border-dashed border-black space-y-1">
+              <div className="flex justify-between"><span>Qabul qilindi:</span><span>{formatCurrency(invoice?.received_amount)}</span></div>
+              <div className="flex justify-between font-bold"><span>Qaytim:</span><span>{formatCurrency(invoice?.change_amount)}</span></div>
             </div>
-            <div className="border-t border-gray-200 dark:border-gray-600 pt-2 flex justify-between">
-              <span className="font-bold text-gray-900 dark:text-white">{UZ.total}</span>
-              <span className="font-bold text-gray-900 dark:text-white text-xl">{formatCurrency(invoice?.total_amount)}</span>
+
+            <div className="text-center pt-3">
+              {invoice?.settings?.receipt_footer ? invoice.settings.receipt_footer.split('\n').map((line, i) => (
+                <p key={i} className="break-words">{line}</p>
+              )) : <p>Xaridingiz uchun rahmat!</p>}
+              <p className="mt-2 text-[10px]">Chekni saqlab qo'ying</p>
             </div>
           </div>
-
-          {invoice?.settings?.receipt_footer && (
-            <div className="text-center mt-4 pt-3 border-t border-dashed border-gray-200 dark:border-gray-600">
-              {invoice.settings.receipt_footer.split('\n').map((line, i) => (
-                <p key={i} className="text-xs text-gray-500">{line}</p>
-              ))}
-            </div>
-          )}
         </div>
 
         <div className="flex gap-3 px-6 py-4 border-t border-gray-100 dark:border-gray-700 no-print">

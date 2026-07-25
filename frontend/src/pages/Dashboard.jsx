@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { dashboardAPI } from '../services/api';
 import { UZ, formatCurrency, formatUzbekDate, formatTashkentTime } from '../utils/uzbek';
+import { playNewOrderSound } from '../utils/sounds';
 import {
   HiOutlineBanknotes, HiOutlineShoppingCart, HiOutlineCube, HiOutlineExclamationTriangle,
   HiOutlineArrowTrendingUp, HiOutlineUsers, HiOutlineClock, HiOutlineCalculator,
@@ -46,10 +47,15 @@ export default function Dashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const prevSalesCount = useRef(null);
 
   const loadDashboard = useCallback(async (silent = false) => {
     try {
       const { data } = await dashboardAPI.get();
+      if (prevSalesCount.current !== null && data?.today?.sales?.count > prevSalesCount.current) {
+        playNewOrderSound();
+      }
+      prevSalesCount.current = data?.today?.sales?.count;
       setData(data);
     } catch {
       if (!silent) {

@@ -4,6 +4,7 @@ import { productsAPI, salesAPI, settingsAPI } from '../services/api';
 import { UZ, formatCurrency } from '../utils/uzbek';
 import { getErrorMessage } from '../utils/errors';
 import { emitDataChanged } from '../utils/events';
+import { playSuccessSound } from '../utils/sounds';
 import { HiOutlineMinus, HiOutlinePlus, HiOutlineTrash, HiOutlineCamera, HiOutlineMagnifyingGlass, HiOutlineCheckCircle, HiOutlineXMark, HiOutlineShoppingCart, HiOutlineCalculator, HiOutlinePause, HiOutlinePlay, HiOutlineTag } from 'react-icons/hi2';
 import { Html5Qrcode } from 'html5-qrcode';
 import toast from 'react-hot-toast';
@@ -631,6 +632,7 @@ export default function POS() {
       const { data } = await salesAPI.create({ ...info, items: items.map((i) => ({ product_id: i.product_id, quantity: i.quantity, price: i.price, unit: i.unit || 'pcs', discount: i.discount || 0, tax: i.tax || 0 })) });
       const saleWithItems = { ...data?.sale, items: items.map((i) => ({ ...i, product_name: i.name })) };
       setReceipt(saleWithItems); setShowCheckout(false); clearCart(); loadProducts(); emitDataChanged();
+      playSuccessSound();
     } catch (err) { toast.error(getErrorMessage(err, "Sotuvda xato")); }
   };
 
