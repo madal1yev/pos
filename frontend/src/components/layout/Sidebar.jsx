@@ -5,7 +5,7 @@ import { UZ } from '../../utils/uzbek';
 import {
   HiOutlineHome, HiOutlineCube, HiOutlineCalculator, HiOutlineClipboardDocumentList,
   HiOutlineChartBar, HiOutlineCog, HiOutlineXMark, HiOutlineCurrencyDollar,
-  HiOutlineArrowRightOnRectangle, HiOutlineDocumentChartBar, HiOutlineShoppingBag,
+  HiOutlineArrowRightOnRectangle, HiOutlineDocumentChartBar,
   HiOutlineSquare3Stack3D
 } from 'react-icons/hi2';
 import { HiOutlineSun, HiOutlineMoon } from 'react-icons/hi';
@@ -23,15 +23,6 @@ const navItems = [
   { to: '/settings', icon: HiOutlineCog, label: UZ.settings },
 ];
 
-const foodCategories = [
-  { id: 'pizza', label: 'Pitsa', emoji: '🍕', color: 'from-orange-400 to-red-500' },
-  { id: 'burgers', label: 'Burgerlar', emoji: '🍔', color: 'from-yellow-400 to-orange-500' },
-  { id: 'drinks', label: 'Ichimliklar', emoji: '🥤', color: 'from-blue-400 to-cyan-500' },
-  { id: 'salads', label: 'Salatlar', emoji: '🥗', color: 'from-green-400 to-emerald-500' },
-  { id: 'desserts', label: 'Shirinliklar', emoji: '🍰', color: 'from-pink-400 to-rose-500' },
-  { id: 'snacks', label: 'Yeguliklar', emoji: '🍿', color: 'from-amber-400 to-yellow-500' },
-];
-
 export default function Sidebar({ open, onClose, dark, toggleDark }) {
   const { user, logout } = useAuthStore();
   const { settings } = useSettingsStore();
@@ -42,11 +33,6 @@ export default function Sidebar({ open, onClose, dark, toggleDark }) {
   const handleLogout = async () => {
     await logout();
     navigate('/login');
-  };
-
-  const handleCategoryClick = (catId) => {
-    navigate(`/products?category=${catId}`);
-    onClose();
   };
 
   const linkClass = ({ isActive }) =>
@@ -84,30 +70,6 @@ export default function Sidebar({ open, onClose, dark, toggleDark }) {
           <HiOutlineXMark className="w-5 h-5" />
         </button>
       </div>
-
-      {/* Food Categories */}
-      <div className="px-3 py-2 flex-shrink-0">
-        <div className="flex items-center gap-2 px-3 mb-2">
-          <HiOutlineShoppingBag className="w-4 h-4 text-gray-400" />
-          <span className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Oziq-ovqatlar</span>
-        </div>
-        <div className="grid grid-cols-3 gap-1.5 px-1">
-          {foodCategories.map((cat) => (
-            <button
-              key={cat.id}
-              onClick={() => handleCategoryClick(cat.id)}
-              className="flex flex-col items-center gap-1 p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-all group cursor-pointer"
-            >
-              <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${cat.color} flex items-center justify-center shadow-md group-hover:scale-110 transition-transform`}>
-                <span className="text-lg">{cat.emoji}</span>
-              </div>
-              <span className="text-[10px] font-medium text-gray-600 dark:text-gray-400 leading-tight text-center">{cat.label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="mx-4 my-1 border-t border-gray-100 dark:border-gray-800" />
 
       {/* Navigation */}
       <nav className="flex-1 px-3 py-2 space-y-0.5 overflow-y-auto min-h-0">
