@@ -1,11 +1,11 @@
 import { useState, useEffect, useMemo } from 'react';
-import { reportsAPI } from '../services/api';
+import { reportsAPI, dashboardAPI } from '../services/api';
 import { UZ, formatCurrency, formatTashkentTime } from '../utils/uzbek';
 import {
   HiOutlineChartBar, HiOutlineCube, HiOutlineArrowTrendingUp, HiOutlineCalendarDays,
   HiOutlineDocumentChartBar, HiOutlineMagnifyingGlass, HiOutlineBanknotes,
   HiOutlineShoppingCart, HiOutlineCurrencyDollar, HiOutlineFire, HiOutlineReceiptPercent,
-  HiOutlineArrowDown, HiOutlineArrowUp
+  HiOutlineArrowDown, HiOutlineArrowUp, HiOutlineExclamationTriangle
 } from 'react-icons/hi2';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell, PieChart, Pie, Legend } from 'recharts';
 import { emitDataChanged } from '../utils/events';
@@ -80,8 +80,9 @@ function InventoryRow({ product, index }) {
 }
 
 export default function Reports() {
-  const [activeTab, setActiveTab] = useState('daily');
+  const [activeTab, setActiveTab] = useState('overview');
   const [data, setData] = useState(null);
+  const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [month, setMonth] = useState(new Date().getMonth() + 1);
@@ -99,12 +100,17 @@ export default function Reports() {
   const loadReport = async () => {
     setLoading(true);
     try {
-      let r;
-      switch (activeTab) {
-        case 'daily': r = await reportsAPI.daily({ date }); setData(r.data); break;
-        case 'monthly': r = await reportsAPI.monthly({ month, year }); setData(r.data); break;
-        case 'top-products': r = await reportsAPI.topProducts({ limit: 15 }); setData(r.data); break;
-        case 'inventory': r = await reportsAPI.inventory({}); setData(r.data); break;
+      if (activeTab === 'overview') {
+        const { data: d } = await dashboardAPI.get();
+        setDashboardData(d);
+      } else {
+        let r;
+        switch (activeTab) {
+          case 'daily': r = await reportsAPI.daily({ date }); setData(r.data); break;
+          case 'monthly': r = await reportsAPI.monthly({ month, year }); setData(r.data); break;
+          case 'top-products': r = await reportsAPI.topProducts({ limit: 15 }); setData(r.data); break;
+          case 'inventory': r = await reportsAPI.inventory({}); setData(r.data); break;
+        }
       }
     } catch { toast.error('Hisobot yuklanmadi'); } finally { setLoading(false); }
   };
@@ -119,6 +125,7 @@ export default function Reports() {
   }, [data?.products, invSearch]);
 
   const tabs = [
+    { key: 'overview', label: 'Umumiy', icon: HiOutlineChartBar },
     { key: 'daily', label: 'Kunlik', icon: HiOutlineCalendarDays, count: data?.summary?.total_sales },
     { key: 'monthly', label: 'Oylik', icon: HiOutlineArrowTrendingUp },
     { key: 'top-products', label: 'TOP', icon: HiOutlineCube, count: data?.top_products?.length },
@@ -180,7 +187,7 @@ export default function Reports() {
             <p className="text-sm text-gray-400">Hisobot yuklanmoqda...</p>
           </div>
         </div>
-      ) : !data ? (
+      ) : (!data && activeTab !== 'overview') ? (
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-12 text-center">
           <HiOutlineChartBar className="w-12 h-12 mx-auto text-gray-300 dark:text-gray-600 mb-3" />
           <p className="text-gray-500 dark:text-gray-400 font-medium">Ma'lumot topilmadi</p>
@@ -188,6 +195,147 @@ export default function Reports() {
         </div>
       ) : (
         <div className="space-y-6">
+          {activeTab === 'overview' && dashboardData && (
+            <>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <SummaryCard icon={HiOutlineShoppingCart} label="Bugun sotilgan" value={dashboardData.today?.sales?.count || 0} color="text-gray-900 dark:text-white" />
+                <SummaryCard icon={HiOutlineBanknotes} label="Bugungi daromad" value={formatCurrency(dashboardData.today?.sales?.revenue)} color="text-indigo-600 dark:text-indigo-400" trend="up" />
+                <SummaryCard icon={HiOutlineDocumentChartBar} label="Ombor qiymati" value={formatCurrency(dashboardData.products?.total_inventory_value)} color="text-violet-600 dark:text-violet-400" />
+                <SummaryCard icon={HiOutlineExclamationTriangle} label="Kam qolgan" value={dashboardData.products?.low_stock || 0} color={dashboardData.products?.low_stock > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600'} trend={dashboardData.products?.low_stock > 0 ? 'down' : 'up'} />
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+                  <div className="flex items-center gap-2 mb-4">
+                    <HiOutlineArrowTrendingUp className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                    <h3 className="font-semibold text-gray-900 dark:text-white">Haftalik tushum</h3>
+                  </div>
+                  {dashboardData.salesChart?.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={280}>
+                      <BarChart data={dashboardData.salesChart} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+                        <XAxis dataKey="date" tick={{ fontSize: 11 }} tickFormatter={(v) => { try { return new Date(v).toLocaleDateString('uz', { weekday: 'short' }); } catch { return v; }}} />
+                        <YAxis tick={{ fontSize: 11 }} tickFormatter={v => v >= 1000000 ? `${(v / 1000000).toFixed(1)}M` : v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v} />
+                        <Tooltip formatter={(v) => formatCurrency(v)} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }} />
+                        <Bar dataKey="revenue" radius={[8, 8, 0, 0]} maxBarSize={40}>
+                          {dashboardData.salesChart.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : <div className="flex items-center justify-center h-64 text-gray-400 text-sm">Bu hafta sotuvlar yo'q</div>}
+                </div>
+
+                <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+                  <div className="flex items-center gap-2 mb-4">
+                    <HiOutlineChartBar className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                    <h3 className="font-semibold text-gray-900 dark:text-white">To'lov usullari</h3>
+                  </div>
+                  {dashboardData.recentSales?.length > 0 ? (() => {
+                    const overviewPaymentData = [['cash', 'Naqd'], ['card', 'Karta'], ['other', 'Boshqa']].map(([method, label]) => {
+                      const sales = dashboardData.recentSales.filter(s => s.payment_method === method) || [];
+                      const total = sales.reduce((sum, s) => sum + parseFloat(s.total_amount || 0), 0);
+                      return { method, label, total, count: sales.length };
+                    }).filter(p => p.total > 0);
+                    return overviewPaymentData.length > 0 ? (
+                      <>
+                        <div className="h-40 mb-2">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                              <Pie data={overviewPaymentData.map(p => ({ name: p.label, value: p.total }))} cx="50%" cy="50%" innerRadius={40} outerRadius={70} paddingAngle={4} dataKey="value">
+                                {overviewPaymentData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                              </Pie>
+                              <Tooltip formatter={v => formatCurrency(v)} />
+                            </PieChart>
+                          </ResponsiveContainer>
+                        </div>
+                        <div className="space-y-2">
+                          {overviewPaymentData.map((p, i) => (
+                            <div key={i} className="flex items-center justify-between py-1.5 px-3 rounded-lg bg-gray-50 dark:bg-gray-700/30">
+                              <div className="flex items-center gap-2">
+                                <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
+                                <span className="text-sm text-gray-600 dark:text-gray-400">{p.label}</span>
+                              </div>
+                              <span className="text-sm font-semibold text-gray-900 dark:text-white">{formatCurrency(p.total)} <span className="text-xs text-gray-400">({p.count} ta)</span></span>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    ) : <p className="text-center text-gray-400 py-8 text-sm">Ma'lumot yo'q</p>;
+                  })() : <p className="text-center text-gray-400 py-8 text-sm">Ma'lumot yo'q</p>}
+                </div>
+              </div>
+
+              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+                <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700">
+                  <div className="flex items-center gap-2">
+                    <HiOutlineFire className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                    <h3 className="font-semibold text-gray-900 dark:text-white">So'nggi sotuvlar</h3>
+                  </div>
+                </div>
+                {dashboardData.recentSales?.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="text-left text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/30">
+                          <th className="py-3 px-4 font-semibold text-[11px] uppercase tracking-wider">Chek</th>
+                          <th className="py-3 px-4 font-semibold text-[11px] uppercase tracking-wider">Mijoz</th>
+                          <th className="py-3 px-4 font-semibold text-[11px] uppercase tracking-wider">To'lov</th>
+                          <th className="py-3 px-4 font-semibold text-[11px] uppercase tracking-wider text-right">Summa</th>
+                          <th className="py-3 px-4 font-semibold text-[11px] uppercase tracking-wider text-right">Vaqt</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-50 dark:divide-gray-700/50">
+                        {dashboardData.recentSales.slice(0, 8).map(s => (
+                          <tr key={s.id} className="hover:bg-indigo-50/40 dark:hover:bg-indigo-900/10 transition-colors">
+                            <td className="py-3 px-4 font-mono text-xs font-semibold text-indigo-600 dark:text-indigo-400">{s.invoice_number}</td>
+                            <td className="py-3 px-4 text-gray-700 dark:text-gray-300">{s.customer_name || "O'tib ketgan"}</td>
+                            <td className="py-3 px-4">
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-semibold ${s.payment_method === 'cash' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : s.payment_method === 'card' ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-violet-50 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400'}`}>
+                                {s.payment_method === 'cash' ? 'Naqd' : s.payment_method === 'card' ? 'Karta' : 'Boshqa'}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 text-right font-bold text-gray-900 dark:text-white">{formatCurrency(s.total_amount)}</td>
+                            <td className="py-3 px-4 text-right text-gray-400 text-xs">{formatTashkentTime(s.created_at)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="text-center py-10 text-gray-400">Sotuvlar yo'q</div>
+                )}
+              </div>
+
+              {dashboardData.topProducts?.length > 0 && (
+                <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+                  <div className="flex items-center gap-2 mb-4">
+                    <HiOutlineCube className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                    <h3 className="font-semibold text-gray-900 dark:text-white">TOP mahsulotlar (bugun)</h3>
+                  </div>
+                  <div className="space-y-2">
+                    {dashboardData.topProducts.map((p, i) => {
+                      const maxSold = dashboardData.topProducts[0]?.sold || 1;
+                      return (
+                        <div key={i} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                          <div className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold text-white flex-shrink-0" style={{ background: `linear-gradient(135deg, ${CHART_COLORS[i % CHART_COLORS.length]}, ${CHART_COLORS[(i + 1) % CHART_COLORS.length]})` }}>{i + 1}</div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between">
+                              <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{p.name}</p>
+                              <span className="text-xs text-gray-400 ml-2 whitespace-nowrap">{p.sold} dona</span>
+                            </div>
+                            <div className="h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full mt-1 overflow-hidden">
+                              <div className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-blue-500" style={{ width: `${Math.min(100, (p.sold / maxSold) * 100)}%` }} />
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
           {activeTab === 'daily' && data && (
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

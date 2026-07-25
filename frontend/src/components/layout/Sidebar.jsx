@@ -19,7 +19,6 @@ const navItems = [
   { to: '/suppliers', icon: HiOutlineClipboardDocumentList, label: 'Yetkazib beruvchilar' },
   { to: '/sales', icon: HiOutlineClipboardDocumentList, label: UZ.sales },
   { to: '/reports', icon: HiOutlineChartBar, label: UZ.reports },
-  { to: '/analytics', icon: HiOutlineDocumentChartBar, label: 'Tahlillar' },
   { to: '/settings', icon: HiOutlineCog, label: UZ.settings },
 ];
 

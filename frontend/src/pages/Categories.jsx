@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { categoriesAPI, productsAPI } from '../services/api';
 import { getErrorMessage } from '../utils/errors';
 import { emitDataChanged } from '../utils/events';
-import { HiOutlinePlus, HiOutlinePencil, HiOutlineTrash, HiOutlineXMark, HiOutlineCheckCircle, HiOutlineSquare3Stack3D, HiOutlineMagnifyingGlass, HiOutlineCube, HiOutlineFunnel } from 'react-icons/hi2';
+import { formatCurrency } from '../utils/uzbek';
+import { HiOutlinePlus, HiOutlinePencil, HiOutlineTrash, HiOutlineXMark, HiOutlineCheckCircle, HiOutlineSquare3Stack3D, HiOutlineMagnifyingGlass, HiOutlineCube, HiOutlineFunnel, HiOutlineArrowLeft } from 'react-icons/hi2';
 import toast from 'react-hot-toast';
 
 const CATEGORY_EMOJIS = ['🍕', '🍔', '🥤', '🥗', '🍰', '🍿', '🧃', '🧀', '🥩', '🍞', '🍎', '🥕', '🥛', '🍳', '🍜', '🥘', '🍱', '🥡', '🫕', '🧁', '🐟', '🍕', '🫒', '🧅', '🌶️', '🥫', '🫘', '🥜'];
@@ -27,6 +28,9 @@ export default function Categories() {
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [viewCategory, setViewCategory] = useState(null);
+  const [categoryProducts, setCategoryProducts] = useState([]);
+  const [loadingProducts, setLoadingProducts] = useState(false);
 
   useEffect(() => { loadCategories(); }, []);
 
@@ -35,6 +39,15 @@ export default function Categories() {
       const { data } = await categoriesAPI.getAll();
       setCategories(data?.categories || data || []);
     } catch (err) { toast.error('Kategoriyalar yuklanmadi'); } finally { setLoading(false); }
+  };
+
+  const loadCategoryProducts = async (cat) => {
+    setViewCategory(cat);
+    setLoadingProducts(true);
+    try {
+      const { data } = await productsAPI.getAll({ category_id: cat.id, limit: 100 });
+      setCategoryProducts(data?.products || []);
+    } catch { setCategoryProducts([]); } finally { setLoadingProducts(false); }
   };
 
   const openCreate = () => {
@@ -195,6 +208,53 @@ export default function Categories() {
           </div>
         )}
       </div>
+
+      {viewCategory && (
+        <div className="card mb-4 animate-fade-in">
+          <div className="flex items-center gap-3 mb-4">
+            <button onClick={() => setViewCategory(null)} className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"><HiOutlineArrowLeft className="w-5 h-5" /></button>
+            <span className="text-2xl">{viewCategory.emoji || '📁'}</span>
+            <div>
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white">{viewCategory.name}</h2>
+              <p className="text-xs text-gray-400">{categoryProducts.length} ta mahsulot</p>
+            </div>
+          </div>
+          {loadingProducts ? (
+            <div className="flex items-center justify-center h-32"><div className="animate-spin h-6 w-6 border-2 border-indigo-500 border-t-transparent rounded-full" /></div>
+          ) : categoryProducts.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-800">
+                    <th className="pb-3 font-medium">Mahsulot</th>
+                    <th className="pb-3 font-medium">Kod</th>
+                    <th className="pb-3 font-medium text-right">Sotish narxi</th>
+                    <th className="pb-3 font-medium text-right">Zaxira</th>
+                    <th className="pb-3 font-medium">Holat</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
+                  {categoryProducts.map(p => (
+                    <tr key={p.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                      <td className="py-3 font-medium text-gray-900 dark:text-white">{p.name}</td>
+                      <td className="py-3 text-gray-500 font-mono text-xs">{p.product_code}</td>
+                      <td className="py-3 text-right font-semibold text-gray-900 dark:text-white">{formatCurrency(p.selling_price)}</td>
+                      <td className="py-3 text-right text-gray-600 dark:text-gray-400">{p.stock_quantity} {p.unit}</td>
+                      <td className="py-3">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${p.stock_quantity === 0 ? 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400' : p.stock_quantity < (p.minimum_stock || 0) ? 'bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'}`}>
+                          {p.stock_quantity === 0 ? 'Tugagan' : p.stock_quantity < (p.minimum_stock || 0) ? 'Kam qoldi' : 'Mavjud'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="text-center py-8 text-gray-400">Bu kategoriyada mahsulotlar yo'q</div>
+          )}
+        </div>
+      )}
 
       {deleteConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">

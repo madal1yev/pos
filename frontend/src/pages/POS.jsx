@@ -4,7 +4,7 @@ import { productsAPI, salesAPI, settingsAPI } from '../services/api';
 import { UZ, formatCurrency } from '../utils/uzbek';
 import { getErrorMessage } from '../utils/errors';
 import { emitDataChanged } from '../utils/events';
-import { playSuccessSound } from '../utils/sounds';
+import { playSuccessSound, playScanSound } from '../utils/sounds';
 import { HiOutlineMinus, HiOutlinePlus, HiOutlineTrash, HiOutlineCamera, HiOutlineMagnifyingGlass, HiOutlineCheckCircle, HiOutlineXMark, HiOutlineShoppingCart, HiOutlineCalculator, HiOutlinePause, HiOutlinePlay, HiOutlineTag } from 'react-icons/hi2';
 import { Html5Qrcode } from 'html5-qrcode';
 import toast from 'react-hot-toast';
@@ -597,6 +597,7 @@ export default function POS() {
 
   const handleBarcodeScan = async (barcode) => {
     try {
+      playScanSound();
       const { data } = await productsAPI.getByBarcode(barcode);
       if (!data?.product) { toast.error(UZ.notFound); return; }
       setQuantityProduct(data.product);

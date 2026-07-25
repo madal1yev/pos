@@ -10,7 +10,6 @@ import Suppliers from './pages/Suppliers';
 import POS from './pages/POS';
 import Sales from './pages/Sales';
 import Reports from './pages/Reports';
-import Analytics from './pages/Analytics';
 import Settings from './pages/Settings';
 import Profile from './pages/Profile';
 import Categories from './pages/Categories';
@@ -42,7 +41,6 @@ function App() {
             <Route path="pos" element={<POS />} />
             <Route path="sales" element={<Sales />} />
             <Route path="reports" element={<Reports />} />
-            <Route path="analytics" element={<Analytics />} />
             <Route path="settings" element={<Settings />} />
             <Route path="categories" element={<Categories />} />
             <Route path="profile" element={<Profile />} />

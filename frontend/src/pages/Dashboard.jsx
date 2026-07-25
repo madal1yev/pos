@@ -124,9 +124,9 @@ export default function Dashboard() {
             Bugun: {formatUzbekDate()}
           </p>
         </div>
-        <button onClick={() => navigate('/analytics')} className="flex items-center gap-2 px-4 py-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-xl text-sm font-medium hover:bg-indigo-100 dark:hover:bg-indigo-900/30 transition-all">
+        <button onClick={() => navigate('/reports')} className="flex items-center gap-2 px-4 py-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-xl text-sm font-medium hover:bg-indigo-100 dark:hover:bg-indigo-900/30 transition-all">
           <HiOutlineChartBar className="w-4 h-4" />
-          Tahlillar
+          Hisobotlar
         </button>
       </div>
 
