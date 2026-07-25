@@ -8,63 +8,138 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 *
 
 router.use(auth);
 
+const MAX_BULK_ITEMS = 10000;
+const BULK_UPDATE_FIELDS = [
+  'name',
+  'purchase_price',
+  'selling_price',
+  'stock_quantity',
+  'minimum_stock',
+  'category_id',
+  'status',
+];
+
+function normalizeBulkValue(field, value) {
+  if (field === 'purchase_price' || field === 'selling_price') {
+    return Math.max(0, parseFloat(value) || 0);
+  }
+  if (field === 'stock_quantity' || field === 'minimum_stock') {
+    return Math.max(0, parseInt(value) || 0);
+  }
+  if (field === 'category_id') {
+    return value ? parseInt(value) : null;
+  }
+  if (field === 'status') {
+    if (!['active', 'inactive'].includes(value)) {
+      throw new Error('Invalid status');
+    }
+    return value;
+  }
+  if (field === 'name') {
+    const name = String(value || '').trim();
+    if (!name) throw new Error('Name cannot be empty');
+    return name;
+  }
+  return value;
+}
+
+async function applyBulkProductUpdates(updates) {
+  if (!Array.isArray(updates) || updates.length === 0) {
+    return { error: 'Updates array is required' };
+  }
+  if (updates.length > MAX_BULK_ITEMS) {
+    return { error: `Maximum ${MAX_BULK_ITEMS} updates per request` };
+  }
+
+  const nowExpr = db.isSqlite ? "datetime('now')" : 'NOW()';
+  let updated = 0;
+  const errors = [];
+
+  for (const u of updates) {
+    try {
+      if (!u.id) { errors.push({ id: u.id, error: 'Missing id' }); continue; }
+
+      const sets = [];
+      const params = [];
+      let pIdx = 1;
+
+      for (const field of BULK_UPDATE_FIELDS) {
+        if (Object.prototype.hasOwnProperty.call(u, field)) {
+          sets.push(`${field} = $${pIdx++}`);
+          params.push(normalizeBulkValue(field, u[field]));
+        }
+      }
+
+      if (sets.length === 0) { errors.push({ id: u.id, error: 'No fields to update' }); continue; }
+
+      sets.push(`updated_at = ${nowExpr}`);
+      params.push(parseInt(u.id));
+
+      const result = await db.query(
+        `UPDATE products SET ${sets.join(', ')} WHERE id = $${pIdx}`,
+        params
+      );
+      updated += result.rowCount || 0;
+    } catch (err) {
+      errors.push({ id: u.id, error: err.message });
+    }
+  }
+
+  return { updated, errors, total: updates.length };
+}
+
 router.post('/bulk-update-prices', async (req, res, next) => {
   try {
     const { updates } = req.body;
-    if (!Array.isArray(updates) || updates.length === 0) {
-      return res.status(400).json({ error: 'Updates array is required' });
+    const result = await applyBulkProductUpdates(updates);
+    if (result.error) return res.status(400).json({ error: result.error });
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post('/bulk-update-products', async (req, res, next) => {
+  try {
+    const result = await applyBulkProductUpdates(req.body.updates);
+    if (result.error) return res.status(400).json({ error: result.error });
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post('/bulk-delete-products', async (req, res, next) => {
+  try {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ error: 'Ids array is required' });
     }
-    if (updates.length > 10000) {
-      return res.status(400).json({ error: 'Maximum 10000 updates per request' });
+    if (ids.length > MAX_BULK_ITEMS) {
+      return res.status(400).json({ error: `Maximum ${MAX_BULK_ITEMS} ids per request` });
     }
 
-    const nowExpr = db.isSqlite ? "datetime('now')" : 'NOW()';
-    let updated = 0;
-    let errors = [];
+    const uniqueIds = [...new Set(ids.map(Number).filter((id) => Number.isInteger(id) && id > 0))];
+    if (uniqueIds.length === 0) {
+      return res.status(400).json({ error: 'Valid ids are required' });
+    }
 
-    for (const u of updates) {
+    let deleted = 0;
+    const errors = [];
+
+    for (const id of uniqueIds) {
       try {
-        if (!u.id) { errors.push({ id: u.id, error: 'Missing id' }); continue; }
-        const sets = [];
-        const params = [];
-        let pIdx = 1;
-
-        if (u.selling_price !== undefined) {
-          sets.push(`selling_price = $${pIdx++}`);
-          params.push(parseFloat(u.selling_price));
+        const result = await db.query('DELETE FROM products WHERE id = $1', [id]);
+        if ((result.rowCount || 0) === 0) {
+          errors.push({ id, error: 'Product not found' });
         }
-        if (u.name !== undefined) {
-          sets.push(`name = $${pIdx++}`);
-          params.push(u.name);
-        }
-        if (u.stock_quantity !== undefined) {
-          sets.push(`stock_quantity = $${pIdx++}`);
-          params.push(parseInt(u.stock_quantity));
-        }
-        if (u.minimum_stock !== undefined) {
-          sets.push(`minimum_stock = $${pIdx++}`);
-          params.push(parseInt(u.minimum_stock));
-        }
-        if (u.category_id !== undefined) {
-          sets.push(`category_id = $${pIdx++}`);
-          params.push(u.category_id ? parseInt(u.category_id) : null);
-        }
-        if (sets.length === 0) { errors.push({ id: u.id, error: 'No fields to update' }); continue; }
-
-        sets.push(`updated_at = ${nowExpr}`);
-        params.push(parseInt(u.id));
-
-        const result = await db.query(
-          `UPDATE products SET ${sets.join(', ')} WHERE id = $${pIdx}`,
-          params
-        );
-        updated += result.rowCount;
+        deleted += result.rowCount || 0;
       } catch (err) {
-        errors.push({ id: u.id, error: err.message });
+        errors.push({ id, error: err.message });
       }
     }
 
-    res.json({ updated, errors, total: updates.length });
+    res.json({ deleted, errors, total: uniqueIds.length });
   } catch (error) {
     next(error);
   }

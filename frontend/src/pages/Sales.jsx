@@ -100,8 +100,9 @@ function InvoiceModal({ saleId, onClose }) {
                 <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold ${
                   invoice?.payment_method === 'cash' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' :
                   invoice?.payment_method === 'card' ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
+                  invoice?.payment_method === 'telegram' ? 'bg-sky-50 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400' :
                   'bg-violet-50 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400'
-                }`}>{invoice?.payment_method === 'cash' ? UZ.cash : invoice?.payment_method === 'card' ? UZ.card : UZ.other}</span>
+                }`}>{invoice?.payment_method === 'cash' ? UZ.cash : invoice?.payment_method === 'card' ? UZ.card : invoice?.payment_method === 'telegram' ? '🤖 Telegram' : UZ.other}</span>
               </span>
             </div>
           </div>
@@ -207,6 +208,7 @@ export default function Sales() {
             <option value="">Barcha usul</option>
             <option value="cash">{UZ.cash}</option>
             <option value="card">{UZ.card}</option>
+            <option value="telegram">Telegram Bot</option>
             <option value="other">{UZ.other}</option>
           </select>
           <div className="relative">
@@ -264,8 +266,9 @@ export default function Sales() {
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-lg text-xs font-semibold ${
                         sale.payment_method === 'cash' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' :
                         sale.payment_method === 'card' ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
+                        sale.payment_method === 'telegram' ? 'bg-sky-50 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400' :
                         'bg-violet-50 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400'
-                      }`}>{sale.payment_method === 'cash' ? UZ.cash : sale.payment_method === 'card' ? UZ.card : UZ.other}</span>
+                      }`}>{sale.payment_method === 'cash' ? UZ.cash : sale.payment_method === 'card' ? UZ.card : sale.payment_method === 'telegram' ? '🤖 Telegram' : UZ.other}</span>
                     </td>
                     <td className="py-3.5 px-4 text-right font-bold text-gray-900 dark:text-white text-base">{formatCurrency(sale.total_amount)}</td>
                     <td className="py-3.5 px-4 text-right text-gray-500 text-xs">{formatTashkentShort(sale.created_at)}</td>

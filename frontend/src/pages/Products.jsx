@@ -3,7 +3,7 @@ import { productsAPI, categoriesAPI, bulkAPI } from '../services/api';
 import { UZ, formatCurrency } from '../utils/uzbek';
 import { getErrorMessage } from '../utils/errors';
 import { emitDataChanged } from '../utils/events';
-import { HiOutlinePlus, HiOutlineMagnifyingGlass, HiOutlinePencil, HiOutlineTrash, HiOutlineQrCode, HiOutlineXMark, HiOutlinePhoto, HiOutlineCurrencyDollar, HiOutlineCamera, HiOutlineChevronDown } from 'react-icons/hi2';
+import { HiOutlinePlus, HiOutlineMagnifyingGlass, HiOutlinePencil, HiOutlineTrash, HiOutlineQrCode, HiOutlineXMark, HiOutlinePhoto, HiOutlineCurrencyDollar, HiOutlineCamera, HiOutlineChevronDown, HiOutlineCheckCircle } from 'react-icons/hi2';
 import JsBarcode from 'jsbarcode';
 import QRCode from 'qrcode';
 import { Html5Qrcode } from 'html5-qrcode';
@@ -330,6 +330,7 @@ function BulkPriceModal({ products, onClose, onApply }) {
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Qaysi narxni o'zgartirasiz?</label>
             <select value={field} onChange={(e) => setField(e.target.value)} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white">
               <option value="selling_price">Sotish narxi</option>
+              <option value="purchase_price">Xarid narxi</option>
             </select>
           </div>
           <div>
@@ -374,6 +375,87 @@ function BulkPriceModal({ products, onClose, onApply }) {
   );
 }
 
+function BulkStockModal({ products, onClose, onApply }) {
+  const [field, setField] = useState('stock_quantity');
+  const [mode, setMode] = useState('exact');
+  const [value, setValue] = useState('');
+  const [applying, setApplying] = useState(false);
+
+  const getNewValue = (product) => {
+    const current = parseInt(product[field]) || 0;
+    const amount = parseInt(value) || 0;
+    if (mode === 'add') return Math.max(0, current + amount);
+    if (mode === 'subtract') return Math.max(0, current - amount);
+    return Math.max(0, amount);
+  };
+
+  const handleApply = async () => {
+    if (value === '' || isNaN(parseInt(value))) { toast.error('Miqdor kiriting'); return; }
+    setApplying(true);
+    try {
+      const updates = products.map((p) => ({ id: p.id, [field]: getNewValue(p) }));
+      await bulkAPI.updateProducts(updates);
+      toast.success(`${updates.length} ta mahsulot zaxirasi yangilandi!`);
+      onApply();
+    } catch (err) {
+      toast.error(getErrorMessage(err, 'Zaxirani yangilashda xato'));
+    } finally { setApplying(false); }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm modal-overlay" onClick={onClose} />
+      <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-lg modal-content">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+            <HiOutlinePencil className="w-5 h-5" /> Zaxirani to'g'irlash
+          </h2>
+          <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"><HiOutlineXMark className="w-5 h-5" /></button>
+        </div>
+        <div className="p-6 space-y-4">
+          <p className="text-sm text-gray-500">{products.length} ta mahsulot tanlangan</p>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Qaysi miqdorni o'zgartirasiz?</label>
+            <select value={field} onChange={(e) => setField(e.target.value)} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+              <option value="stock_quantity">Mavjud zaxira</option>
+              <option value="minimum_stock">Minimal zaxira</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">O'zgartirish usuli</label>
+            <div className="grid grid-cols-3 gap-2">
+              {[[ 'exact', 'Aniq miqdor' ], [ 'add', "Qo'shish" ], [ 'subtract', 'Kamaytirish' ]].map(([m, l]) => (
+                <button key={m} onClick={() => setMode(m)} className={`py-2.5 px-3 rounded-lg text-sm font-medium border-2 transition-all ${mode === m ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 shadow-sm' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300'}`}>
+                  {l}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+              {mode === 'exact' ? 'Yangi miqdor' : mode === 'add' ? "Qo'shiladigan miqdor" : 'Kamaytiriladigan miqdor'}
+            </label>
+            <input type="number" min="0" step="1" value={value} onChange={(e) => setValue(e.target.value)} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Masalan: 10" />
+          </div>
+          <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4 text-sm space-y-1.5">
+            <p className="text-gray-500 font-medium">Namuna:</p>
+            {products.slice(0, 3).map((p, i) => (
+              <div key={i} className="flex justify-between gap-3">
+                <span className="text-gray-600 dark:text-gray-400 truncate">{p.name}</span>
+                <span className="font-medium whitespace-nowrap">{parseInt(p[field]) || 0}{' -> '}{getNewValue(p)}</span>
+              </div>
+            ))}
+            {products.length > 3 && <p className="text-gray-400">...va yana {products.length - 3} ta</p>}
+          </div>
+          <button onClick={handleApply} disabled={applying || value === ''} className="w-full bg-indigo-600 text-white py-3 rounded-xl font-semibold hover:bg-indigo-700 transition-all disabled:opacity-50 shadow-md shadow-indigo-500/20 active:scale-[0.98]">
+            {applying ? 'Qayta ishlanmoqda...' : `Qo'llash (${products.length} ta)`}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Products() {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -386,6 +468,9 @@ export default function Products() {
   const [deleteProduct, setDeleteProduct] = useState(null);
   const [labelProduct, setLabelProduct] = useState(null);
   const [showBulkPrice, setShowBulkPrice] = useState(false);
+  const [showBulkStock, setShowBulkStock] = useState(false);
+  const [showBulkDelete, setShowBulkDelete] = useState(false);
+  const [bulkWorking, setBulkWorking] = useState(false);
   const [selectedProducts, setSelectedProducts] = useState(new Set());
   const searchTimeout = useRef(null);
 
@@ -402,6 +487,14 @@ export default function Products() {
     searchTimeout.current = setTimeout(() => { loadProducts(1); }, 300);
     return () => clearTimeout(searchTimeout.current);
   }, [search, categoryFilter]);
+
+  useEffect(() => {
+    setSelectedProducts((prev) => {
+      const visibleIds = new Set(products.map((p) => p.id));
+      const next = new Set([...prev].filter((id) => visibleIds.has(id)));
+      return next.size === prev.size ? prev : next;
+    });
+  }, [products]);
 
   const loadCategories = async () => {
     try {
@@ -440,17 +533,56 @@ export default function Products() {
   };
 
   const toggleSelectAll = () => {
-    if (selectedProducts.size === products.length) setSelectedProducts(new Set());
+    const allVisibleSelected = products.length > 0 && products.every((p) => selectedProducts.has(p.id));
+    if (allVisibleSelected) setSelectedProducts(new Set());
     else setSelectedProducts(new Set(products.map(p => p.id)));
   };
 
   const getSelectedProducts = () => products.filter(p => selectedProducts.has(p.id));
+
+  const clearSelection = () => setSelectedProducts(new Set());
+
+  const refreshAfterBulkAction = () => {
+    clearSelection();
+    loadProducts(pagination.page);
+    loadCategories();
+    emitDataChanged();
+  };
+
+  const handleBulkStatus = async (status) => {
+    const selected = getSelectedProducts();
+    if (selected.length === 0) return;
+    setBulkWorking(true);
+    try {
+      await bulkAPI.updateProducts(selected.map((p) => ({ id: p.id, status })));
+      toast.success(`${selected.length} ta mahsulot ${status === 'active' ? 'faol' : 'nofaol'} qilindi`);
+      refreshAfterBulkAction();
+    } catch (err) {
+      toast.error(getErrorMessage(err, 'Holatni yangilashda xato'));
+    } finally { setBulkWorking(false); }
+  };
+
+  const handleBulkDelete = async () => {
+    const selected = getSelectedProducts();
+    if (selected.length === 0) return;
+    setBulkWorking(true);
+    try {
+      const { data } = await bulkAPI.deleteProducts(selected.map((p) => p.id));
+      toast.success(`${data?.deleted || selected.length} ta mahsulot o'chirildi`);
+      setShowBulkDelete(false);
+      refreshAfterBulkAction();
+    } catch (err) {
+      toast.error(getErrorMessage(err, "O'chirishda xato"));
+    } finally { setBulkWorking(false); }
+  };
 
   const getStockStatus = (p) => {
     if (p.stock_quantity === 0) return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">{UZ.outOfStockStatus}</span>;
     if (p.minimum_stock > 0 && p.stock_quantity < p.minimum_stock) return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">{UZ.lowStockStatus}</span>;
     return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">{UZ.inStockStatus}</span>;
   };
+
+  const allVisibleSelected = products.length > 0 && products.every((p) => selectedProducts.has(p.id));
 
   return (
     <div className="space-y-6">
@@ -460,16 +592,42 @@ export default function Products() {
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{pagination.total} ta mahsulot</p>
         </div>
         <div className="flex gap-2 flex-wrap">
-          {selectedProducts.size > 0 && (
-            <button onClick={() => setShowBulkPrice(true)} className="bg-blue-600 text-white px-3 py-2 rounded-lg font-medium hover:bg-blue-700 transition-all flex items-center gap-2 text-sm shadow-md shadow-blue-500/20 active:scale-[0.98]">
-              <HiOutlineCurrencyDollar className="w-4 h-4" /> Narx o'zgartirish ({selectedProducts.size})
-            </button>
-          )}
           <button onClick={() => { setEditProduct(null); setShowModal(true); }} className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-indigo-700 transition-all flex items-center gap-2 shadow-md shadow-indigo-500/20 active:scale-[0.98]">
             <HiOutlinePlus className="w-5 h-5" /> {UZ.addProduct}
           </button>
         </div>
       </div>
+
+      {selectedProducts.size > 0 && (
+        <div className="rounded-2xl border border-indigo-200 dark:border-indigo-800 bg-indigo-50/80 dark:bg-indigo-900/10 p-3 sm:p-4 shadow-sm animate-fade-in">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+            <div>
+              <p className="text-sm sm:text-base font-bold text-gray-900 dark:text-white">Tanlandi: {selectedProducts.size} ta mahsulot</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Belgilangan mahsulotlarga bitta joydan amal qiling.</p>
+            </div>
+            <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
+              <button onClick={() => setShowBulkPrice(true)} disabled={bulkWorking} className="min-h-11 bg-white dark:bg-gray-800 text-blue-700 dark:text-blue-300 px-3 py-2 rounded-xl font-semibold hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all flex items-center justify-center gap-2 text-sm border border-blue-200 dark:border-blue-800 disabled:opacity-50">
+                <HiOutlineCurrencyDollar className="w-4 h-4" /> Narx
+              </button>
+              <button onClick={() => setShowBulkStock(true)} disabled={bulkWorking} className="min-h-11 bg-white dark:bg-gray-800 text-indigo-700 dark:text-indigo-300 px-3 py-2 rounded-xl font-semibold hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all flex items-center justify-center gap-2 text-sm border border-indigo-200 dark:border-indigo-800 disabled:opacity-50">
+                <HiOutlinePencil className="w-4 h-4" /> Zaxira
+              </button>
+              <button onClick={() => handleBulkStatus('active')} disabled={bulkWorking} className="min-h-11 bg-white dark:bg-gray-800 text-emerald-700 dark:text-emerald-300 px-3 py-2 rounded-xl font-semibold hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-all flex items-center justify-center gap-2 text-sm border border-emerald-200 dark:border-emerald-800 disabled:opacity-50">
+                <HiOutlineCheckCircle className="w-4 h-4" /> Faol
+              </button>
+              <button onClick={() => handleBulkStatus('inactive')} disabled={bulkWorking} className="min-h-11 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-3 py-2 rounded-xl font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-all flex items-center justify-center gap-2 text-sm border border-gray-200 dark:border-gray-700 disabled:opacity-50">
+                <HiOutlineXMark className="w-4 h-4" /> Nofaol
+              </button>
+              <button onClick={() => setShowBulkDelete(true)} disabled={bulkWorking} className="min-h-11 bg-white dark:bg-gray-800 text-red-700 dark:text-red-300 px-3 py-2 rounded-xl font-semibold hover:bg-red-50 dark:hover:bg-red-900/20 transition-all flex items-center justify-center gap-2 text-sm border border-red-200 dark:border-red-800 disabled:opacity-50">
+                <HiOutlineTrash className="w-4 h-4" /> Delete
+              </button>
+              <button onClick={clearSelection} disabled={bulkWorking} className="min-h-11 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 px-3 py-2 rounded-xl font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-all text-sm border border-gray-200 dark:border-gray-700 disabled:opacity-50">
+                Bekor qilish
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="card animate-fade-in-up stagger-1">
         <div className="flex flex-col sm:flex-row gap-3 mb-4">
@@ -496,7 +654,7 @@ export default function Products() {
               <thead>
                 <tr className="text-left text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-800">
                   <th className="pb-3 font-medium w-8">
-                    <input type="checkbox" checked={selectedProducts.size === products.length && products.length > 0} onChange={toggleSelectAll} className="w-4 h-4 rounded border-gray-300 text-indigo-600" />
+                    <input type="checkbox" checked={allVisibleSelected} onChange={toggleSelectAll} className="w-5 h-5 rounded border-gray-300 text-indigo-600" />
                   </th>
                   <th className="pb-3 font-medium">Mahsulot</th>
                   <th className="pb-3 font-medium hidden md:table-cell">Kod</th>
@@ -513,7 +671,7 @@ export default function Products() {
                 {products.map((product) => (
                   <tr key={product.id} className={`hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors ${selectedProducts.has(product.id) ? 'bg-indigo-50/50 dark:bg-indigo-900/10' : ''}`}>
                     <td className="py-3">
-                      <input type="checkbox" checked={selectedProducts.has(product.id)} onChange={() => toggleSelect(product.id)} className="w-4 h-4 rounded border-gray-300 text-indigo-600" />
+                      <input type="checkbox" checked={selectedProducts.has(product.id)} onChange={() => toggleSelect(product.id)} className="w-5 h-5 rounded border-gray-300 text-indigo-600" />
                     </td>
                     <td className="py-3">
                       <div className="flex items-center gap-3">
@@ -613,8 +771,39 @@ export default function Products() {
         </div>
       )}
 
+      {showBulkDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm modal-overlay" onClick={() => setShowBulkDelete(false)} />
+          <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md p-6 modal-content">
+            <div className="text-center">
+              <div className="mx-auto w-16 h-16 rounded-2xl bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center mb-4 shadow-lg shadow-red-500/25">
+                <HiOutlineTrash className="w-8 h-8 text-white" />
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white">Tanlanganlarni o'chirish</h3>
+              <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl text-left">
+                <p className="text-sm text-gray-600 dark:text-gray-400 text-center">O'chiriladigan mahsulotlar: <span className="font-bold text-gray-900 dark:text-white">{getSelectedProducts().length} ta</span></p>
+                <div className="mt-3 max-h-32 overflow-y-auto space-y-1">
+                  {getSelectedProducts().slice(0, 8).map((p) => (
+                    <p key={p.id} className="text-xs text-gray-600 dark:text-gray-300 truncate">- {p.name}</p>
+                  ))}
+                  {getSelectedProducts().length > 8 && <p className="text-xs text-gray-400">...va yana {getSelectedProducts().length - 8} ta</p>}
+                </div>
+              </div>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-3">Bu amalni bekor qilib bo'lmaydi. Davom etasizmi?</p>
+              <div className="flex justify-center gap-3 mt-6">
+                <button onClick={() => setShowBulkDelete(false)} disabled={bulkWorking} className="flex-1 btn-secondary disabled:opacity-50">Bekor qilish</button>
+                <button onClick={handleBulkDelete} disabled={bulkWorking} className="flex-1 bg-gradient-to-r from-red-500 to-red-600 text-white px-4 py-2.5 rounded-lg font-semibold hover:from-red-600 hover:to-red-700 transition-all shadow-lg shadow-red-500/25 active:scale-[0.98] disabled:opacity-50">
+                  {bulkWorking ? "O'chirilmoqda..." : "O'chirish"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {labelProduct && <LabelPrintModal product={labelProduct} onClose={() => setLabelProduct(null)} />}
-      {showBulkPrice && <BulkPriceModal products={getSelectedProducts()} onClose={() => setShowBulkPrice(false)} onApply={() => { setShowBulkPrice(false); setSelectedProducts(new Set()); loadProducts(pagination.page); }} />}
+      {showBulkPrice && <BulkPriceModal products={getSelectedProducts()} onClose={() => setShowBulkPrice(false)} onApply={() => { setShowBulkPrice(false); refreshAfterBulkAction(); }} />}
+      {showBulkStock && <BulkStockModal products={getSelectedProducts()} onClose={() => setShowBulkStock(false)} onApply={() => { setShowBulkStock(false); refreshAfterBulkAction(); }} />}
     </div>
   );
 }

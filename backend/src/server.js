@@ -5,10 +5,33 @@ const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
+const os = require('os');
 
 const fs = require('fs');
 
-// Vercel serverless da /tmp dan foydalanamiz
+// Lokal network IP manzilini aniqlash (192.168.x.x yoki 10.x.x.x)
+function getLocalIP() {
+  const interfaces = os.networkInterfaces();
+  let fallback = '127.0.0.1';
+  for (const name of Object.keys(interfaces)) {
+    for (const iface of interfaces[name]) {
+      if (iface.family === 'IPv4' && !iface.internal) {
+        // WiFi IP ni afzal ko'ramiz (192.168.x.x yoki 10.x.x.x)
+        if (iface.address.startsWith('192.168.') || iface.address.startsWith('10.')) {
+          return iface.address;
+        }
+        if (fallback === '127.0.0.1') {
+          fallback = iface.address;
+        }
+      }
+    }
+  }
+  return fallback;
+}
+
+const LOCAL_IP = getLocalIP();
+
+// Uploads papkasi
 const uploadsDir = path.join(__dirname, process.env.VERCEL ? '/tmp/uploads' : '../uploads');
 try {
   if (!fs.existsSync(uploadsDir)) {
@@ -16,16 +39,16 @@ try {
     console.log('📁 uploads papkasi yaratildi: ' + uploadsDir);
   }
 } catch (err) {
-  console.log('⚠️ uploads papkasini yaratib bo\'lmadi (Vercel serverless):', err.message);
+  console.log('⚠️ uploads papkasini yaratib bo\'lmadi:', err.message);
 }
 
 const klentBot = require('./klentBot');
 
-// Botlarni har doim yuklaymiz (Vercel webhook uchun handlerlar kerak)
+// Botlarni yuklaymiz
 let botModule = null;
 try {
   botModule = require('./bot');
-  console.log('🤖 Bot module yuklandi (webhook rejimi: ' + (process.env.VERCEL ? 'Vercel' : 'Polling') + ')');
+  console.log('🤖 Bot module yuklandi');
 } catch (err) {
   console.log('⚠️ Bot module yuklanmadi:', err.message);
 }
@@ -45,7 +68,7 @@ const uploadRoutes = require('./routes/upload');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Trust proxy (Render/load balancer)
+// Trust proxy
 if (process.env.NODE_ENV === 'production') {
   app.set('trust proxy', 1);
 }
@@ -53,14 +76,36 @@ if (process.env.NODE_ENV === 'production') {
 // Security
 app.use(helmet({ crossOriginResourcePolicy: false }));
 
+// CORS - local tarmoq va Vercel uchun
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:5173',
+  `http://${LOCAL_IP}:5000`,
+  `http://${LOCAL_IP}:5173`,
+  /^http:\/\/192\.168\.\d{1,3}\.\d{1,3}:\d+$/,
+  /^http:\/\/10\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d+$/,
+  /^http:\/\/172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}:\d+$/,
+];
+if (process.env.FRONTEND_URL) {
+  process.env.FRONTEND_URL.split(',').forEach(u => allowedOrigins.push(u.trim()));
+}
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL
-    ? process.env.FRONTEND_URL.split(',').map(s => s.trim())
-    : ['http://localhost:3000', 'http://localhost:5173'],
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, curl, etc)
+    if (!origin) return callback(null, true);
+    const allowed = allowedOrigins.some(o => {
+      if (typeof o === 'string') return origin === o;
+      if (o instanceof RegExp) return o.test(origin);
+      return false;
+    });
+    if (allowed) return callback(null, true);
+    callback(null, true); // Allow all in dev mode
+  },
   credentials: true,
 }));
 
-// Rate limiting - higher limit for production
+// Rate limiting
 const limiter = rateLimit({
   windowMs: 1 * 60 * 1000,
   max: process.env.NODE_ENV === 'production' ? 5000 : 1000,
@@ -76,7 +121,7 @@ app.use(cookieParser());
 // Static files for uploads
 app.use('/uploads', express.static(uploadsDir));
 
-// Routes
+// API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/categories', categoryRoutes);
@@ -89,7 +134,44 @@ app.use('/api/suppliers', supplierRoutes);
 app.use('/api/bulk', bulkRoutes);
 app.use('/api/upload', uploadRoutes);
 
-// Bot webhook routes (Vercel serverless da ishlaydi)
+// Data overview endpoint — barcha buyurtmalar va mahsulotlarni ko'rish
+app.get('/api/data/overview', async (req, res) => {
+  try {
+    const db = require('./config/db');
+    const sales = await db.query(
+      `SELECT s.*, (SELECT COUNT(*) FROM sale_items si WHERE si.sale_id = s.id) as item_count
+       FROM sales s ORDER BY s.created_at DESC LIMIT 50`
+    );
+    const products = await db.query(
+      `SELECT p.*, c.name as category_name,
+        (SELECT COUNT(*) FROM sale_items si WHERE si.product_id = p.id) as times_sold
+       FROM products p LEFT JOIN categories c ON p.category_id = c.id
+       ORDER BY p.name`
+    );
+    const categories = await db.query(
+      `SELECT c.*, (SELECT COUNT(*) FROM products p WHERE p.category_id = c.id AND p.status = 'active') as product_count
+       FROM categories c ORDER BY c.name`
+    );
+    const stats = await db.query(
+      `SELECT
+        (SELECT COUNT(*) FROM sales) as total_sales,
+        (SELECT COALESCE(SUM(total_amount), 0) FROM sales) as total_revenue,
+        (SELECT COUNT(*) FROM products WHERE status = 'active') as active_products,
+        (SELECT COUNT(*) FROM products WHERE stock_quantity <= minimum_stock AND status = 'active') as low_stock
+       FROM sqlite_master WHERE type='table' LIMIT 1`
+    );
+    res.json({
+      sales: sales.rows,
+      products: products.rows,
+      categories: categories.rows,
+      stats: stats.rows[0] || {},
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Bot webhook routes
 app.post('/api/bot-webhook', (req, res) => {
   try {
     const { bot } = botModule || {};
@@ -119,29 +201,78 @@ app.post('/api/klent-webhook', async (req, res) => {
   }
 });
 
-// Health check
+// Health check + network info
 app.get('/api/health', async (req, res) => {
   try {
     const db = require('./config/db');
     await db.query('SELECT 1');
-    res.json({ status: 'ok', db: 'connected', timestamp: new Date().toISOString() });
+    res.json({
+      status: 'ok',
+      db: 'connected',
+      local_ip: LOCAL_IP,
+      port: PORT,
+      network_url: `http://${LOCAL_IP}:${PORT}`,
+      bots: botModule ? 'active' : 'inactive',
+      timestamp: new Date().toISOString(),
+    });
   } catch (err) {
-    res.status(500).json({ status: 'error', db: 'disconnected', error: err.message });
+    res.status(500).json({
+      status: 'error',
+      db: 'disconnected',
+      local_ip: LOCAL_IP,
+      port: PORT,
+      network_url: `http://${LOCAL_IP}:${PORT}`,
+      error: err.message,
+    });
   }
 });
 
-// Auto-migrate on startup in production (Vercel serverless da api/index.js ishlaydi)
+// Auto-migrate on startup
 if (process.env.NODE_ENV === 'production' && !process.env.VERCEL) {
-  console.log(`Database: ${process.env.DATABASE_URL ? 'PostgreSQL' : 'SQLite (⚠️ ma\'lumotlar saqlanmaydi!)'}`);
-  (async () => {
-    try {
-      console.log('Running production migration...');
-      const { execSync } = require('child_process');
-      execSync('node migrations/pg-migrate.js', { cwd: path.join(__dirname, '..'), stdio: 'inherit' });
-    } catch (err) {
-      console.error('Auto-migration xatosi:', err.message);
-    }
-  })();
+  console.log(`Database: ${process.env.DATABASE_URL ? 'PostgreSQL' : 'SQLite'}`);
+}
+
+// ============================================================
+// FRONTEND STATIK FAYLLARNI SERVE QILISH (faqat local)
+// ============================================================
+// Vercel serverless da frontend serve qilmaymiz
+if (!process.env.VERCEL) {
+  const frontendDist = path.join(__dirname, '../../frontend/dist');
+  if (fs.existsSync(frontendDist)) {
+    console.log('🌐 Frontend dist papkasi topildi, statik serve qilinadi');
+    app.use(express.static(frontendDist));
+
+    // Barcha non-API so'rovlarni index.html ga yo'naltirish (SPA)
+    app.get('*', (req, res) => {
+      if (req.path.startsWith('/api/')) return;
+      res.sendFile(path.join(frontendDist, 'index.html'), (err) => {
+        if (err) {
+          if (!res.headersSent) {
+            res.status(404).json({ error: 'Frontend not built yet. Run: cd frontend && npm run build' });
+          }
+        }
+      });
+    });
+  } else {
+    console.log('⚠️ Frontend dist topilmadi. Avval "cd frontend && npm run build" qiling.');
+    console.log(`   Telefon ulanishi: http://${LOCAL_IP}:${PORT}`);
+    app.get('/', (req, res) => {
+      res.send(`
+        <html>
+        <head><title>POS Tizimi</title></head>
+        <body style="font-family: sans-serif; padding: 40px; text-align: center;">
+          <h1>🚀 POS Tizimi Ishga Tushdi!</h1>
+          <p>Backend API: <code>/api</code></p>
+          <p>Local IP: <strong>${LOCAL_IP}</strong></p>
+          <p>Port: <strong>${PORT}</strong></p>
+          <p style="color:orange;">⚠️ Frontend build qilinmagan. Serverda "cd frontend && npm run build" ni bajaring.</p>
+          <hr>
+          <p>Telefondan ulanish: <strong>http://${LOCAL_IP}:${PORT}</strong></p>
+        </body>
+        </html>
+      `);
+    });
+  }
 }
 
 // Error handler
@@ -152,15 +283,34 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Vercel serverless uchun: app.listen() ni chaqirmaymiz
+// ============================================================
+// SERVER START
+// ============================================================
 if (!process.env.VERCEL) {
-  app.listen(PORT, () => {
-    console.log(`POS Server running on port ${PORT}`);
+  const server = app.listen(PORT, '0.0.0.0', () => {
+    console.log('╔══════════════════════════════════════════════╗');
+    console.log('║         🚀 POS TIZIMI ISHGA TUSHDI          ║');
+    console.log('╠══════════════════════════════════════════════╣');
+    console.log(`║  Lokal:    http://localhost:${PORT}            ║`);
+    console.log(`║  Tarmoq:   http://${LOCAL_IP}:${PORT}           ║`);
+    console.log('╠══════════════════════════════════════════════╣');
+    console.log(`║  Telefon:  http://${LOCAL_IP}:${PORT}           ║`);
+    console.log('║  Admin:    admin@pos.uz / admin123          ║');
+    console.log('╚══════════════════════════════════════════════╝');
+
     try {
       klentBot.startPolling();
       console.log('🤖 @klentlarchek_bot polling boshlandi');
     } catch (err) {
       console.log('⚠️ Botlarni ishga tushirishda xatolik:', err.message);
+    }
+  });
+
+  server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      console.error(`❌ Port ${PORT} band! Boshqa dasturni yoping yoki PORT o'zgartiring.`);
+    } else {
+      console.error('❌ Server xatosi:', err.message);
     }
   });
 }

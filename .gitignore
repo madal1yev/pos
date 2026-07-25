@@ -11,3 +11,4 @@ start-backend.bat
 *.db-journal
 *.db-shm
 *.db-wal
+.aider*

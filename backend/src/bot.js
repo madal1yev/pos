@@ -1,5 +1,6 @@
 require('dotenv').config();
-const { TelegramBot } = require('node-telegram-bot-api');
+const TelegramBotApi = require('node-telegram-bot-api');
+const TelegramBot = TelegramBotApi.TelegramBot || TelegramBotApi.default || TelegramBotApi;
 const db = require('./config/db');
 const { t } = require('./bot-lang');
 const klentBot = require('./klentBot');
@@ -11,20 +12,17 @@ let ADMIN_CHAT_ID = process.env.ADMIN_TELEGRAM_ID || null;
 
 // Vercel serverless da polling ishlamaydi, webhook ishlatamiz
 const usePolling = !process.env.VERCEL;
-const bot = new TelegramBot(BOT_TOKEN, usePolling ? { polling: true } : {});
+const bot = new TelegramBot(BOT_TOKEN, { polling: usePolling ? { autoStart: false } : false });
 
 const userSessions = new Map();
-
-if (usePolling) {
-  bot.on('polling_error', (err) => console.error('Polling error:', err.message));
-}
-bot.on('webhook_error', (err) => console.error('Webhook error:', err.message));
-bot.on('error', (err) => console.error('Bot error:', err.message));
+const userSessionsTTL = new Map();
 
 function getSession(chatId) {
   if (!userSessions.has(chatId)) {
     userSessions.set(chatId, { step: 'idle', cart: [], currentProduct: null, lang: 'uz', langSet: false, phone: '' });
+    userSessionsTTL.set(chatId, Date.now());
   }
+  userSessionsTTL.set(chatId, Date.now());
   return userSessions.get(chatId);
 }
 
@@ -37,7 +35,20 @@ function clearSession(chatId) {
   const lang = old?.lang || 'uz';
   const langSet = old?.langSet || false;
   userSessions.set(chatId, { step: 'idle', cart: [], currentProduct: null, lang, langSet, phone: '' });
+  userSessionsTTL.set(chatId, Date.now());
 }
+
+function cleanupSessions() {
+  const now = Date.now();
+  const ONE_HOUR = 60 * 60 * 1000;
+  for (const [chatId, lastActive] of userSessionsTTL) {
+    if (now - lastActive > ONE_HOUR) {
+      userSessions.delete(chatId);
+      userSessionsTTL.delete(chatId);
+    }
+  }
+}
+setInterval(cleanupSessions, 10 * 60 * 1000);
 
 function formatCurrency(amount) {
   return Number(amount || 0).toLocaleString('uz-UZ') + " so'm";
@@ -59,8 +70,7 @@ async function safeEdit(chatId, messageId, text, extra = {}) {
     if (msg.includes('message is not modified')) {
       return;
     }
-    if (msg.includes('message to edit not found') || msg.includes("can't edit")) {
-      // Message is a photo or was deleted - send as new message instead
+    if (msg.includes('message to edit not found') || msg.includes("can't edit") || msg.includes('no text in the message to edit') || msg.includes('not a text message')) {
       return await safeSend(chatId, text, extra);
     }
     console.error('✏️ safeEdit error:', msg.slice(0, 200));
@@ -112,9 +122,16 @@ async function getProduct(id) {
 
 async function searchProducts(query) {
   const likeOp = db.isSqlite ? 'LIKE' : 'ILIKE';
+  const term = `%${query}%`;
+  if (db.isSqlite) {
+    return await db.query(
+      `SELECT p.*, c.name as category_name FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.status = 'active' AND (p.name ${likeOp} $1 OR p.barcode ${likeOp} $2 OR p.product_code ${likeOp} $3 OR p.description ${likeOp} $4) ORDER BY p.name LIMIT 10`,
+      [term, term, term, term]
+    );
+  }
   return await db.query(
-    `SELECT p.*, c.name as category_name FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.status = 'active' AND (p.name ${likeOp} $1 OR p.barcode ${likeOp} $1 OR p.product_code ${likeOp} $1 OR p.description ${likeOp} $1) ORDER BY p.name LIMIT 10`,
-    [`%${query}%`]
+    `SELECT p.*, c.name as category_name FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.status = 'active' AND (p.name ILIKE $1 OR p.barcode ILIKE $1 OR p.product_code ILIKE $1 OR p.description ILIKE $1) ORDER BY p.name LIMIT 10`,
+    [term]
   );
 }
 
@@ -136,40 +153,49 @@ async function createOrder(chatId, username, firstName, items, totalAmount, deli
     notes += `\n🚚 Yetkazib berish: ${deliveryAddress}`;
   }
 
-  const saleResult = await db.query(
-    `INSERT INTO sales (invoice_number, customer_name, total_amount, payment_method, received_amount, change_amount, notes, delivery_address) VALUES ($1, $2, $3, 'telegram', $3, 0, $4, $5) RETURNING *`,
-    [invoiceNumber, username ? `@${username}` : firstName || 'Telegram foydalanuvchi', totalAmount, notes, deliveryAddress || null]
-  );
+  console.log(`📋 Yaratilmoqda: ${invoiceNumber}, summa: ${totalAmount}, manzil: ${deliveryAddress || 'yoq'}`);
 
-  if (!saleResult || !saleResult.rows || !saleResult.rows[0]) {
-    throw new Error('Sale creation failed - no rows returned');
-  }
-
-  const sale = saleResult.rows[0];
-
-  if (!sale.id) {
-    throw new Error('Sale created but has no ID');
-  }
-
-  for (const item of items) {
-    await db.query(
-      `INSERT INTO sale_items (sale_id, product_id, quantity, price, subtotal) VALUES ($1, $2, $3, $4, $5)`,
-      [sale.id, item.product_id, item.quantity, item.price, item.subtotal]
+  try {
+    const saleResult = await db.query(
+      `INSERT INTO sales (invoice_number, customer_name, total_amount, payment_method, received_amount, change_amount, notes, delivery_address) VALUES ($1, $2, $3, 'telegram', $3, 0, $4, $5) RETURNING *`,
+      [invoiceNumber, username ? `@${username}` : firstName || 'Telegram foydalanuvchi', totalAmount, notes, deliveryAddress || null]
     );
 
-    const product = await getProduct(item.product_id);
-    if (product) {
-      const newStock = Math.max(0, product.stock_quantity - item.quantity);
-      const nowExpr = db.isSqlite ? "datetime('now')" : 'NOW()';
-      await db.query(`UPDATE products SET stock_quantity = $1, updated_at = ${nowExpr} WHERE id = $2`, [newStock, item.product_id]);
-      await db.query(
-        `INSERT INTO inventory_logs (product_id, change_type, quantity, previous_stock, new_stock, note, created_by) VALUES ($1, 'sale', $2, $3, $4, $5, 1)`,
-        [item.product_id, item.quantity, product.stock_quantity, newStock, `Telegram zakaz: ${invoiceNumber}`]
-      );
+    if (!saleResult || !saleResult.rows || !saleResult.rows[0]) {
+      throw new Error('Sale creation failed - no rows returned');
     }
-  }
 
-  return { sale, invoiceNumber, deliveryAddress };
+    const sale = saleResult.rows[0];
+
+    if (!sale.id) {
+      throw new Error('Sale created but has no ID');
+    }
+
+    console.log(`✅ Savdo yaratildi: ID=${sale.id}, invoice=${invoiceNumber}`);
+
+    for (const item of items) {
+      await db.query(
+        `INSERT INTO sale_items (sale_id, product_id, quantity, price, subtotal) VALUES ($1, $2, $3, $4, $5)`,
+        [sale.id, item.product_id, item.quantity, item.price, item.subtotal]
+      );
+
+      const product = await getProduct(item.product_id);
+      if (product) {
+        const newStock = Math.max(0, product.stock_quantity - item.quantity);
+        const nowExpr = db.isSqlite ? "datetime('now')" : 'NOW()';
+        await db.query(`UPDATE products SET stock_quantity = $1, updated_at = ${nowExpr} WHERE id = $2`, [newStock, item.product_id]);
+        await db.query(
+          `INSERT INTO inventory_logs (product_id, change_type, quantity, previous_stock, new_stock, note, created_by) VALUES ($1, 'sale', $2, $3, $4, $5, 1)`,
+          [item.product_id, item.quantity, product.stock_quantity, newStock, `Telegram zakaz: ${invoiceNumber}`]
+        );
+      }
+    }
+
+    return { sale, invoiceNumber, deliveryAddress };
+  } catch (err) {
+    console.error(`❌ Buyurtma yaratishda xato (${invoiceNumber}):`, err.message);
+    throw err;
+  }
 }
 
 function buildOrderSummaryText(chatId, items, includeTotal = true) {
@@ -278,7 +304,11 @@ async function placeOrder(chatId, messageId, username, firstName, session, deliv
   const phoneNumber = session.phone || '';
   const { invoiceNumber } = await createOrder(chatId, username, firstName, session.cart, total, deliveryAddress, phoneNumber);
 
-  await sendAdminNotification(chatId, username, firstName, session, invoiceNumber, deliveryAddress);
+  try {
+    await sendAdminNotification(chatId, username, firstName, session, invoiceNumber, deliveryAddress);
+  } catch (notifErr) {
+    console.error('⚠️ Admin notification failed (order still created):', notifErr.message || notifErr);
+  }
 
   clearSession(chatId);
 
@@ -298,10 +328,20 @@ async function placeOrder(chatId, messageId, username, firstName, session, deliv
     },
   };
 
-  if (messageId) {
-    await safeEdit(chatId, messageId, userMsg, keyboard);
-  } else {
-    await safeSend(chatId, userMsg, keyboard);
+  try {
+    if (messageId) {
+      await safeEdit(chatId, messageId, userMsg, keyboard);
+    } else {
+      await safeSend(chatId, userMsg, keyboard);
+    }
+  } catch (confirmErr) {
+    console.error('⚠️ Order confirmation message failed:', confirmErr.message || confirmErr);
+    await safeSend(chatId, t(lang, 'orderSuccess', {
+      invoice: invoiceNumber,
+      total: formatCurrency(total),
+      delivery: deliveryLine,
+      admin: ADMIN_DISPLAY
+    }), keyboard).catch(() => {});
   }
 }
 
@@ -310,8 +350,11 @@ function getMainKeyboard(lang) {
     reply_markup: {
       inline_keyboard: [
         [{ text: t(lang, 'products'), callback_data: 'products_all' }],
-        [{ text: t(lang, 'search'), callback_data: 'search' }, { text: t(lang, 'myCart'), callback_data: 'view_cart' }],
-        [{ text: t(lang, 'myOrders'), callback_data: 'show_myorders' }, { text: '🌐 ' + t(lang, 'name'), callback_data: 'change_lang' }],
+        [{ text: t(lang, 'myCart'), callback_data: 'view_cart' }],
+        [
+          { text: t(lang, 'myOrders'), callback_data: 'show_myorders' },
+          { text: '🌐 ' + t(lang, 'name'), callback_data: 'change_lang' },
+        ],
       ],
     },
   };
@@ -341,15 +384,15 @@ async function showProductDetail(chatId, messageId, productId, lang) {
   const brandText = product.brand ? t(lang, 'brand', { brand: product.brand }) : '';
 
   const text = t(lang, 'productDetail', {
-    name: product.name,
+    name: escMd(product.name),
     image: '',
     brand: brandText,
-    category: product.category_name || '-',
+    category: escMd(product.category_name || '-'),
     price: formatCurrency(product.selling_price),
     unit: product.unit || 'dona',
     stock: product.stock_quantity,
     status: stockStatus,
-    description: product.description ? `\n📝 ${product.description}\n` : ''
+    description: product.description ? `\n📝 ${escMd(product.description)}\n` : ''
   });
 
   const keyboard = {
@@ -418,7 +461,7 @@ async function showProductsList(chatId, messageId, products, title, page = 0) {
 
   const listText = pageProducts.map((p, i) => {
     const stock = p.stock_quantity > 0 ? `📦 ${p.stock_quantity}` : '❌';
-    return `${i + 1 + start}. ${p.name} • ${formatCurrency(p.selling_price)} (${stock})`;
+    return `${i + 1 + start}. ${escMd(p.name)} • ${formatCurrency(p.selling_price)} (${stock})`;
   }).join('\n');
 
   await safeEdit(chatId, messageId,
@@ -854,15 +897,33 @@ bot.on('callback_query', async (query) => {
     if (data.startsWith('cat_')) {
       await typing(chatId);
       const catId = parseInt(data.replace('cat_', ''));
-      const { rows: products } = await getProducts(catId);
-      await showProductsList(chatId, query.message.message_id, products, t(lang, 'categoryProducts'));
+      console.log(`📂 Kategoriya tanlandi: cat_${catId}`);
+      try {
+        const { rows: products } = await getProducts(catId);
+        console.log(`📦 Topilgan mahsulotlar: ${products.length}`);
+        await showProductsList(chatId, query.message.message_id, products, t(lang, 'categoryProducts'));
+      } catch (err) {
+        console.error('❌ Kategoriya mahsulotlarini olish xatosi:', err.message);
+        await safeEdit(chatId, query.message.message_id, t(lang, 'error'), {
+          reply_markup: { inline_keyboard: [[{ text: t(lang, 'backMain'), callback_data: 'start' }]] }
+        });
+      }
       return;
     }
 
     if (data === 'all_products_list') {
       await typing(chatId);
-      const { rows: products } = await getProducts();
-      await showProductsList(chatId, query.message.message_id, products, t(lang, 'allProducts'));
+      console.log('📋 Barcha mahsulotlar so\'raldi');
+      try {
+        const { rows: products } = await getProducts();
+        console.log(`📦 Topilgan mahsulotlar: ${products.length}`);
+        await showProductsList(chatId, query.message.message_id, products, t(lang, 'allProducts'));
+      } catch (err) {
+        console.error('❌ Mahsulotlarni olish xatosi:', err.message);
+        await safeEdit(chatId, query.message.message_id, t(lang, 'error'), {
+          reply_markup: { inline_keyboard: [[{ text: t(lang, 'backMain'), callback_data: 'start' }]] }
+        });
+      }
       return;
     }
 
@@ -901,19 +962,18 @@ bot.on('callback_query', async (query) => {
       session.step = 'awaiting_quantity';
 
       const buttons = [];
-      const maxQty = Math.min(product.stock_quantity, 10);
-      for (let i = 1; i <= maxQty; i += (maxQty <= 5 ? 1 : 2)) {
-        buttons.push({ text: `${i}`, callback_data: `qty_${i}` });
+      const maxQty = Math.min(product.stock_quantity, 20);
+      let row = [];
+      for (let i = 1; i <= maxQty; i++) {
+        row.push({ text: `${i}`, callback_data: `qty_${i}` });
+        if (row.length === 5) { buttons.push(row); row = []; }
       }
-      const inlineButtons = [];
-      for (let i = 0; i < buttons.length; i += 3) {
-        inlineButtons.push(buttons.slice(i, i + 3));
-      }
-      inlineButtons.push([{ text: t(lang, 'cancel'), callback_data: `prod_${product.id}` }]);
+      if (row.length > 0) buttons.push(row);
+      buttons.push([{ text: t(lang, 'cancel'), callback_data: `prod_${product.id}` }]);
 
       await safeEdit(chatId, query.message.message_id,
         t(lang, 'addToCartQty', { name: product.name, price: formatCurrency(product.selling_price), stock: product.stock_quantity }),
-        { reply_markup: { inline_keyboard: inlineButtons } }
+        { reply_markup: { inline_keyboard: buttons } }
       );
       return;
     }
@@ -1085,8 +1145,9 @@ bot.on('callback_query', async (query) => {
       try {
         await placeOrder(chatId, query.message.message_id, username, firstName, session, null);
       } catch (err) {
-        console.error('no_delivery error:', err);
-        await safeEdit(chatId, query.message.message_id, t(lang, 'orderError'), {
+        console.error('❌ no_delivery order error:', err.message || err);
+        console.error('   Stack:', err.stack || 'no stack');
+        await safeEdit(chatId, query.message.message_id, t(lang, 'orderError', { admin: ADMIN_DISPLAY }), {
           reply_markup: { inline_keyboard: [[{ text: t(lang, 'backMain'), callback_data: 'start' }]] }
         });
       }
@@ -1275,7 +1336,8 @@ bot.on('message', async (msg) => {
       try {
         await placeOrder(chatId, null, msg.from?.username, msg.from?.first_name || '', session, text);
       } catch (err) {
-        await safeSend(chatId, t(lang, 'orderError'), {
+        console.error('❌ delivery address order error:', err.message || err);
+        await safeSend(chatId, t(lang, 'orderError', { admin: ADMIN_DISPLAY }), {
           reply_markup: { inline_keyboard: [[{ text: t(lang, 'backMain'), callback_data: 'start' }]] }
         });
       }
@@ -1301,7 +1363,8 @@ bot.on('location', async (msg) => {
       try {
         await placeOrder(chatId, null, msg.from?.username, msg.from?.first_name || '', session, locationLink);
       } catch (err) {
-        await safeSend(chatId, t(lang, 'orderError'), {
+        console.error('❌ location order error:', err.message || err);
+        await safeSend(chatId, t(lang, 'orderError', { admin: ADMIN_DISPLAY }), {
           reply_markup: { inline_keyboard: [[{ text: t(lang, 'backMain'), callback_data: 'start' }]] }
         });
       }
@@ -1316,6 +1379,34 @@ if (!process.env.VERCEL) {
   console.log(`👤 Admin: @${ADMIN_USERNAME}`);
   console.log(`🔗 Asosiy bot: https://t.me/foodsPOS_bot`);
   console.log(`🔔 Xabarnoma boti: https://t.me/klentlarchek_bot`);
+}
+
+async function startBot() {
+  if (!process.env.VERCEL) {
+    try {
+      await bot.deleteWebHook({ drop_pending_updates: true });
+      bot.startPolling({ restart: true });
+      console.log('✅ Bot polling boshlandi');
+    } catch (err) {
+      console.error('❌ Bot polling xatosi:', err.message);
+      setTimeout(startBot, 5000);
+    }
+  }
+}
+
+bot.on('polling_error', (err) => {
+  console.error('🔴 Polling xatosi:', err.message);
+  if (err.message.includes('409 Conflict')) {
+    console.log('⚠️ Boshqa polling instansiyasi topildi. Qayta urinilmoqda...');
+    setTimeout(startBot, 3000);
+  }
+});
+
+bot.on('webhook_error', (err) => console.error('Webhook xatosi:', err.message));
+bot.on('error', (err) => console.error('Bot xatosi:', err.message));
+
+if (!process.env.VERCEL) {
+  startBot();
 }
 
 module.exports = { bot, getSession, getLang, clearSession, safeSend, safeEdit, ADMIN_CHAT_ID, ADMIN_USERNAME, ADMIN_DISPLAY, userSessions };

@@ -209,6 +209,26 @@
   body {
     background: white;
   }
+  body.printing-receipt * {
+    visibility: hidden !important;
+  }
+  body.printing-receipt #receipt-content,
+  body.printing-receipt #receipt-content * {
+    visibility: visible !important;
+  }
+  body.printing-receipt #receipt-content {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 80mm !important;
+    max-width: 80mm !important;
+    margin: 0 !important;
+    padding: 4mm !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    color: #000 !important;
+    background: #fff !important;
+  }
 }
 
 /* Touch device optimizations */
@@ -250,4 +270,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 ::selection {
   background-color: rgba(99, 102, 241, 0.2);
   color: inherit;
+}
+
+/* Safe area for mobile bottom bar */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }

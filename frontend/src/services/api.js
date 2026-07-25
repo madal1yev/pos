@@ -126,6 +126,8 @@ export const suppliersAPI = {
 // Bulk operations
 export const bulkAPI = {
   updatePrices: (updates) => api.post('/bulk/bulk-update-prices', { updates }),
+  updateProducts: (updates) => api.post('/bulk/bulk-update-products', { updates }),
+  deleteProducts: (ids) => api.post('/bulk/bulk-delete-products', { ids }),
   importCSV: (formData) => api.post('/bulk/import-csv', formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
   exportCSV: () => api.get('/bulk/export-csv', { responseType: 'blob' }),
 };

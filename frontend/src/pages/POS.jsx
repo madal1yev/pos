@@ -422,60 +422,118 @@ function ReceiptModal({ sale, onClose }) {
   }, []);
 
   if (!sale) return null;
-  const now = new Date();
-  const dateStr = now.toLocaleDateString('uz-UZ');
-  const timeStr = now.toLocaleTimeString('uz-UZ');
+
+  const receiptDate = sale.created_at ? new Date(String(sale.created_at).replace(' ', 'T')) : new Date();
+  const validDate = Number.isNaN(receiptDate.getTime()) ? new Date() : receiptDate;
+  const dateStr = validDate.toLocaleDateString('uz-UZ', { timeZone: 'Asia/Tashkent' });
+  const timeStr = validDate.toLocaleTimeString('uz-UZ', { timeZone: 'Asia/Tashkent', hour: '2-digit', minute: '2-digit' });
 
   const storeName = settings?.store_name || "Oziq-ovqat Do'koni";
   const storeAddress = settings?.store_address || "Toshkent shahri, Bunyodkor ko'chasi 15";
-  const storePhone = settings?.store_phone || "Tel: +998 90 123 45 67";
+  const storePhone = settings?.store_phone || "+998 90 123 45 67";
   const receiptHeader = settings?.receipt_header || '';
   const receiptFooter = settings?.receipt_footer || 'Xaridingiz uchun rahmat!\nYana kutamiz!';
+  const receiptItems = sale.items || [];
+  const totalAmount = Number(sale.total_amount || receiptItems.reduce((sum, item) => sum + Number(item.subtotal || item.price * item.quantity || 0), 0));
+  const receivedAmount = Number(sale.received_amount || totalAmount);
+  const changeAmount = Number(sale.change_amount || Math.max(0, receivedAmount - totalAmount));
+  const taxAmount = receiptItems.reduce((sum, item) => sum + Number(item.tax || 0), 0);
+  const discountAmount = receiptItems.reduce((sum, item) => sum + Number(item.discount || 0), 0);
+  const paymentLabel = sale.payment_method === 'cash' ? UZ.cash : sale.payment_method === 'card' ? UZ.card : UZ.other;
+
+  const formatQty = (qty) => {
+    const num = Number(qty || 0);
+    return Number.isInteger(num) ? String(num) : num.toLocaleString('uz-UZ');
+  };
+
+  const handlePrint = () => {
+    let cleaned = false;
+    const cleanup = () => {
+      if (cleaned) return;
+      cleaned = true;
+      document.body.classList.remove('printing-receipt');
+      window.removeEventListener('afterprint', cleanup);
+    };
+    document.body.classList.add('printing-receipt');
+    window.addEventListener('afterprint', cleanup);
+    window.print();
+    setTimeout(cleanup, 1200);
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm modal-overlay" onClick={onClose} />
-      <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-sm max-h-[90vh] overflow-y-auto modal-content">
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm modal-overlay no-print" onClick={onClose} />
+      <div className="relative bg-neutral-100 dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-sm max-h-[90vh] overflow-y-auto modal-content">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700 no-print sticky top-0 bg-white dark:bg-gray-800 z-10">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{UZ.receipt || 'Chek'}</h2>
           <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"><HiOutlineXMark className="w-5 h-5" /></button>
         </div>
-        <div className="p-6 print:p-2" id="receipt-content">
-          <div className="text-center mb-4">
-            {receiptHeader && <p className="text-xs text-gray-500 mb-2">{receiptHeader}</p>}
-            <p className="text-lg font-bold text-gray-900 dark:text-white">{storeName}</p>
-            {storeAddress && <p className="text-xs text-gray-500">{storeAddress}</p>}
-            {storePhone && <p className="text-xs text-gray-500">{storePhone}</p>}
-          </div>
-          <div className="border-t border-b border-dashed border-gray-300 dark:border-gray-600 py-2 my-3 text-xs text-gray-500 flex justify-between">
-            <span>{UZ.invoice}: {sale.invoice_number}</span>
-            <span>{dateStr} {timeStr}</span>
-          </div>
-          {sale.items && sale.items.length > 0 && (
-            <div className="space-y-1.5 text-sm mb-3">
-              {sale.items.map((item, i) => (
-                <div key={i} className="flex justify-between">
-                  <span className="text-gray-700 dark:text-gray-300">{item.product_name || item.name} x{item.quantity} {item.unit || 'dona'}</span>
-                  <span className="font-medium text-gray-900 dark:text-white">{formatCurrency(item.subtotal || item.price * item.quantity)}</span>
-                </div>
-              ))}
+        <div className="p-4 sm:p-6 print:p-0 bg-neutral-100 dark:bg-gray-800">
+          <div id="receipt-content" className="thermal-receipt mx-auto w-[320px] max-w-full bg-white text-black border border-neutral-200 shadow-sm p-4 font-mono text-[11px] leading-tight print:border-0 print:shadow-none">
+            <div className="text-center border-b border-dashed border-black pb-2">
+              {receiptHeader && <p className="mb-1 whitespace-pre-line">{receiptHeader}</p>}
+              <p className="text-[10px] tracking-[0.25em] uppercase">Savdo cheki</p>
+              <p className="mt-1 text-base font-bold uppercase break-words">{storeName}</p>
+              {storeAddress && <p className="mt-1 break-words">Manzil: {storeAddress}</p>}
+              {storePhone && <p>Telefon: {storePhone}</p>}
             </div>
-          )}
-          <div className="border-t border-dashed border-gray-300 dark:border-gray-600 pt-3 space-y-2 text-sm">
-            <div className="flex justify-between"><span className="text-gray-500">{UZ.total}</span><span className="font-bold text-gray-900 dark:text-white text-lg">{formatCurrency(sale.total_amount)}</span></div>
-            <div className="flex justify-between"><span className="text-gray-500">{UZ.payment}</span><span className="text-gray-700 dark:text-gray-300">{sale.payment_method === 'cash' ? UZ.cash : sale.payment_method === 'card' ? UZ.card : UZ.other}</span></div>
-            <div className="flex justify-between"><span className="text-gray-500">{UZ.receivedAmount}</span><span>{formatCurrency(sale.received_amount)}</span></div>
-              <div className="flex justify-between"><span className="text-gray-500">{UZ.change}</span><span className="font-semibold text-indigo-600 dark:text-indigo-400">{formatCurrency(sale.change_amount)}</span></div>
+
+            <div className="py-2 border-b border-dashed border-black space-y-1">
+              <div className="flex justify-between gap-3"><span>Chek raqami:</span><span className="font-bold text-right break-all">{sale.invoice_number}</span></div>
+              <div className="flex justify-between"><span>Sana:</span><span>{dateStr}</span></div>
+              <div className="flex justify-between"><span>Vaqt:</span><span>{timeStr}</span></div>
+              {sale.customer_name && <div className="flex justify-between gap-3"><span>Mijoz:</span><span className="text-right break-words">{sale.customer_name}</span></div>}
+              {sale.delivery_address && <div className="flex justify-between gap-3"><span>Manzil:</span><span className="text-right break-words">{sale.delivery_address}</span></div>}
+            </div>
+
+            <div className="py-2 border-b border-dashed border-black">
+              <div className="grid grid-cols-[1fr_72px] gap-2 pb-1 border-b border-black/70 font-bold uppercase text-[10px]">
+                <span>Mahsulot</span>
+                <span className="text-right">Summa</span>
+              </div>
+              <div className="space-y-2 pt-2">
+                {receiptItems.map((item, i) => {
+                  const qty = Number(item.quantity || 0);
+                  const price = Number(item.price || 0);
+                  const subtotal = Number(item.subtotal || price * qty || 0);
+                  return (
+                    <div key={i}>
+                      <div className="font-bold break-words">{i + 1}. {item.product_name || item.name}</div>
+                      <div className="grid grid-cols-[1fr_72px] gap-2">
+                        <span>{formatQty(qty)} {item.unit || 'dona'} x {formatCurrency(price)}</span>
+                        <span className="text-right font-bold">{formatCurrency(subtotal)}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="py-2 border-b border-dashed border-black space-y-1">
+              {discountAmount > 0 && <div className="flex justify-between"><span>Chegirma:</span><span>-{formatCurrency(discountAmount)}</span></div>}
+              {taxAmount > 0 && <div className="flex justify-between"><span>Soliq:</span><span>{formatCurrency(taxAmount)}</span></div>}
+              <div className="flex justify-between items-end pt-1 text-sm font-bold uppercase">
+                <span>Jami:</span>
+                <span>{formatCurrency(totalAmount)}</span>
+              </div>
+            </div>
+
+            <div className="py-2 border-b border-dashed border-black space-y-1">
+              <div className="flex justify-between"><span>To'lov turi:</span><span>{paymentLabel}</span></div>
+              <div className="flex justify-between"><span>Qabul qilindi:</span><span>{formatCurrency(receivedAmount)}</span></div>
+              <div className="flex justify-between font-bold"><span>Qaytim:</span><span>{formatCurrency(changeAmount)}</span></div>
+            </div>
+
+            <div className="text-center pt-3">
+              {receiptFooter.split('\n').map((line, i) => (
+                <p key={i} className="break-words">{line}</p>
+              ))}
+              <p className="mt-2 text-[10px]">Chekni saqlab qo'ying</p>
+            </div>
           </div>
-          <div className="text-center mt-4 pt-3 border-t border-dashed border-gray-300 dark:border-gray-600">
-            {receiptFooter.split('\n').map((line, i) => (
-              <p key={i} className="text-xs text-gray-500">{line}</p>
-            ))}
-          </div>
-          {settings?.store_phone && <div className="text-center mt-2"><p className="text-xs text-gray-400">{settings.store_phone}</p></div>}
         </div>
         <div className="flex justify-center gap-3 px-6 py-4 border-t border-gray-100 dark:border-gray-700 no-print">
-          <button onClick={() => window.print()} className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-indigo-700">{UZ.print}</button>
+          <button onClick={handlePrint} className="bg-gray-900 text-white px-4 py-2 rounded-lg font-medium hover:bg-black">{UZ.print}</button>
           <button onClick={onClose} className="btn-secondary">{UZ.close}</button>
         </div>
       </div>
@@ -552,7 +610,7 @@ export default function POS() {
   };
 
   return (
-    <div className="h-[calc(100vh-4rem)] sm:h-[calc(100vh-8rem)] flex flex-col lg:flex-row gap-4 animate-fade-in">
+    <div className="h-[calc(100vh-4rem)] sm:h-[calc(100vh-8rem)] flex flex-col lg:flex-row gap-4 animate-fade-in pb-20 lg:pb-0">
       <div className="flex-1 flex flex-col min-w-0 order-1">
         <div className="card flex-1 flex flex-col">
           <div className="flex flex-col sm:flex-row gap-2 mb-4">
@@ -665,6 +723,26 @@ export default function POS() {
           )}
         </div>
       </div>
+
+      {items.length > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 lg:hidden z-40 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 shadow-lg safe-area-bottom">
+          <div className="flex items-center justify-between px-4 py-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
+                <HiOutlineShoppingCart className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{getItemCount()} {UZ.items}</p>
+                <p className="text-lg font-bold text-indigo-600 dark:text-indigo-400">{formatCurrency(getTotal())}</p>
+              </div>
+            </div>
+            <button onClick={() => setShowCheckout(true)} className="bg-gradient-to-r from-indigo-600 to-indigo-700 text-white px-6 py-3 rounded-xl text-sm font-semibold hover:from-indigo-700 hover:to-indigo-800 transition-all shadow-lg shadow-indigo-500/25 active:scale-[0.98] flex items-center justify-center gap-2">
+              <HiOutlineCheckCircle className="w-5 h-5" />
+              {UZ.completeSale}
+            </button>
+          </div>
+        </div>
+      )}
 
       {showScanner && <ScannerModal onClose={() => setShowScanner(false)} onScan={(text) => handleBarcodeScan(text)} />}
       {quantityProduct && <QuantityModal product={quantityProduct} onClose={() => setQuantityProduct(null)} onAdd={handleAddToCart} />}

@@ -26,10 +26,11 @@ if (DATABASE_URL) {
 
   function mapParams(sql, params = []) {
     const newParams = [];
-    let paramIdx = 0;
-    const replaced = sql.replace(/\$(\d+)/g, () => {
-      newParams.push(params[paramIdx]);
-      paramIdx++;
+    const paramMap = new Map();
+    const replaced = sql.replace(/\$(\d+)/g, (match, num) => {
+      const idx = parseInt(num) - 1;
+      const val = params[idx];
+      newParams.push(val);
       return '?';
     });
     return { sql: replaced, params: newParams };
@@ -80,6 +81,27 @@ if (DATABASE_URL) {
     const info = stmt.run(...mappedParams);
     return { rows: [], rowCount: info.changes };
   }
+
+  // Auto-migration: add missing columns
+  function autoMigrate() {
+    const migrations = [
+      { table: 'sales', column: 'delivery_address', sql: "ALTER TABLE sales ADD COLUMN delivery_address TEXT" },
+      { table: 'settings', column: 'admin_telegram', sql: "ALTER TABLE settings ADD COLUMN admin_telegram TEXT" },
+    ];
+    for (const m of migrations) {
+      try {
+        const cols = sqlite.prepare(`PRAGMA table_info(${m.table})`).all();
+        if (!cols.some(c => c.name === m.column)) {
+          sqlite.exec(m.sql);
+          console.log(`✅ DB migration: Added ${m.column} to ${m.table}`);
+        }
+      } catch (e) {
+        // Column might already exist, ignore
+      }
+    }
+  }
+
+  autoMigrate();
 
   const db = {
     query: (sql, params) => Promise.resolve(runQuery(sql, params)),

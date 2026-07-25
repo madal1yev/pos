@@ -70,6 +70,7 @@ CREATE TABLE IF NOT EXISTS sales (
   change_amount REAL DEFAULT 0,
   invoice_number TEXT UNIQUE,
   notes TEXT,
+  delivery_address TEXT,
   created_at TEXT DEFAULT (datetime('now'))
 );
 
@@ -158,6 +159,7 @@ CREATE TABLE IF NOT EXISTS settings (
   receipt_header TEXT,
   receipt_footer TEXT,
   low_stock_threshold INTEGER DEFAULT 10,
+  admin_telegram TEXT,
   created_at TEXT DEFAULT (datetime('now')),
   updated_at TEXT DEFAULT (datetime('now'))
 );

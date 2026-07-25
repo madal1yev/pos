@@ -2,7 +2,7 @@
  * @klentlarchek_bot - Admin notification bot
  *
  * This bot sends order notifications to the admin when customers place orders.
- * It uses long polling (fetch-based) so it works without needing a webhook URL.
+ * Orders are stored in the database so they survive server restarts.
  */
 
 const KLENT_BOT_TOKEN = process.env.KLENT_BOT_TOKEN || '8803269723:AAGrBjoCF8PENRZS5TNsm4iZNbmvx0aEZhI';
@@ -11,28 +11,136 @@ const API_BASE = `https://api.telegram.org/bot${KLENT_BOT_TOKEN}`;
 const ADMIN_USERNAME = process.env.KLENT_ADMIN_USERNAME || 'azizvc_m';
 const db = require('./config/db');
 
-// Store order data keyed by invoice number for callback handling
+// In-memory cache for fast callback handling (also stored in DB)
 const pendingOrders = new Map();
 
-// Admin chat ID - first from .env, then captured via polling
-let ADMIN_CHAT_ID = process.env.KLENT_ADMIN_CHAT_ID 
-  ? parseInt(process.env.KLENT_ADMIN_CHAT_ID) 
+// Admin chat ID
+let ADMIN_CHAT_ID = process.env.KLENT_ADMIN_CHAT_ID
+  ? parseInt(process.env.KLENT_ADMIN_CHAT_ID)
   : null;
-
-if (ADMIN_CHAT_ID) {
-  console.log(`✅ @klentlarchek_bot: Admin chat ID .env dan yuklandi: ${ADMIN_CHAT_ID}`);
-}
 
 // Polling state
 let pollingActive = false;
-const POLL_TIMEOUT = 30; // long poll timeout in seconds
+const POLL_TIMEOUT = 30;
 
-// Helper sleep
 function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
 
-/**
- * Send a message via @klentlarchek_bot (fetch-based Telegram API)
- */
+// ========== Database helpers ==========
+
+async function saveOrderToDB(invoiceNumber, orderData) {
+  try {
+    const saleResult = await db.query('SELECT id, notes FROM sales WHERE invoice_number = $1', [invoiceNumber]);
+    if (saleResult.rows.length > 0) {
+      const sale = saleResult.rows[0];
+      const metaData = {
+        customerChatId: orderData.customerChatId,
+        customerUsername: orderData.customerUsername,
+        customerFirstName: orderData.customerFirstName,
+        customerName: orderData.customerName,
+        phone: orderData.phone,
+        deliveryAddress: orderData.deliveryAddress,
+        items: orderData.items,
+        totalAmount: orderData.totalAmount,
+        order_status: 'yangi',
+      };
+      const notesWithMeta = (sale.notes || '') + '\n__ORDER_META__:' + JSON.stringify(metaData);
+      await db.query(`UPDATE sales SET notes = $1 WHERE id = $2`, [notesWithMeta, sale.id]);
+      console.log(`✅ Buyurtma #${invoiceNumber} DB ga saqlandi`);
+    }
+  } catch (err) {
+    console.error('⚠️ DB ga buyurtma saqlash xatosi:', err.message);
+  }
+}
+
+async function getOrderFromDB(invoiceNumber) {
+  try {
+    const result = await db.query(
+      'SELECT id, invoice_number, customer_name, total_amount, notes, delivery_address, created_at FROM sales WHERE invoice_number = $1',
+      [invoiceNumber]
+    );
+    if (result.rows.length === 0) return null;
+
+    const sale = result.rows[0];
+    let orderData = null;
+
+    // Try to parse metadata from notes
+    if (sale.notes) {
+      const metaMatch = sale.notes.match(/__ORDER_META__:(.+)/);
+      if (metaMatch) {
+        try {
+          orderData = JSON.parse(metaMatch[1]);
+        } catch (e) {}
+      }
+    }
+
+    // Fallback: construct from sale data
+    if (!orderData) {
+      // Try to extract phone and delivery from notes
+      const phoneMatch = sale.notes?.match(/📞 Telefon: ([^\n]+)/);
+      const deliveryMatch = sale.notes?.match(/🚚 Yetkazib berish: ([^\n]+)/);
+
+      orderData = {
+        customerChatId: null,
+        customerUsername: '',
+        customerFirstName: '',
+        customerName: sale.customer_name || "Noma'lum",
+        phone: phoneMatch ? phoneMatch[1] : '',
+        deliveryAddress: deliveryMatch ? deliveryMatch[1] : sale.delivery_address || '',
+        items: [],
+        totalAmount: sale.total_amount,
+      };
+    }
+
+    // Get sale items
+    const itemsResult = await db.query(
+      `SELECT si.*, p.name as product_name
+       FROM sale_items si LEFT JOIN products p ON si.product_id = p.id
+       WHERE si.sale_id = $1`,
+      [sale.id]
+    );
+
+    orderData.items = itemsResult.rows.map(item => ({
+      name: item.product_name || 'Mahsulot',
+      quantity: item.quantity,
+      price: item.price,
+      subtotal: item.subtotal,
+      product_id: item.product_id,
+    }));
+
+    return {
+      ...orderData,
+      invoiceNumber: sale.invoice_number,
+      totalAmount: sale.total_amount,
+      createdAt: sale.created_at,
+    };
+  } catch (err) {
+    console.error('⚠️ DB dan buyurtma olish xatosi:', err.message);
+    return null;
+  }
+}
+
+async function updateOrderStatus(invoiceNumber, status) {
+  try {
+    const saleResult = await db.query('SELECT id, notes FROM sales WHERE invoice_number = $1', [invoiceNumber]);
+    if (saleResult.rows.length > 0) {
+      const sale = saleResult.rows[0];
+      if (sale.notes && sale.notes.includes('__ORDER_META__')) {
+        const metaMatch = sale.notes.match(/__ORDER_META__:(.+)/);
+        if (metaMatch) {
+          const metaData = JSON.parse(metaMatch[1]);
+          metaData.order_status = status;
+          const updatedNotes = sale.notes.replace(/__ORDER_META__:.+/, '__ORDER_META__:' + JSON.stringify(metaData));
+          await db.query('UPDATE sales SET notes = $1 WHERE id = $2', [updatedNotes, sale.id]);
+        }
+      }
+    }
+  } catch (err) {
+    console.error('⚠️ Buyurtma holatini yangilash xatosi:', err.message);
+  }
+}
+
+// ========== Telegram API helpers ==========
+
 async function sendMessage(chatId, text, extra = {}) {
   try {
     const body = {
@@ -59,9 +167,6 @@ async function sendMessage(chatId, text, extra = {}) {
   }
 }
 
-/**
- * Edit a message sent by @klentlarchek_bot
- */
 async function editMessageText(chatId, messageId, text, extra = {}) {
   try {
     const body = {
@@ -79,9 +184,9 @@ async function editMessageText(chatId, messageId, text, extra = {}) {
     });
     const data = await res.json();
     if (!data.ok) {
-      if (data.description && !data.description.includes('message is not modified')) {
-        console.error('🤖 klentBot editMessageText error:', data.description.slice(0, 200));
-      }
+    if (data.description && !data.description.includes('message is not modified') && !data.description.includes('no text in the message to edit') && !data.description.includes('not a text message')) {
+      console.error('🤖 klentBot editMessageText error:', data.description.slice(0, 200));
+    }
       return null;
     }
     return data.result;
@@ -91,9 +196,6 @@ async function editMessageText(chatId, messageId, text, extra = {}) {
   }
 }
 
-/**
- * Answer a callback query
- */
 async function answerCallbackQuery(callbackQueryId, text = '', showAlert = false) {
   try {
     const res = await fetch(`${API_BASE}/answerCallbackQuery`, {
@@ -108,54 +210,8 @@ async function answerCallbackQuery(callbackQueryId, text = '', showAlert = false
   }
 }
 
-/**
- * Handle a regular message sent to @klentlarchek_bot
- * Captures admin chat ID so notifications can be sent
- */
-async function handleMessage(msg) {
-  const chatId = msg.chat?.id;
-  const username = msg.from?.username;
-  const text = msg.text || '';
+// ========== Order notification ==========
 
-  if (!chatId) return;
-
-  // Capture admin chat ID
-  if (username === ADMIN_USERNAME) {
-    ADMIN_CHAT_ID = chatId;
-    console.log(`✅ @klentlarchek_bot: Admin aniqlandi: @${username}, Chat ID: ${chatId}`);
-
-    // Save admin chat ID to database for persistence across server restarts
-    try {
-      const existing = await db.query('SELECT id FROM settings LIMIT 1');
-      if (existing.rows.length > 0) {
-        await db.query(`UPDATE settings SET admin_telegram = $1, updated_at = ${db.isSqlite ? "datetime('now')" : 'NOW()'} WHERE id = $2`, [String(chatId), existing.rows[0].id]);
-      } else {
-        await db.query(`INSERT INTO settings (store_name, admin_telegram) VALUES ('My Store', $1)`, [String(chatId)]);
-      }
-      console.log('✅ @klentlarchek_bot: Admin chat ID saqlandi (settings)');
-    } catch (dbErr) {
-      console.log('⚠️ @klentlarchek_bot: Admin chat ID ni saqlashda xatolik:', dbErr.message);
-    }
-
-    if (text.startsWith('/start')) {
-      await sendMessage(chatId,
-        `✅ *Xush kelibsiz, Admin!* 👋\n\n` +
-        `🔔 @klentlarchek_bot orqali buyurtma xabarnomalarini olasiz.\n\n` +
-        `Buyurtma kelganda sizga quyidagi ma'lumotlar bilan xabar keladi:\n` +
-        `• 👤 Mijoz ismi / Username\n` +
-        `• 📞 Telefon raqami\n` +
-        `• 📍 Yetkazib berish manzili\n` +
-        `• 🛍️ Buyurtma qilingan mahsulotlar\n` +
-        `• 💰 Umumiy summa\n\n` +
-        `Siz buyurtmani ✅ qabul qilishingiz yoki ❌ rad etishingiz mumkin.`
-      );
-    }
-  }
-}
-
-/**
- * Send admin notification about a new order via @klentlarchek_bot
- */
 async function sendOrderNotification({
   adminChatId,
   invoiceNumber,
@@ -169,12 +225,12 @@ async function sendOrderNotification({
   totalAmount,
 }) {
   if (!adminChatId) {
-    console.log('⚠️ @klentlarchek_bot: Admin chat ID topilmadi. Admin @klentlarchek_bot ga /start yozishi kerak.');
+    console.log('⚠️ @klentlarchek_bot: Admin chat ID topilmadi.');
     return null;
   }
 
-  // Store order data for callback handling
-  pendingOrders.set(invoiceNumber, {
+  // Store in memory cache
+  const orderData = {
     customerChatId,
     customerUsername,
     customerFirstName,
@@ -186,10 +242,11 @@ async function sendOrderNotification({
     adminMessageId: null,
     status: 'yangi',
     createdAt: Date.now(),
-  });
+  };
+  pendingOrders.set(invoiceNumber, orderData);
 
-  // Auto-cleanup after 24h (prevents memory leak)
-  cleanupOrder(invoiceNumber, 24 * 60 * 60 * 1000);
+  // Also save to database (survives restart)
+  await saveOrderToDB(invoiceNumber, orderData);
 
   // Build items list
   let itemsText = '';
@@ -201,7 +258,7 @@ async function sendOrderNotification({
     itemsText += `   ${qty} x ${formatCurrency(price)} = *${formatCurrency(subtotal)}*\n\n`;
   });
 
-  const customerInfo = `👤 *${escMd(customerName)}*`;
+  const customerInfo = `👤 *${escMd(customerName || "Noma'lum")}*`;
   const phoneLine = phone ? `📞 *${escMd(phone)}*` : '📞 *—*';
   const deliveryLine = deliveryAddress
     ? `🚚 *Yetkazib berish:* ${escMd(deliveryAddress)}`
@@ -234,26 +291,55 @@ async function sendOrderNotification({
     ],
   };
 
-  const sentMessage = await sendMessage(adminChatId, notificationText, { reply_markup: keyboard });
+  let sentMessage = null;
+  let retries = 3;
+  while (retries > 0 && !sentMessage) {
+    sentMessage = await sendMessage(adminChatId, notificationText, { reply_markup: keyboard });
+    if (!sentMessage) {
+      retries--;
+      if (retries > 0) {
+        console.log(`⚠️ @klentlarchek_bot: Qayta urinilmoqda (${retries} ta qoldi)...`);
+        await sleep(2000);
+      }
+    }
+  }
 
   if (sentMessage) {
     const order = pendingOrders.get(invoiceNumber);
     if (order) order.adminMessageId = sentMessage.message_id;
+    console.log(`✅ @klentlarchek_bot: Buyurtma #${invoiceNumber} admin ga yuborildi`);
+  } else {
+    console.error(`❌ @klentlarchek_bot: Buyurtma #${invoiceNumber} yuborilmadi!`);
   }
 
   return sentMessage;
 }
 
-/**
- * Clean up a pending order after a delay
- */
-function cleanupOrder(invoiceNumber, delayMs = 60000) {
-  setTimeout(() => { pendingOrders.delete(invoiceNumber); }, delayMs);
+// ========== Get order (memory + DB fallback) ==========
+
+async function getOrder(invoiceNumber) {
+  // Try memory first (fast)
+  let order = pendingOrders.get(invoiceNumber);
+  if (order) return order;
+
+  // Try database (survives restart)
+  order = await getOrderFromDB(invoiceNumber);
+  if (order) {
+    // Restore to memory cache
+    pendingOrders.set(invoiceNumber, {
+      ...order,
+      adminMessageId: null,
+      status: order.order_status || 'yangi',
+      createdAt: Date.now(),
+    });
+    return pendingOrders.get(invoiceNumber);
+  }
+
+  return null;
 }
 
-/**
- * Handle callback query from @klentlarchek_bot (admin button clicks)
- */
+// ========== Handle admin button clicks ==========
+
 async function handleCallback(callbackQuery) {
   try {
     const data = callbackQuery.data || '';
@@ -263,11 +349,11 @@ async function handleCallback(callbackQuery) {
 
     if (!data.startsWith('klent_')) return;
 
-    // Capture admin chat ID on any interaction
+    // Capture admin chat ID
     ADMIN_CHAT_ID = chatId;
     const adminName = from?.username ? `@${from.username}` : from?.first_name || 'Admin';
 
-    // Persist to DB
+    // Persist admin chat ID
     try {
       const existing = await db.query('SELECT id FROM settings LIMIT 1');
       if (existing.rows.length > 0) {
@@ -283,162 +369,213 @@ async function handleCallback(callbackQuery) {
     const action = parts[1];
     const invoiceNumber = parts.slice(2).join('_');
 
-    const order = pendingOrders.get(invoiceNumber);
+    // Get order from memory or database
+    const order = await getOrder(invoiceNumber);
 
     if (!order) {
-      console.log(`⚠️ @klentlarchek_bot: Buyurtma topilmadi - #${invoiceNumber} (muddati o'tgan yoki server qayta ishga tushgan)`);
+      console.log(`⚠️ @klentlarchek_bot: Buyurtma topilmadi - #${invoiceNumber}`);
       await editMessageText(chatId, messageId,
-        `❌ *Buyurtma topilmadi!*\n\n#${invoiceNumber} raqamli buyurtma topilmadi.\n\nEhtimol, server qayta ishga tushgan bo'lishi mumkin.`,
-        { reply_markup: { inline_keyboard: [] } }
+        `❌ *Buyurtma topilmadi!*\n\n#${invoiceNumber} raqamli buyurtma topilmadi.\n\nEhtimol, server qayta ishga tushgan bo'lishi mumkin.\n\nAdmin: @${ADMIN_USERNAME}`,
+        { reply_markup: { inline_keyboard: [[{ text: '⬅️ Bosh sahifa', callback_data: 'klent_home' }]] } }
       );
       return;
     }
 
-  console.log(`✅ @klentlarchek_bot: ${action} #${invoiceNumber} - ${adminName}`);
+    console.log(`✅ @klentlarchek_bot: ${action} #${invoiceNumber} - ${adminName}`);
 
-  switch (action) {
-    case 'accept': {
-      order.status = 'qabul_qilindi';
-      await editMessageText(chatId, messageId,
-        `✅ *BUYURTMA QABUL QILINDI!*  #${invoiceNumber}\n\n` +
-        `${adminName} buyurtmani qabul qildi ✅\n\n` +
-        `📦 *Mahsulotlar:*\n${buildItemsText(order.items)}\n` +
-        `💰 *Jami:* ${formatCurrency(order.totalAmount)}\n` +
-        `👤 *Mijoz:* ${escMd(order.customerName)}\n` +
-        `${order.phone ? `📞 ${escMd(order.phone)}\n` : ''}` +
-        `${order.deliveryAddress ? `🚚 ${escMd(order.deliveryAddress)}` : '🏪 Olib ketish'}\n\n` +
-        `⏰ ${new Date().toLocaleString('uz-UZ', { timeZone: 'Asia/Tashkent' })}`,
-        { reply_markup: { inline_keyboard: [[{ text: '📞 Mijozga yozish', callback_data: `klent_contact_${invoiceNumber}` }]] } }
-      );
-      // Notify customer
-      await notifyCustomerViaMainBot(order.customerChatId,
-        `✅ *Buyurtmangiz qabul qilindi!* 🎉\n\n` +
-        `📋 Chek: \`${invoiceNumber}\`\n` +
-        `💰 Jami: *${formatCurrency(order.totalAmount)}*\n\n` +
-        `Tez orada siz bilan bog'lanamiz. Rahmat! 🙏`
-      );
-      cleanupOrder(invoiceNumber, 3600000);
-      break;
-    }
+    const customerChatLink = order.customerChatId ? `tg://user?id=${order.customerChatId}` : null;
 
-    case 'reject': {
-      order.status = 'rad_etildi';
-      await editMessageText(chatId, messageId,
-        `❌ *BUYURTMA RAD ETILDI*  #${invoiceNumber}\n\n` +
-        `${adminName} buyurtmani rad etdi ❌\n\n` +
-        `📦 *Mahsulotlar:*\n${buildItemsText(order.items)}\n` +
-        `💰 *Jami:* ${formatCurrency(order.totalAmount)}\n` +
-        `👤 *Mijoz:* ${escMd(order.customerName)}\n` +
-        `${order.phone ? `📞 ${escMd(order.phone)}\n` : ''}\n` +
-        `⏰ ${new Date().toLocaleString('uz-UZ', { timeZone: 'Asia/Tashkent' })}`,
-        { reply_markup: { inline_keyboard: [] } }
-      );
-      // Notify customer about rejection
-      await notifyCustomerViaMainBot(order.customerChatId,
-        `❌ *Buyurtmangiz admin tomonidan rad etildi!*\n\n` +
-        `📋 Chek: \`${invoiceNumber}\`\n` +
-        `💰 Jami: *${formatCurrency(order.totalAmount)}*\n\n` +
-        `Agar boshqa savolingiz bo'lsa, admin bilan bog'lanishingiz mumkin.\n` +
-        `📞 Admin: @${escMd(ADMIN_USERNAME)}`
-      );
-      cleanupOrder(invoiceNumber, 3600000);
-      break;
-    }
-
-    case 'contact': {
-      const customerChatLink = `tg://user?id=${order.customerChatId}`;
-      await editMessageText(chatId, messageId,
-        `📞 *MIJOZ BILAN BOG'LANISH*  #${invoiceNumber}\n\n` +
-        `👤 *Mijoz:* ${escMd(order.customerName)}\n` +
-        `${order.phone ? `📞 *Telefon:* ${escMd(order.phone)}\n` : '📞 *Telefon:* —\n'}` +
-        `🆔 *Chat ID:* \`${order.customerChatId}\`\n` +
-        `${order.deliveryAddress ? `📍 *Manzil:* ${escMd(order.deliveryAddress)}\n` : '🏪 *Olib ketish*\n'}` +
-        `📝 Mijoz bilan bog'lanib, buyurtma tafsilotlarini aniqlashtiring.\n\n` +
-        `👇 Quyidagi tugma orqali mijoz bilan suhbatni oching:`,
-        {
-          reply_markup: {
-            inline_keyboard: [
-              [{ text: '✉️ Mijozga xabar yozish', url: customerChatLink }],
-              [{ text: '⬅️ Orqaga', callback_data: `klent_back_${invoiceNumber}` }],
-            ],
-          },
+    switch (action) {
+      case 'accept': {
+        order.status = 'qabul_qilindi';
+        await updateOrderStatus(invoiceNumber, 'qabul_qilindi');
+        await editMessageText(chatId, messageId,
+          `✅ *BUYURTMA QABUL QILINDI!*  #${invoiceNumber}\n\n` +
+          `${adminName} buyurtmani qabul qildi ✅\n\n` +
+          `📦 *Mahsulotlar:*\n${buildItemsText(order.items)}\n` +
+          `💰 *Jami:* ${formatCurrency(order.totalAmount)}\n` +
+          `👤 *Mijoz:* ${escMd(order.customerName)}\n` +
+          `${order.phone ? `📞 ${escMd(order.phone)}\n` : ''}` +
+          `${order.deliveryAddress ? `🚚 ${escMd(order.deliveryAddress)}` : '🏪 Olib ketish'}\n\n` +
+          `⏰ ${new Date().toLocaleString('uz-UZ', { timeZone: 'Asia/Tashkent' })}`,
+          { reply_markup: { inline_keyboard: customerChatLink ? [[{ text: '📞 Mijozga yozish', url: customerChatLink }]] : [] } }
+        );
+        // Notify customer
+        if (order.customerChatId) {
+          await notifyCustomerViaMainBot(order.customerChatId,
+            `✅ *Buyurtmangiz qabul qilindi!* 🎉\n\n` +
+            `📋 Chek: \`${invoiceNumber}\`\n` +
+            `💰 Jami: *${formatCurrency(order.totalAmount)}*\n\n` +
+            `Tez orada siz bilan bog'lanamiz. Rahmat! 🙏`
+          );
         }
-      );
-      break;
-    }
+        break;
+      }
 
-    case 'detail': {
-      const itemsDetail = order.items.map((item, i) => {
-        const qty = item.quantity || item.qty;
-        const price = item.price || item.selling_price;
-        const subtotal = item.subtotal || (qty * price);
-        return `${i + 1}. *${escMd(item.name)}* — ${qty} x ${formatCurrency(price)} = *${formatCurrency(subtotal)}*`;
-      }).join('\n');
-      const detailText =
-        `ℹ️ *BUYURTMA TAFSILOTLARI*  #${invoiceNumber}\n\n` +
-        `📦 *Mahsulotlar:*\n${itemsDetail}\n\n` +
-        `💰 *Jami:* ${formatCurrency(order.totalAmount)}\n` +
-        `👤 *Mijoz:* ${escMd(order.customerName)}\n` +
-        `${order.phone ? `📞 *Telefon:* ${escMd(order.phone)}\n` : ''}` +
-        `🆔 *Chat ID:* \`${order.customerChatId}\`\n` +
-        `${order.deliveryAddress ? `📍 *Manzil:* ${escMd(order.deliveryAddress)}\n` : '🏪 *Olib ketish*\n'}` +
-        `📋 *Chek:* \`${invoiceNumber}\`\n` +
-        `📅 *Vaqt:* ${new Date().toLocaleString('uz-UZ', { timeZone: 'Asia/Tashkent' })}\n` +
-        `📊 *Holat:* ${order.status === 'qabul_qilindi' ? '✅ Qabul qilingan' : order.status === 'rad_etildi' ? '❌ Rad etilgan' : '⏳ Yangi'}`;
-      await editMessageText(chatId, messageId, detailText, {
-        reply_markup: { inline_keyboard: [[{ text: '⬅️ Orqaga', callback_data: `klent_back_${invoiceNumber}` }]] }
-      });
-      break;
-    }
+      case 'reject': {
+        order.status = 'rad_etildi';
+        await updateOrderStatus(invoiceNumber, 'rad_etildi');
+        await editMessageText(chatId, messageId,
+          `❌ *BUYURTMA RAD ETILDI*  #${invoiceNumber}\n\n` +
+          `${adminName} buyurtmani rad etdi ❌\n\n` +
+          `📦 *Mahsulotlar:*\n${buildItemsText(order.items)}\n` +
+          `💰 *Jami:* ${formatCurrency(order.totalAmount)}\n` +
+          `👤 *Mijoz:* ${escMd(order.customerName)}\n` +
+          `${order.phone ? `📞 ${escMd(order.phone)}\n` : ''}\n` +
+          `⏰ ${new Date().toLocaleString('uz-UZ', { timeZone: 'Asia/Tashkent' })}`,
+          { reply_markup: { inline_keyboard: [] } }
+        );
+        if (order.customerChatId) {
+          await notifyCustomerViaMainBot(order.customerChatId,
+            `❌ *Buyurtmangiz admin tomonidan rad etildi!*\n\n` +
+            `📋 Chek: \`${invoiceNumber}\`\n` +
+            `💰 Jami: *${formatCurrency(order.totalAmount)}*\n\n` +
+            `Agar boshqa savolingiz bo'lsa, admin bilan bog'lanishingiz mumkin.\n` +
+            `📞 Admin: @${escMd(ADMIN_USERNAME)}`
+          );
+        }
+        break;
+      }
 
-    case 'back': {
-      const itemsText = buildItemsText(order.items);
-      const deliveryLine = order.deliveryAddress
-        ? `🚚 *Yetkazib berish:* ${escMd(order.deliveryAddress)}`
-        : '🏪 *Olib ketish*';
-      const timeStr = new Date().toLocaleString('uz-UZ', { timeZone: 'Asia/Tashkent' });
-      const text =
-        `🔔 *BUYURTMA*  #${invoiceNumber}\n\n` +
-        `━━━━━━━━━━━━━━━━\n🧾 *MAHSULOTLAR:*\n\n${itemsText}` +
-        `💰 *Jami: ${formatCurrency(order.totalAmount)}*\n` +
-        `━━━━━━━━━━━━━━━━\n👤 *MIJOZ:*\n` +
-        `👤 ${escMd(order.customerName)}\n` +
-        `${order.phone ? `📞 ${escMd(order.phone)}\n` : ''}` +
-        `🆔 Chat ID: \`${order.customerChatId}\`\n\n` +
-        `📍 *YETKAZIB BERISH:*\n${deliveryLine}\n\n` +
-        `📅 *Vaqt:* ${timeStr}\n📋 *Chek:* \`${invoiceNumber}\`\n` +
-        `━━━━━━━━━━━━━━━━\n\n` +
-        `📊 *Holat:* ${order.status === 'qabul_qilindi' ? '✅ Qabul qilingan' : order.status === 'rad_etildi' ? '❌ Rad etilgan' : '⏳ Yangi'}\n\n` +
-        `👇 *Buyurtma holatini tanlang:*`;
-      const keyboard = {
-        inline_keyboard: [
-          [
-            { text: '✅ Qabul qilish', callback_data: `klent_accept_${invoiceNumber}` },
-            { text: '❌ Rad etish', callback_data: `klent_reject_${invoiceNumber}` },
+      case 'contact': {
+        if (!customerChatLink) {
+          await editMessageText(chatId, messageId,
+            `📞 *MIJOZ BILAN BOG'LANISH*  #${invoiceNumber}\n\n` +
+            `❌ Mijoz chat ID topilmadi.\n\n` +
+            `👤 *Mijoz:* ${escMd(order.customerName)}\n` +
+            `${order.phone ? `📞 *Telefon:* ${escMd(order.phone)}\n` : ''}`,
+            { reply_markup: { inline_keyboard: [[{ text: '⬅️ Orqaga', callback_data: `klent_back_${invoiceNumber}` }]] } }
+          );
+          return;
+        }
+        await editMessageText(chatId, messageId,
+          `📞 *MIJOZ BILAN BOG'LANISH*  #${invoiceNumber}\n\n` +
+          `👤 *Mijoz:* ${escMd(order.customerName)}\n` +
+          `${order.phone ? `📞 *Telefon:* ${escMd(order.phone)}\n` : '📞 *Telefon:* —\n'}` +
+          `🆔 *Chat ID:* \`${order.customerChatId}\`\n` +
+          `${order.deliveryAddress ? `📍 *Manzil:* ${escMd(order.deliveryAddress)}\n` : '🏪 *Olib ketish*\n'}` +
+          `👇 Quyidagi tugma orqali mijoz bilan suhbatni oching:`,
+          {
+            reply_markup: {
+              inline_keyboard: [
+                [{ text: '✉️ Mijozga xabar yozish', url: customerChatLink }],
+                [{ text: '⬅️ Orqaga', callback_data: `klent_back_${invoiceNumber}` }],
+              ],
+            },
+          }
+        );
+        break;
+      }
+
+      case 'detail': {
+        const itemsDetail = order.items.map((item, i) => {
+          const qty = item.quantity || item.qty;
+          const price = item.price || item.selling_price;
+          const subtotal = item.subtotal || (qty * price);
+          return `${i + 1}. *${escMd(item.name)}* — ${qty} x ${formatCurrency(price)} = *${formatCurrency(subtotal)}*`;
+        }).join('\n');
+        const detailText =
+          `ℹ️ *BUYURTMA TAFSILOTLARI*  #${invoiceNumber}\n\n` +
+          `📦 *Mahsulotlar:*\n${itemsDetail}\n\n` +
+          `💰 *Jami:* ${formatCurrency(order.totalAmount)}\n` +
+          `👤 *Mijoz:* ${escMd(order.customerName)}\n` +
+          `${order.phone ? `📞 *Telefon:* ${escMd(order.phone)}\n` : ''}` +
+          `${order.customerChatId ? `🆔 *Chat ID:* \`${order.customerChatId}\`\n` : ''}` +
+          `${order.deliveryAddress ? `📍 *Manzil:* ${escMd(order.deliveryAddress)}\n` : '🏪 *Olib ketish*\n'}` +
+          `📋 *Chek:* \`${invoiceNumber}\`\n` +
+          `📅 *Vaqt:* ${new Date().toLocaleString('uz-UZ', { timeZone: 'Asia/Tashkent' })}\n` +
+          `📊 *Holat:* ${order.status === 'qabul_qilindi' ? '✅ Qabul qilingan' : order.status === 'rad_etildi' ? '❌ Rad etilgan' : '⏳ Yangi'}`;
+        await editMessageText(chatId, messageId, detailText, {
+          reply_markup: { inline_keyboard: [[{ text: '⬅️ Orqaga', callback_data: `klent_back_${invoiceNumber}` }]] }
+        });
+        break;
+      }
+
+      case 'back': {
+        const itemsText = buildItemsText(order.items);
+        const deliveryLine = order.deliveryAddress
+          ? `🚚 *Yetkazib berish:* ${escMd(order.deliveryAddress)}`
+          : '🏪 *Olib ketish*';
+        const timeStr = new Date().toLocaleString('uz-UZ', { timeZone: 'Asia/Tashkent' });
+        const text =
+          `🔔 *BUYURTMA*  #${invoiceNumber}\n\n` +
+          `━━━━━━━━━━━━━━━━\n🧾 *MAHSULOTLAR:*\n\n${itemsText}` +
+          `💰 *Jami: ${formatCurrency(order.totalAmount)}*\n` +
+          `━━━━━━━━━━━━━━━━\n👤 *MIJOZ:*\n` +
+          `👤 ${escMd(order.customerName)}\n` +
+          `${order.phone ? `📞 ${escMd(order.phone)}\n` : ''}` +
+          `${order.customerChatId ? `🆔 Chat ID: \`${order.customerChatId}\`\n\n` : '\n'}` +
+          `📍 *YETKAZIB BERISH:*\n${deliveryLine}\n\n` +
+          `📅 *Vaqt:* ${timeStr}\n📋 *Chek:* \`${invoiceNumber}\`\n` +
+          `━━━━━━━━━━━━━━━━\n\n` +
+          `📊 *Holat:* ${order.status === 'qabul_qilindi' ? '✅ Qabul qilingan' : order.status === 'rad_etildi' ? '❌ Rad etilgan' : '⏳ Yangi'}\n\n` +
+          `👇 *Buyurtma holatini tanlang:*`;
+        const keyboard = {
+          inline_keyboard: [
+            [
+              { text: '✅ Qabul qilish', callback_data: `klent_accept_${invoiceNumber}` },
+              { text: '❌ Rad etish', callback_data: `klent_reject_${invoiceNumber}` },
+            ],
+            [{ text: '📞 Mijozga yozish', callback_data: `klent_contact_${invoiceNumber}` }],
+            [{ text: 'ℹ️ Batafsil', callback_data: `klent_detail_${invoiceNumber}` }],
           ],
-          [{ text: '📞 Mijozga yozish', callback_data: `klent_contact_${invoiceNumber}` }],
-          [{ text: 'ℹ️ Batafsil', callback_data: `klent_detail_${invoiceNumber}` }],
-        ],
-      };
-      await editMessageText(chatId, messageId, text, { reply_markup: keyboard });
-      break;
+        };
+        await editMessageText(chatId, messageId, text, { reply_markup: keyboard });
+        break;
+      }
     }
-  }
   } catch (err) {
     console.error('❌ @klentlarchek_bot handleCallback xatosi:', err.message);
   }
 }
 
-/**
- * Notify customer via the MAIN bot (foodsPOS_bot)
- */
+// ========== Handle messages ==========
+
+async function handleMessage(msg) {
+  const chatId = msg.chat?.id;
+  const username = msg.from?.username;
+  const text = msg.text || '';
+
+  if (!chatId) return;
+
+  // Capture admin chat ID
+  if (username === ADMIN_USERNAME) {
+    ADMIN_CHAT_ID = chatId;
+    console.log(`✅ @klentlarchek_bot: Admin aniqlandi: @${username}, Chat ID: ${chatId}`);
+
+    try {
+      const existing = await db.query('SELECT id FROM settings LIMIT 1');
+      if (existing.rows.length > 0) {
+        await db.query(`UPDATE settings SET admin_telegram = $1, updated_at = ${db.isSqlite ? "datetime('now')" : 'NOW()'} WHERE id = $2`, [String(chatId), existing.rows[0].id]);
+      } else {
+        await db.query(`INSERT INTO settings (store_name, admin_telegram) VALUES ('My Store', $1)`, [String(chatId)]);
+      }
+    } catch (dbErr) {}
+
+    if (text.startsWith('/start')) {
+      await sendMessage(chatId,
+        `✅ *Xush kelibsiz, Admin!* 👋\n\n` +
+        `🔔 @klentlarchek_bot orqali buyurtma xabarnomalarini olasiz.\n\n` +
+        `Buyurtma kelganda sizga:\n` +
+        `• 👤 Mijoz ismi\n` +
+        `• 📞 Telefon raqami\n` +
+        `• 📍 Manzil\n` +
+        `• 🛍️ Mahsulotlar\n` +
+        `• 💰 Summa\n\n` +
+        `Siz buyurtmani ✅ qabul qilishingiz yoki ❌ rad etishingiz mumkin.`
+      );
+    }
+  }
+}
+
+// ========== Notify customer via main bot ==========
+
 async function notifyCustomerViaMainBot(chatId, text) {
   if (!chatId) {
     console.log('⚠️ notifyCustomer: chat ID yo\'q');
     return;
   }
   try {
-    console.log(`📤 notifyCustomer: mijozga xabar yuborilmoqda (chatId: ${chatId})`);
     const res = await fetch(`https://api.telegram.org/bot${MAIN_BOT_TOKEN}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -455,10 +592,8 @@ async function notifyCustomerViaMainBot(chatId, text) {
   }
 }
 
-/**
- * Delete the webhook (so we can use long polling instead)
- * Returns true if successful
- */
+// ========== Polling ==========
+
 async function deleteWebhook() {
   try {
     const res = await fetch(`${API_BASE}/deleteWebhook`, {
@@ -473,26 +608,22 @@ async function deleteWebhook() {
     }
     return true;
   } catch (err) {
-    console.error('⚠️ @klentlarchek_bot webhook deletion error:', err.message);
+    console.error('⚠️ @klentlarchek_bot webhook error:', err.message);
     return false;
   }
 }
 
-/**
- * Start long polling for @klentlarchek_bot
- * This replaces webhook mode so it works without WEBHOOK_URL env var
- */
 async function startPolling() {
   if (pollingActive) return;
   pollingActive = true;
 
-  // Delete any existing webhook first (webhook and polling can't coexist)
   await deleteWebhook();
   console.log('🤖 @klentlarchek_bot long polling started');
 
   let offset = 0;
+  let consecutiveErrors = 0;
 
-  // If admin chat ID not set from .env, try to load from database first
+  // Load admin chat ID from DB
   if (!ADMIN_CHAT_ID) {
     try {
       const settingsResult = await db.query(`SELECT admin_telegram FROM settings LIMIT 1`);
@@ -503,23 +634,16 @@ async function startPolling() {
           console.log(`✅ @klentlarchek_bot: Admin chat ID DB dan yuklandi: ${ADMIN_CHAT_ID}`);
         }
       }
-    } catch (dbErr) {
-      console.log('⚠️ @klentlarchek_bot: Admin chat ID ni DB dan yuklashda xatolik:', dbErr.message);
-    }
+    } catch (dbErr) {}
   }
 
-  // If still not set, try to find it from existing updates
+  // Try to find admin from existing updates
   if (!ADMIN_CHAT_ID) {
     try {
       const findRes = await fetch(`${API_BASE}/getUpdates`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          offset: 0,
-          timeout: 2,
-          allowed_updates: ['message'],
-          limit: 200,
-        }),
+        body: JSON.stringify({ offset: 0, timeout: 2, allowed_updates: ['message'], limit: 200 }),
       });
       const findData = await findRes.json();
       if (findData.ok && findData.result) {
@@ -528,15 +652,13 @@ async function startPolling() {
           if (msg && msg.from?.username === ADMIN_USERNAME) {
             ADMIN_CHAT_ID = msg.chat.id;
             offset = Math.max(offset, update.update_id + 1);
-            console.log(`✅ @klentlarchek_bot: Admin chat ID avtomatik topildi: ${ADMIN_CHAT_ID} (eski xabarlardan)`);
+            console.log(`✅ @klentlarchek_bot: Admin topildi: ${ADMIN_CHAT_ID}`);
             break;
           }
           offset = Math.max(offset, update.update_id + 1);
         }
       }
-    } catch (findErr) {
-      console.error('⚠️ @klentlarchek_bot admin chat ID qidirish xatosi:', findErr.message);
-    }
+    } catch (findErr) {}
   }
 
   while (pollingActive) {
@@ -544,50 +666,50 @@ async function startPolling() {
       const res = await fetch(`${API_BASE}/getUpdates`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          offset,
-          timeout: POLL_TIMEOUT,
-          allowed_updates: ['message', 'callback_query'],
-        }),
+        body: JSON.stringify({ offset, timeout: POLL_TIMEOUT, allowed_updates: ['message', 'callback_query'] }),
       });
       const data = await res.json();
 
-      if (data.ok && data.result && data.result.length > 0) {
+      if (!data.ok) {
+        console.error('🤖 @klentlarchek_bot getUpdates xatosi:', data.description);
+        consecutiveErrors++;
+        if (consecutiveErrors > 5) {
+          console.error('🤖 @klentlarchek_bot: 5 ta ketma-ket xatolik. To\'xtatilmoqda...');
+          pollingActive = false;
+          return;
+        }
+        await sleep(5000);
+        continue;
+      }
+
+      consecutiveErrors = 0;
+
+      if (data.result && data.result.length > 0) {
         for (const update of data.result) {
           offset = update.update_id + 1;
-
-          if (update.message) {
-            await handleMessage(update.message);
-          }
-          if (update.callback_query) {
-            await handleCallback(update.callback_query);
+          try {
+            if (update.message) await handleMessage(update.message);
+            if (update.callback_query) await handleCallback(update.callback_query);
+          } catch (handlerErr) {
+            console.error('🤖 @klentlarchek_bot handler xatosi:', handlerErr.message);
           }
         }
       }
     } catch (err) {
       if (pollingActive) {
         console.error('🤖 @klentlarchek_bot polling error:', err.message);
-        await sleep(5000);
+        consecutiveErrors++;
+        const delay = Math.min(consecutiveErrors * 2000, 30000);
+        await sleep(delay);
       }
     }
   }
 }
 
-/**
- * Stop long polling
- */
-function stopPolling() {
-  pollingActive = false;
-}
+function stopPolling() { pollingActive = false; }
+function getAdminChatId() { return ADMIN_CHAT_ID; }
 
-/**
- * Get admin's chat ID for @klentlarchek_bot
- */
-function getAdminChatId() {
-  return ADMIN_CHAT_ID;
-}
-
-// ---- Helpers ----
+// ========== Helpers ==========
 
 function escMd(text) {
   if (!text) return '';

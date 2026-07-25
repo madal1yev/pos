@@ -1,3 +1,7 @@
+// POS Tizimi - PM2 Ecosystem
+// Backend frontendni ham serve qiladi (dist/build dan)
+// Alohida Vite server kerak emas
+
 module.exports = {
   apps: [
     {
@@ -9,22 +13,8 @@ module.exports = {
       restart_delay: 3000,
       max_restarts: 10,
       env: {
-        NODE_ENV: 'development',
+        NODE_ENV: 'production',
         PORT: 5000,
-      },
-    },
-    {
-      name: 'pos-frontend',
-      cwd: './frontend',
-      script: 'node_modules/vite/bin/vite.js',
-      args: '--host',
-      interpreter: 'node',
-      watch: false,
-      autorestart: true,
-      restart_delay: 3000,
-      max_restarts: 10,
-      env: {
-        NODE_ENV: 'development',
       },
     },
   ],
