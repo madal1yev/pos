@@ -1,24 +1,27 @@
 services:
-  # Backend API - Vercel da, Render kerak emas
-  # Lekin botlar uchun alohida service kerak
-
-  # Bot service - 24/7 ishlaydi
-  - type: worker
-    name: pos-bots
+  - type: web
+    name: pos-backend
     runtime: node
     repo: https://github.com/madal1yev/pos
     branch: main
     buildCommand: cd backend && npm install
-    startCommand: cd backend && node standalone-bot.js
+    startCommand: cd backend && node src/server.js
     autoDeploy: true
+    healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV
         value: production
+      - key: PORT
+        value: 5000
       - key: DATABASE_URL
         sync: false
+      - key: JWT_SECRET
+        generateValue: true
       - key: TELEGRAM_BOT_TOKEN
-        sync: false
+        value: "8805705606:AAG5TRIJjU-kMR9F0GkFlh4JcIJK95euYiE"
       - key: KLENT_BOT_TOKEN
-        sync: false
+        value: "8803269723:AAGrBjoCF8PENRZS5TNsm4iZNbmvx0aEZhI"
       - key: KLENT_ADMIN_USERNAME
-        value: azizvc_m
+        value: "azizvc_m"
+      - key: ADMIN_CHAT_ID
+        value: "7882709730"

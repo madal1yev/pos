@@ -2,36 +2,60 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
 const { v4: uuidv4 } = require('uuid');
 const { auth } = require('../middleware/auth');
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, path.join(__dirname, '../../uploads'));
-  },
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    cb(null, `${uuidv4()}${ext}`);
-  },
-});
+const isVercel = !!process.env.VERCEL;
+const uploadsDir = isVercel ? '/tmp/uploads' : path.join(__dirname, '../../uploads');
+try { if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true }); } catch {}
 
-const upload = multer({
-  storage,
-  limits: { fileSize: 5 * 1024 * 1024 },
-  fileFilter: (req, file, cb) => {
-    const allowed = /jpeg|jpg|png|gif|svg|webp/;
-    const extOk = allowed.test(path.extname(file.originalname).toLowerCase());
-    const mimeOk = allowed.test(file.mimetype.split('/')[1]);
-    cb(null, extOk && mimeOk);
-  },
-});
+if (!isVercel) {
+  const storage = multer.diskStorage({
+    destination: (req, file, cb) => cb(null, uploadsDir),
+    filename: (req, file, cb) => {
+      const ext = path.extname(file.originalname);
+      cb(null, `${uuidv4()}${ext}`);
+    },
+  });
+  const upload = multer({
+    storage,
+    limits: { fileSize: 5 * 1024 * 1024 },
+    fileFilter: (req, file, cb) => {
+      const allowed = /jpeg|jpg|png|gif|svg|webp/;
+      const extOk = allowed.test(path.extname(file.originalname).toLowerCase());
+      const mimeOk = allowed.test(file.mimetype.split('/')[1]);
+      cb(null, extOk && mimeOk);
+    },
+  });
 
-router.use(auth);
+  router.use(auth);
+  router.post('/image', upload.single('image'), (req, res) => {
+    if (!req.file) return res.status(400).json({ error: 'Rasm yuklanmadi' });
+    res.json({ url: `/uploads/${req.file.filename}`, filename: req.file.filename });
+  });
+} else {
+  const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 5 * 1024 * 1024 },
+    fileFilter: (req, file, cb) => {
+      const allowed = /jpeg|jpg|png|gif|svg|webp/;
+      const extOk = allowed.test(path.extname(file.originalname).toLowerCase());
+      const mimeOk = allowed.test(file.mimetype.split('/')[1]);
+      cb(null, extOk && mimeOk);
+    },
+  });
 
-router.post('/image', upload.single('image'), (req, res) => {
-  if (!req.file) return res.status(400).json({ error: 'Rasm yuklanmadi' });
-  const url = `/uploads/${req.file.filename}`;
-  res.json({ url, filename: req.file.filename });
-});
+  router.use(auth);
+  router.post('/image', upload.single('image'), async (req, res) => {
+    if (!req.file) return res.status(400).json({ error: 'Rasm yuklanmadi' });
+    try {
+      const base64 = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
+      res.json({ url: base64, filename: req.file.originalname, isBase64: true });
+    } catch (err) {
+      res.status(500).json({ error: 'Rasm saqlashda xato' });
+    }
+  });
+}
 
 module.exports = router;

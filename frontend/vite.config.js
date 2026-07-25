@@ -31,7 +31,7 @@ export default defineConfig({
         ]
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        globPatterns: ['**/*.{js,css,svg,png,woff2}'],
         skipWaiting: true,
         clientsClaim: true,
         cleanupOutdatedCaches: true,
@@ -40,6 +40,18 @@ export default defineConfig({
         sourcemap: false,
         inlineWorkboxRuntime: false,
         runtimeCaching: [
+          {
+            urlPattern: /\/api\/.*/,
+            handler: 'NetworkOnly',
+          },
+          {
+            urlPattern: /\/uploads\/.*/,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'uploads-cache',
+              expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 * 24 * 7 },
+            },
+          },
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
             handler: 'CacheFirst',

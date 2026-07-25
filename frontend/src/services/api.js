@@ -27,20 +27,17 @@ let isRedirecting = false;
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    if (error.code === 'ERR_NETWORK' || error.code === 'ECONNABORTED') {
+      console.error('Network error:', error.message);
+    }
     if (error.response?.status === 401 && !isRedirecting) {
       const token = localStorage.getItem('pos_token');
       const isLoginPage = window.location.pathname === '/login';
       if (token && !isLoginPage) {
-        const retryCount = error.config?._retryCount || 0;
-        if (retryCount >= 1) {
-          isRedirecting = true;
-          localStorage.removeItem('pos_token');
-          localStorage.removeItem('pos_user');
-          window.location.href = '/login';
-        } else {
-          error.config._retryCount = (error.config._retryCount || 0) + 1;
-          return api.request(error.config);
-        }
+        isRedirecting = true;
+        localStorage.removeItem('pos_token');
+        localStorage.removeItem('pos_user');
+        window.location.href = '/login';
       } else if (!token && !isLoginPage) {
         isRedirecting = true;
         window.location.href = '/login';

@@ -92,17 +92,12 @@ if (process.env.FRONTEND_URL) {
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (mobile apps, curl, etc)
     if (!origin) return callback(null, true);
-    const allowed = allowedOrigins.some(o => {
-      if (typeof o === 'string') return origin === o;
-      if (o instanceof RegExp) return o.test(origin);
-      return false;
-    });
-    if (allowed) return callback(null, true);
-    callback(null, true); // Allow all in dev mode
+    callback(null, true);
   },
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
 }));
 
 // Rate limiting

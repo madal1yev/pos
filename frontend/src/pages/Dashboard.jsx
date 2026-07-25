@@ -57,7 +57,8 @@ export default function Dashboard() {
       }
       prevSalesCount.current = data?.today?.sales?.count;
       setData(data);
-    } catch {
+    } catch (err) {
+      console.error('Dashboard load error:', err);
       if (!silent) {
         setData(null);
       }
