@@ -184,7 +184,7 @@ INSERT INTO categories (name, description) VALUES
 ON CONFLICT DO NOTHING;
 
 -- Products are not auto-seeded in production to prevent data loss on restart.
--- Run `node migrations/seed.js` manually to seed sample products.
+-- Run 'node migrations/seed.js' manually to seed sample products.
 `;
 
 async function migrate() {

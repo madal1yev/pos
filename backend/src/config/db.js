@@ -10,6 +10,27 @@ if (DATABASE_URL) {
     ssl: { rejectUnauthorized: false },
   });
 
+  // Auto-migration: add missing columns for PostgreSQL
+  async function pgAutoMigrate() {
+    const migrations = [
+      { table: 'sales', column: 'delivery_address', sql: "ALTER TABLE sales ADD COLUMN IF NOT EXISTS delivery_address TEXT" },
+      { table: 'settings', column: 'admin_telegram', sql: "ALTER TABLE settings ADD COLUMN IF NOT EXISTS admin_telegram TEXT" },
+    ];
+    for (const m of migrations) {
+      try {
+        await pool.query(m.sql);
+        console.log(`✅ PG migration verified: ${m.table}.${m.column}`);
+      } catch (e) {
+        if (e.code !== '42701' && !e.message.includes('already exists')) {
+          console.log(`⚠️ PG migration check for ${m.table}.${m.column}:`, e.message.slice(0, 100));
+        }
+      }
+    }
+  }
+
+  // Run auto-migration on startup
+  pgAutoMigrate().catch(e => console.log('⚠️ PG auto-migration error:', e.message));
+
   const db = {
     query: (sql, params) => pool.query(sql, params),
     getClient: () => pool.connect(),
@@ -87,7 +108,6 @@ if (DATABASE_URL) {
     const migrations = [
       { table: 'sales', column: 'delivery_address', sql: "ALTER TABLE sales ADD COLUMN delivery_address TEXT" },
       { table: 'settings', column: 'admin_telegram', sql: "ALTER TABLE settings ADD COLUMN admin_telegram TEXT" },
-      { table: 'categories', column: 'emoji', sql: "ALTER TABLE categories ADD COLUMN emoji TEXT DEFAULT '📁'" },
     ];
     for (const m of migrations) {
       try {

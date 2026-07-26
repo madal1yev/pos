@@ -1,3 +1,4 @@
+const { sendNotification, formatNotification } = require('../services/telegramNotifier');
 const db = require('../config/db');
 const { generateProductCode, generateBarcode, guessImageUrl } = require('../utils/helpers');
 
@@ -116,26 +117,27 @@ exports.create = async (req, res, next) => {
     const autoBarcode = barcode || generateBarcode(productCode);
     const autoImage = image_url || guessImageUrl(name);
 
-    const result = await db.query(
-      `INSERT INTO products (name, product_code, category_id, brand, purchase_price, selling_price,
-        stock_quantity, minimum_stock, unit, barcode, description, image_url)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-       RETURNING *`,
-      [name, productCode, category_id || null, brand || null,
-        purchase_price || 0, selling_price,
-        stock_quantity || 0, minimum_stock || 0, unit || 'pcs',
-        autoBarcode, description || null, autoImage]
-    );
+     const result = await db.query(
+       `INSERT INTO products (name, product_code, category_id, brand, purchase_price, selling_price,
+         stock_quantity, minimum_stock, unit, barcode, description, image_url, status)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+        RETURNING *`,
+       [name, productCode, category_id || null, brand || null,
+         purchase_price || 0, selling_price,
+         stock_quantity || 0, minimum_stock || 0, unit || 'pcs',
+         autoBarcode, description || null, autoImage, 'active']
+     );
 
-    if (stock_quantity > 0) {
-      await db.query(
-        `INSERT INTO inventory_logs (product_id, change_type, quantity, new_stock, note, created_by)
-         VALUES ($1, 'initial', $2, $2, 'Initial stock', $3)`,
-        [result.rows[0].id, stock_quantity || 0, req.user?.id || null]
-      );
-    }
+     if (stock_quantity > 0) {
+       await db.query(
+         `INSERT INTO inventory_logs (product_id, change_type, quantity, new_stock, note, created_by)
+          VALUES ($1, 'initial', $2, $2, 'Initial stock', $3)`,
+         [result.rows[0].id, stock_quantity || 0, req.user?.id || null]
+       );
+     }
 
-    res.status(201).json({ product: result.rows[0] });
+     sendNotification(formatNotification('create', result.rows[0]));
+     res.status(201).json({ product: result.rows[0] });
   } catch (error) {
     next(error);
   }
@@ -172,17 +174,21 @@ exports.update = async (req, res, next) => {
     );
 
     const stockDiff = (stock_quantity || 0) - current.rows[0].stock_quantity;
-    if (stockDiff !== 0) {
-      await db.query(
-        `INSERT INTO inventory_logs (product_id, change_type, quantity, previous_stock, new_stock, note, created_by)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-        [req.params.id, stockDiff > 0 ? 'adjustment_in' : 'adjustment_out',
-          Math.abs(stockDiff), current.rows[0].stock_quantity, result.rows[0].stock_quantity,
-          'Manual stock adjustment', req.user?.id || null]
-      );
-    }
+     if (stockDiff !== 0) {
+       await db.query(
+         `INSERT INTO inventory_logs (product_id, change_type, quantity, previous_stock, new_stock, note, created_by)
+          VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+         [req.params.id, stockDiff > 0 ? 'adjustment_in' : 'adjustment_out',
+           Math.abs(stockDiff), current.rows[0].stock_quantity, result.rows[0].stock_quantity,
+           'Manual stock adjustment', req.user?.id || null]
+       );
+     }
 
-    res.json({ product: result.rows[0] });
+     if (current.rows[0].status !== result.rows[0].status || stockDiff !== 0) {
+       sendNotification(formatNotification('update', result.rows[0]));
+     }
+
+     res.json({ product: result.rows[0] });
   } catch (error) {
     next(error);
   }
@@ -190,11 +196,12 @@ exports.update = async (req, res, next) => {
 
 exports.remove = async (req, res, next) => {
   try {
-    const existing = await db.query('SELECT id FROM products WHERE id = $1', [req.params.id]);
-    if (existing.rows.length === 0) {
+    const product = await db.query('SELECT * FROM products WHERE id = $1', [req.params.id]);
+    if (product.rows.length === 0) {
       return res.status(404).json({ error: 'Product not found' });
     }
     await db.query('DELETE FROM products WHERE id = $1', [req.params.id]);
+    sendNotification(formatNotification('delete', product.rows[0]));
     res.json({ message: 'Product deleted successfully' });
   } catch (error) {
     next(error);

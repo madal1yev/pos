@@ -79,6 +79,10 @@ export const categoriesAPI = {
   create: (data) => api.post('/categories', data),
   update: (id, data) => api.put(`/categories/${id}`, data),
   delete: (id) => api.delete(`/categories/${id}`),
+  bulkDelete: (ids) => api.post('/categories/bulk-delete', { ids }),
+  reorder: (orders) => api.patch('/categories/reorder', { orders }),
+  exportCsv: () => api.get('/categories/export-csv', { responseType: 'blob' }),
+  importCsv: (formData) => api.post('/categories/import-csv', formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
 };
 
 // Sales

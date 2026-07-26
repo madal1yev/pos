@@ -31,8 +31,8 @@ const productSchema = z.object({
 const categorySchema = z.object({
   name: z.string().min(1, 'Category name is required'),
   description: z.string().optional(),
-  parent_id: z.number().int().nullable().optional(),
-  sort_order: z.number().int().optional(),
+  parent_id: z.coerce.number().int().nullable().optional(),
+  sort_order: z.coerce.number().int().optional(),
 });
 
 const saleItemSchema = z.object({

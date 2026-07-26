@@ -766,11 +766,9 @@ bot.onText(/\/products/, async (msg) => {
 
   const buttons = [];
   for (let i = 0; i < categories.length; i += 2) {
-    const emoji1 = categories[i].emoji || '';
-    const row = [{ text: `${emoji1} ${categories[i].name} (${categories[i].product_count})`, callback_data: `cat_${categories[i].id}` }];
+    const row = [{ text: `${categories[i].name} (${categories[i].product_count})`, callback_data: `cat_${categories[i].id}` }];
     if (categories[i + 1]) {
-      const emoji2 = categories[i + 1].emoji || '';
-      row.push({ text: `${emoji2} ${categories[i + 1].name} (${categories[i + 1].product_count})`, callback_data: `cat_${categories[i + 1].id}` });
+      row.push({ text: `${categories[i + 1].name} (${categories[i + 1].product_count})`, callback_data: `cat_${categories[i + 1].id}` });
     }
     buttons.push(row);
   }
@@ -880,11 +878,9 @@ bot.on('callback_query', async (query) => {
       }
 
       for (let i = 0; i < allCategories.length; i += 2) {
-        const emoji1 = allCategories[i].emoji || '';
-        const row = [{ text: `${emoji1} ${allCategories[i].name} (${allCategories[i].product_count})`, callback_data: `cat_${allCategories[i].id}` }];
+        const row = [{ text: `${allCategories[i].name} (${allCategories[i].product_count})`, callback_data: `cat_${allCategories[i].id}` }];
         if (allCategories[i + 1]) {
-          const emoji2 = allCategories[i + 1].emoji || '';
-          row.push({ text: `${emoji2} ${allCategories[i + 1].name} (${allCategories[i + 1].product_count})`, callback_data: `cat_${allCategories[i + 1].id}` });
+          row.push({ text: `${allCategories[i + 1].name} (${allCategories[i + 1].product_count})`, callback_data: `cat_${allCategories[i + 1].id}` });
         }
         buttons.push(row);
       }
@@ -1392,6 +1388,10 @@ async function startBot() {
       console.log('✅ Bot polling boshlandi');
     } catch (err) {
       console.error('❌ Bot polling xatosi:', err.message);
+      if (err.message.includes('409 Conflict')) {
+        console.log('⚠️ Boshqa polling instansiyasi ishlayapti. Bu dastur to\'xtatilgan.');
+        process.exit(1);
+      }
       setTimeout(startBot, 5000);
     }
   }
@@ -1400,9 +1400,11 @@ async function startBot() {
 bot.on('polling_error', (err) => {
   console.error('🔴 Polling xatosi:', err.message);
   if (err.message.includes('409 Conflict')) {
-    console.log('⚠️ Boshqa polling instansiyasi topildi. Qayta urinilmoqda...');
-    setTimeout(startBot, 3000);
+    console.log('⚠️ Boshqa polling instansiyasi ishlayapti. Bu dastur to\'xtatilgan.');
+    console.log('   PM2 orqali 24/7 ishga tushirilgan bot allaqachon ishlayapti.');
+    process.exit(0);
   }
+  setTimeout(startBot, 3000);
 });
 
 bot.on('webhook_error', (err) => console.error('Webhook xatosi:', err.message));

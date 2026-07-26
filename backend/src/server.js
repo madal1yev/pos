@@ -303,7 +303,8 @@ if (!process.env.VERCEL) {
 
   server.on('error', (err) => {
     if (err.code === 'EADDRINUSE') {
-      console.error(`❌ Port ${PORT} band! Boshqa dasturni yoping yoki PORT o'zgartiring.`);
+      console.error(`❌ Port ${PORT} band! Boshqa dastun ishlayapti (PM2?). Bu dastur to'xtatilgan.`);
+      process.exit(1);
     } else {
       console.error('❌ Server xatosi:', err.message);
     }
