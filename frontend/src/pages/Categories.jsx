@@ -19,7 +19,6 @@ function formatDate(dateStr) {
   return `${dd}.${mm}.${yyyy}`;
 }
 
-// ─── Mahsulot qo'shish modal ───────────────────────────────
 function AddProductsModal({ category, allProducts, onClose, onRefresh }) {
   const [search, setSearch] = useState('');
   const [selectedIds, setSelectedIds] = useState(new Set());
@@ -98,37 +97,23 @@ function AddProductsModal({ category, allProducts, onClose, onRefresh }) {
   );
 }
 
-// ─── Main Component ────────────────────────────────────────
 export default function Categories() {
   const [categories, setCategories] = useState([]);
   const [allProducts, setAllProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-
-  // Modal
   const [showModal, setShowModal] = useState(false);
   const [editCat, setEditCat] = useState(null);
   const [form, setForm] = useState({ name: '', description: '', parent_id: '' });
   const [errors, setErrors] = useState({});
-
-  // Search
   const [search, setSearch] = useState('');
-
-  // Delete
   const [deleteConfirm, setDeleteConfirm] = useState(null);
-
-  // Bulk
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [bulkProcessing, setBulkProcessing] = useState(false);
-
-  // Add products
   const [addProductsCat, setAddProductsCat] = useState(null);
-
-  // Pagination
   const [page, setPage] = useState(1);
   const PER_PAGE = 20;
 
-  // ── Data ────────────────────────────────────────────────
   const loadCategories = useCallback(async () => {
     try {
       setLoading(true);
@@ -136,9 +121,7 @@ export default function Categories() {
       setCategories(data?.categories || data || []);
     } catch {
       toast.error('Kategoriyalar yuklanmadi');
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   }, []);
 
   const loadAllProducts = useCallback(async () => {
@@ -150,7 +133,6 @@ export default function Categories() {
 
   useEffect(() => { loadCategories(); }, [loadCategories]);
 
-  // ── Modals ──────────────────────────────────────────────
   const openCreate = useCallback(() => {
     setEditCat(null);
     setForm({ name: '', description: '', parent_id: '' });
@@ -178,7 +160,6 @@ export default function Categories() {
     return () => window.removeEventListener('keydown', handler);
   }, [showModal, closeModal]);
 
-  // ── Validation ──────────────────────────────────────────
   const validateForm = useCallback((f) => {
     const e = {};
     const trimmed = (f.name || '').trim();
@@ -190,7 +171,6 @@ export default function Categories() {
     return Object.keys(e).length === 0;
   }, []);
 
-  // ── Bulk ────────────────────────────────────────────────
   const clearSelection = useCallback(() => {
     setSelectedIds(new Set());
     setDeleteConfirm(null);
@@ -230,7 +210,6 @@ export default function Categories() {
     } finally { setBulkProcessing(false); }
   }, [selectedIds, clearSelection, loadCategories]);
 
-  // ── CRUD ────────────────────────────────────────────────
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
     if (!validateForm(form)) return;
@@ -269,20 +248,17 @@ export default function Categories() {
     }
   }, [loadCategories]);
 
-  // ── Derived ─────────────────────────────────────────────
   const filtered = useMemo(() => {
     return categories.filter(c => !search || (c.name || '').toLowerCase().includes(search.toLowerCase()));
   }, [categories, search]);
 
   const totalProducts = useMemo(() => categories.reduce((sum, c) => sum + (c.product_count || 0), 0), [categories]);
-
   const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
   const safePage = Math.min(page, totalPages);
   const paginated = useMemo(() => {
     const start = (safePage - 1) * PER_PAGE;
     return filtered.slice(start, start + PER_PAGE);
   }, [filtered, safePage]);
-
   const allVisibleSelected = paginated.length > 0 && paginated.every(c => selectedIds.has(c.id));
 
   const toggleSelectAll = useCallback(() => {
@@ -292,7 +268,6 @@ export default function Categories() {
 
   const getSelectedProducts = useCallback(() => categories.filter(c => selectedIds.has(c.id)), [categories, selectedIds]);
 
-  // ── Pagination ──────────────────────────────────────────
   const paginationButtons = useMemo(() => {
     if (totalPages <= 1) return [];
     const buttons = [];
@@ -302,7 +277,6 @@ export default function Categories() {
     return buttons;
   }, [totalPages, safePage]);
 
-  // ── Loading ─────────────────────────────────────────────
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -316,7 +290,6 @@ export default function Categories() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-fade-in-down">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Kategoriyalar</h1>
@@ -327,7 +300,6 @@ export default function Categories() {
         </button>
       </div>
 
-      {/* Search */}
       <div className="card animate-fade-in-up stagger-1">
         <div className="relative">
           <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -335,7 +307,6 @@ export default function Categories() {
         </div>
       </div>
 
-      {/* Bulk toolbar */}
       {selectedIds.size > 0 && (
         <div className="rounded-2xl border border-indigo-200 dark:border-indigo-800 bg-indigo-50/80 dark:bg-indigo-900/10 p-3 sm:p-4 shadow-sm animate-fade-in">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
@@ -361,7 +332,6 @@ export default function Categories() {
         </div>
       )}
 
-      {/* Table */}
       {paginated.length === 0 ? (
         <div className="card text-center py-12">
           <HiOutlineTableCells className="w-12 h-12 mx-auto text-gray-300 dark:text-gray-600 mb-3" />
@@ -371,37 +341,46 @@ export default function Categories() {
           </button>
         </div>
       ) : (
-        <div className="card animate-fade-in-up stagger-1">
+        <div className="card animate-fade-in-up stagger-1 p-0 overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm table-fixed">
+              <colgroup>
+                <col className="w-10" />
+                <col />
+                <col className="w-24 sm:w-28" />
+                <col className="w-24 hidden sm:table-column" />
+                <col className="w-28 sm:w-32" />
+              </colgroup>
               <thead>
                 <tr className="text-left text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-800">
-                  <th className="pb-3 font-medium w-8">
+                  <th className="px-4 pt-4 pb-3 font-medium">
                     <input type="checkbox" checked={allVisibleSelected} onChange={toggleSelectAll} className="w-5 h-5 rounded border-gray-300 text-indigo-600" />
                   </th>
-                  <th className="pb-3 font-medium min-w-[160px]">Nomi</th>
-                  <th className="pb-3 font-medium text-right">Mahsulotlar</th>
-                  <th className="pb-3 font-medium hidden sm:table-cell">Yaratilgan</th>
-                  <th className="pb-3 font-medium text-right">Amallar</th>
+                  <th className="px-4 pt-4 pb-3 font-medium">Nomi</th>
+                  <th className="px-4 pt-4 pb-3 font-medium text-right">Mahsulotlar</th>
+                  <th className="px-4 pt-4 pb-3 font-medium text-center hidden sm:table-cell">Yaratilgan</th>
+                  <th className="px-4 pt-4 pb-3 font-medium text-right">Amallar</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
                 {paginated.map((cat) => (
                   <tr key={cat.id} className={`hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors ${selectedIds.has(cat.id) ? 'bg-indigo-50/50 dark:bg-indigo-900/10' : ''}`}>
-                    <td className="py-3">
+                    <td className="px-4 py-3 align-middle">
                       <input type="checkbox" checked={selectedIds.has(cat.id)} onChange={() => toggleSelect(cat.id)} className="w-5 h-5 rounded border-gray-300 text-indigo-600" />
                     </td>
-                    <td className="py-3">
+                    <td className="px-4 py-3 align-middle">
                       <div className="flex items-center gap-3">
-                        <div className="min-w-0">
-                          <p className="font-semibold text-gray-900 dark:text-white">{cat.name}</p>
-                          {cat.description && <p className="text-xs text-gray-400 truncate max-w-[200px]">{cat.description}</p>}
+                        <div className="min-w-0 flex-1">
+                          <p className="font-semibold text-gray-900 dark:text-white truncate">{cat.name}</p>
+                          {cat.description && <p className="text-xs text-gray-400 truncate max-w-full">{cat.description}</p>}
                         </div>
                       </div>
                     </td>
-                    <td className="py-3 text-right font-semibold text-gray-900 dark:text-white">{cat.product_count ?? 0}</td>
-                    <td className="py-3 text-gray-400 text-xs font-mono hidden sm:table-cell">{formatDate(cat.created_at)}</td>
-                    <td className="py-3 text-right">
+                    <td className="px-4 py-3 align-middle text-right font-semibold text-gray-900 dark:text-white whitespace-nowrap">{cat.product_count ?? 0}</td>
+                    <td className="px-4 py-3 align-middle text-center hidden sm:table-cell">
+                      <span className="inline-block text-gray-400 text-xs font-mono whitespace-nowrap bg-gray-50 dark:bg-gray-700/50 px-2 py-0.5 rounded-md">{formatDate(cat.created_at)}</span>
+                    </td>
+                    <td className="px-4 py-3 align-middle text-right whitespace-nowrap">
                       <div className="flex items-center justify-end gap-1">
                         <button onClick={() => { loadAllProducts(); setAddProductsCat(cat); }} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 transition-colors" title="Mahsulot qo'shish">
                           <HiOutlineShoppingCart className="w-4 h-4" />
@@ -419,10 +398,8 @@ export default function Categories() {
               </tbody>
             </table>
           </div>
-
-          {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
+            <div className="flex items-center justify-between px-4 pb-4 pt-4 border-t border-gray-100 dark:border-gray-800">
               <p className="text-sm text-gray-500">Sahifa {safePage} / {totalPages} ({filtered.length} ta)</p>
               <div className="flex gap-1">
                 <button disabled={safePage <= 1} onClick={() => setPage(safePage - 1)} className="px-3 py-1 rounded-lg text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 disabled:opacity-50 transition-colors">Oldingi</button>
@@ -436,7 +413,6 @@ export default function Categories() {
         </div>
       )}
 
-      {/* ── Single delete modal ──────────────────────────── */}
       {deleteConfirm && !deleteConfirm.bulk && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm modal-overlay" onClick={() => setDeleteConfirm(null)} />
@@ -453,16 +429,13 @@ export default function Categories() {
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-3">Bu amalni bekor qilib bo'lmaydi. Davom etasizmi?</p>
               <div className="flex justify-center gap-3 mt-6">
                 <button onClick={() => setDeleteConfirm(null)} className="flex-1 btn-secondary">Bekor qilish</button>
-                <button onClick={() => handleDelete(deleteConfirm)} className="flex-1 bg-gradient-to-r from-red-500 to-red-600 text-white px-4 py-2.5 rounded-lg font-semibold hover:from-red-600 hover:to-red-700 transition-all shadow-lg shadow-red-500/25 active:scale-[0.98]">
-                  O'chirish
-                </button>
+                <button onClick={() => handleDelete(deleteConfirm)} className="flex-1 bg-gradient-to-r from-red-500 to-red-600 text-white px-4 py-2.5 rounded-lg font-semibold hover:from-red-600 hover:to-red-700 transition-all shadow-lg shadow-red-500/25 active:scale-[0.98]">O'chirish</button>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* ── Bulk delete modal ────────────────────────────── */}
       {deleteConfirm?.bulk && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm modal-overlay" onClick={clearSelection} />
@@ -484,16 +457,13 @@ export default function Categories() {
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-3">Bu amalni bekor qilib bo'lmaydi. Davom etasizmi?</p>
               <div className="flex justify-center gap-3 mt-6">
                 <button onClick={clearSelection} disabled={bulkProcessing} className="flex-1 btn-secondary disabled:opacity-50">Bekor qilish</button>
-                <button onClick={handleBulkDelete} disabled={bulkProcessing} className="flex-1 bg-gradient-to-r from-red-500 to-red-600 text-white px-4 py-2.5 rounded-lg font-semibold hover:from-red-600 hover:to-red-700 transition-all shadow-lg shadow-red-500/25 active:scale-[0.98] disabled:opacity-50">
-                  {bulkProcessing ? "O'chirilmoqda..." : "O'chirish"}
-                </button>
+                <button onClick={handleBulkDelete} disabled={bulkProcessing} className="flex-1 bg-gradient-to-r from-red-500 to-red-600 text-white px-4 py-2.5 rounded-lg font-semibold hover:from-red-600 hover:to-red-700 transition-all shadow-lg shadow-red-500/25 active:scale-[0.98] disabled:opacity-50">{bulkProcessing ? "O'chirilmoqda..." : "O'chirish"}</button>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* ── Add Products modal ───────────────────────────── */}
       {addProductsCat && (
         <AddProductsModal
           category={addProductsCat}
@@ -503,7 +473,6 @@ export default function Categories() {
         />
       )}
 
-      {/* ── Create / Edit modal ──────────────────────────── */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm modal-overlay" onClick={closeModal} />
