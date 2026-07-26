@@ -1380,31 +1380,58 @@ if (!process.env.VERCEL) {
   console.log(`🔔 Xabarnoma boti: https://t.me/klentlarchek_bot`);
 }
 
-async function startBot() {
+async function startBot(retryCount = 0) {
   if (!process.env.VERCEL) {
     try {
-      await bot.deleteWebHook({ drop_pending_updates: true });
+      // Always delete webhook first to clear any stale connections
+      try {
+        const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/deleteWebhook`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ drop_pending_updates: true }),
+        });
+        const data = await res.json();
+        console.log('🔌 Webhook status:', data.ok ? 'deleted' : 'failed');
+      } catch (whErr) {
+        console.log('🔌 Webhook delete error:', whErr.message);
+      }
+      // Small delay to ensure webhook is fully cleared
+      await new Promise(r => setTimeout(r, 1000));
       bot.startPolling({ restart: true });
       console.log('✅ Bot polling boshlandi');
     } catch (err) {
       console.error('❌ Bot polling xatosi:', err.message);
       if (err.message.includes('409 Conflict')) {
-        console.log('⚠️ Boshqa polling instansiyasi ishlayapti. Bu dastur to\'xtatilgan.');
-        process.exit(1);
+        console.log('⚠️ 409 Conflict - kutish va qayta urinish...');
+        const delay = Math.min(5000 * (retryCount + 1), 30000);
+        console.log(`⏳ ${delay/1000} soniyadan keyin qayta urinish (${retryCount + 1}/5)...`);
+        if (retryCount < 5) {
+          setTimeout(() => startBot(retryCount + 1), delay);
+        } else {
+          console.log('❌ 5 marta urinish muvaffaqiyatsiz. Bot to\'xtatildi.');
+        }
+      } else {
+        const delay = Math.min(5000 * (retryCount + 1), 30000);
+        setTimeout(() => startBot(retryCount + 1), delay);
       }
-      setTimeout(startBot, 5000);
     }
   }
 }
 
+let pollingErrorCount = 0;
 bot.on('polling_error', (err) => {
   console.error('🔴 Polling xatosi:', err.message);
   if (err.message.includes('409 Conflict')) {
-    console.log('⚠️ Boshqa polling instansiyasi ishlayapti. Bu dastur to\'xtatilgan.');
-    console.log('   PM2 orqali 24/7 ishga tushirilgan bot allaqachon ishlayapti.');
-    process.exit(0);
+    pollingErrorCount++;
+    if (pollingErrorCount > 3) {
+      console.log('⚠️ 409 Conflict - webhook tozalanmoqda va qayta ishga tushirilmoqda...');
+      pollingErrorCount = 0;
+      setTimeout(() => startBot(0), 2000);
+    }
+  } else {
+    pollingErrorCount = 0;
+    setTimeout(startBot, 3000);
   }
-  setTimeout(startBot, 3000);
 });
 
 bot.on('webhook_error', (err) => console.error('Webhook xatosi:', err.message));

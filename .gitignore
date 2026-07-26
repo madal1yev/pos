@@ -12,3 +12,4 @@ start-backend.bat
 *.db-shm
 *.db-wal
 .aider*
+.vercel
