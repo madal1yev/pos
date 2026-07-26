@@ -1,0 +1,10 @@
+{
+  "name": "pos-system",
+  "version": "1.0.0",
+  "description": "POS System with Telegram Bot",
+  "scripts": {
+    "start": "cd backend && node src/server.js",
+    "build": "cd backend && npm install",
+    "postinstall": "cd backend && npm install"
+  }
+}
