@@ -110,6 +110,31 @@ exports.remove = async (req, res, next) => {
   }
 };
 
+exports.bulkStatus = async (req, res, next) => {
+  try {
+    const { ids, status } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ error: 'Ids array is required' });
+    }
+    if (!['active', 'inactive'].includes(status)) {
+      return res.status(400).json({ error: 'Status must be active or inactive' });
+    }
+    const nowExpr = db.isSqlite ? "datetime('now')" : 'NOW()';
+    const uniqueIds = [...new Set(ids.map(Number).filter(id => Number.isInteger(id) && id > 0))];
+    let updated = 0;
+    for (const id of uniqueIds) {
+      await db.query(
+        `UPDATE categories SET status = $1, updated_at = ${nowExpr} WHERE id = $2`,
+        [status, id]
+      );
+      updated++;
+    }
+    res.json({ success: true, updated });
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.bulkDelete = async (req, res, next) => {
   try {
     const { ids } = req.body;

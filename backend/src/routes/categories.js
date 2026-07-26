@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
-const { getAll, create, update, remove, bulkDelete, reorder, exportCsv, importCsv } = require('../controllers/categoryController');
+const { getAll, create, update, remove, bulkDelete, bulkStatus, reorder, exportCsv, importCsv } = require('../controllers/categoryController');
 const { auth } = require('../middleware/auth');
 const { validate } = require('../middleware/validate');
 const { categorySchema } = require('../validators/schemas');
@@ -15,6 +15,7 @@ router.post('/', validate(categorySchema), create);
 router.put('/:id', validate(categorySchema.partial()), update);
 router.delete('/:id', remove);
 router.post('/bulk-delete', bulkDelete);
+router.post('/bulk-status', bulkStatus);
 router.patch('/reorder', reorder);
 router.get('/export-csv', exportCsv);
 router.post('/import-csv', upload.single('file'), importCsv);

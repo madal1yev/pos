@@ -106,6 +106,7 @@ if (DATABASE_URL) {
   // Auto-migration: add missing columns
   function autoMigrate() {
     const migrations = [
+      { table: 'categories', column: 'status', sql: "ALTER TABLE categories ADD COLUMN status TEXT DEFAULT 'active'" },
       { table: 'sales', column: 'delivery_address', sql: "ALTER TABLE sales ADD COLUMN delivery_address TEXT" },
       { table: 'settings', column: 'admin_telegram', sql: "ALTER TABLE settings ADD COLUMN admin_telegram TEXT" },
     ];
