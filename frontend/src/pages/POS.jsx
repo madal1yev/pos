@@ -640,7 +640,7 @@ export default function POS() {
   return (
     <div className="h-[calc(100vh-4rem)] sm:h-[calc(100vh-8rem)] flex flex-col lg:flex-row gap-4 animate-fade-in pb-20 lg:pb-0">
       <div className="flex-1 flex flex-col min-w-0 order-1">
-        <div className="card flex-1 flex flex-col">
+        <div className="card flex flex-col h-full">
           <div className="flex flex-col sm:flex-row gap-2 mb-4">
             <div className="relative flex-1">
               <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -655,17 +655,19 @@ export default function POS() {
               </button>
             </div>
           </div>
-          <div className="flex-1 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3 gap-2">
+          <div className="flex-1 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3 gap-3 auto-rows-fr">
             {products.map((product, i) => (
-              <button key={product.id} onClick={() => setQuantityProduct(product)} className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-150 text-center hover:shadow-md border border-gray-100 dark:border-gray-700/50" style={{ animationDelay: `${i * 0.02}s` }}>
-                <POSImage src={product.image_url} name={product.name} size="w-14 h-14" />
-                <div className="w-full min-w-0">
-                  <p className="text-xs font-semibold text-gray-900 dark:text-white leading-tight break-words line-clamp-2 min-h-[2rem]">{product.name}</p>
-                  <p className="text-[10px] text-gray-400 mt-0.5">{product.product_code}</p>
+              <button key={product.id} onClick={() => setQuantityProduct(product)} className="flex flex-col items-center justify-between gap-2 p-4 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-150 text-center hover:shadow-md border border-gray-100 dark:border-gray-700/50 h-full min-h-[160px] sm:min-h-[180px]" style={{ animationDelay: `${i * 0.02}s` }}>
+                <div className="flex flex-col items-center gap-2 flex-1 justify-center">
+                  <POSImage src={product.image_url} name={product.name} size="w-16 h-16 sm:w-20 sm:h-20" />
+                  <div className="w-full min-w-0">
+                    <p className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white leading-tight break-words line-clamp-2">{product.name}</p>
+                    <p className="text-[10px] text-gray-400 mt-0.5 truncate">{product.product_code}</p>
+                  </div>
                 </div>
-                <div className="w-full flex items-center justify-between gap-1 mt-auto">
-                  <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400">{formatCurrency(product.selling_price)}</span>
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${product.stock_quantity < product.minimum_stock ? 'bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400' : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'}`}>{product.stock_quantity}</span>
+                <div className="w-full flex items-center justify-between gap-1 mt-auto pt-2 border-t border-gray-50 dark:border-gray-700/30">
+                  <span className="text-sm font-bold text-indigo-600 dark:text-indigo-400">{formatCurrency(product.selling_price)}</span>
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${product.stock_quantity === 0 ? 'bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400' : product.stock_quantity < product.minimum_stock ? 'bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400' : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'}`}>{product.stock_quantity}</span>
                 </div>
               </button>
             ))}
