@@ -156,21 +156,18 @@ async function createOrder(chatId, username, firstName, items, totalAmount, deli
   console.log(`📋 Yaratilmoqda: ${invoiceNumber}, summa: ${totalAmount}, manzil: ${deliveryAddress || 'yoq'}`);
 
   try {
+    // Simple INSERT - ORIGINAL WORKING VERSION
     const saleResult = await db.query(
-      `INSERT INTO sales (invoice_number, customer_name, total_amount, payment_method, received_amount, change_amount, notes, delivery_address) VALUES ($1, $2, $3, 'telegram', $3, 0, $4, $5) RETURNING *`,
+      `INSERT INTO sales (invoice_number, customer_name, total_amount, payment_method, received_amount, change_amount, notes, delivery_address)
+       VALUES ($1, $2, $3, 'telegram', $3, 0, $4, $5) RETURNING *`,
       [invoiceNumber, username ? `@${username}` : firstName || 'Telegram foydalanuvchi', totalAmount, notes, deliveryAddress || null]
     );
 
     if (!saleResult || !saleResult.rows || !saleResult.rows[0]) {
-      throw new Error('Sale creation failed - no rows returned');
+      throw new Error('Savdo yaratilmadi');
     }
 
     const sale = saleResult.rows[0];
-
-    if (!sale.id) {
-      throw new Error('Sale created but has no ID');
-    }
-
     console.log(`✅ Savdo yaratildi: ID=${sale.id}, invoice=${invoiceNumber}`);
 
     for (const item of items) {
@@ -847,20 +844,106 @@ bot.on('callback_query', async (query) => {
         let text = t(lang, 'myOrders_title') + '\n\n';
         orders.forEach((o, i) => {
           const date = new Date(o.created_at).toLocaleString('uz-UZ');
-          text += `${i + 1}. \`${o.invoice_number}\`\n`;
+          const status = o.sale_type === 'voided' ? '❌ Bekor' : '✅ Yangi';
+          text += `${i + 1}. \`${o.invoice_number}\` ${status}\n`;
           text += `   💰 ${formatCurrency(o.total_amount)}\n`;
-          text += `   📅 ${date}\n`;
-          const hasDelivery = o.notes?.includes('Yetkazib berish');
-          text += `   ${hasDelivery ? '🚚' : '🏪'} ${hasDelivery ? 'Yetkazib berish' : 'Olib ketish'}\n\n`;
+          text += `   📅 ${date}\n\n`;
         });
+        const buttons = [];
+        orders.forEach((o) => {
+          if (o.sale_type !== 'voided') {
+            buttons.push([{ text: t(lang, 'cancelOrder'), callback_data: `cancel_order_${o.id}` }]);
+          }
+        });
+        buttons.push([{ text: t(lang, 'backMain'), callback_data: 'start' }]);
         await safeEdit(chatId, query.message.message_id, text, {
-          reply_markup: { inline_keyboard: [[{ text: t(lang, 'backMain'), callback_data: 'start' }]] }
+          reply_markup: { inline_keyboard: buttons }
         });
       } catch (err) {
         await safeEdit(chatId, query.message.message_id, t(lang, 'errorOccurred'), {
           reply_markup: { inline_keyboard: [[{ text: t(lang, 'backMain'), callback_data: 'start' }]] }
         });
       }
+      return;
+    }
+
+    if (data.startsWith('cancel_order_confirm_')) {
+      const saleId = parseInt(data.replace('cancel_order_confirm_', ''));
+      try {
+        // Find the sale
+        const saleResult = await db.query('SELECT * FROM sales WHERE id = $1', [saleId]);
+        if (saleResult.rows.length === 0) {
+          await safeEdit(chatId, query.message.message_id, t(lang, 'cancelFail'), {
+            reply_markup: { inline_keyboard: [[{ text: t(lang, 'backMain'), callback_data: 'start' }]] }
+          });
+          return;
+        }
+        const saleData = saleResult.rows[0];
+        
+        // Already cancelled check
+        if (saleData.sale_type === 'voided' || saleData.sale_type === 'fully_refunded') {
+          await safeEdit(chatId, query.message.message_id, '✅ Buyurtma allaqachon bekor qilingan', {
+            reply_markup: { inline_keyboard: [[{ text: t(lang, 'backMain'), callback_data: 'start' }]] }
+          });
+          return;
+        }
+        
+        // Restore stock
+        const items = await db.query(
+          `SELECT si.*, p.stock_quantity as current_stock FROM sale_items si
+           LEFT JOIN products p ON si.product_id = p.id
+           WHERE si.sale_id = $1`, [saleId]
+        );
+        
+        const nowExpr = db.isSqlite ? "datetime('now')" : 'NOW()';
+        for (const item of items.rows) {
+          const newStock = (item.current_stock || 0) + item.quantity;
+          await db.query(`UPDATE products SET stock_quantity = $1, updated_at = ${nowExpr} WHERE id = $2`, [newStock, item.product_id]);
+          await db.query(
+            `INSERT INTO inventory_logs (product_id, change_type, quantity, previous_stock, new_stock, note, created_by)
+             VALUES ($1, 'void', $2, $3, $4, $5, 1)`,
+            [item.product_id, item.quantity, item.current_stock || 0, newStock,
+              `Mijoz tomonidan bekor qilindi: ${saleData.invoice_number}`]
+          );
+        }
+        
+        await db.query(`UPDATE sales SET sale_type = 'voided', notes = COALESCE(notes || '', '') || ' | Mijoz bekor qildi: ' || ${nowExpr} WHERE id = $1`, [saleId]);
+        
+        // Notify admin
+        if (ADMIN_CHAT_ID) {
+          try {
+            await safeSend(ADMIN_CHAT_ID,
+              `❌ *BUYURTMA MIJOZ TOMONIDAN BEKOR QILINDI*\n\n` +
+              `📋 Chek: \`${saleData.invoice_number}\`\n` +
+              `💰 Summa: ${formatCurrency(saleData.total_amount)}\n` +
+              `👤 Mijoz: ${escMd(saleData.customer_name || '')}\n` +
+              `⏰ ${new Date().toLocaleString('uz-UZ', { timeZone: 'Asia/Tashkent' })}`
+            );
+          } catch (notifErr) {}
+        }
+        
+        await safeEdit(chatId, query.message.message_id, '✅ ' + t(lang, 'cancelled'), {
+          reply_markup: { inline_keyboard: [[{ text: t(lang, 'newOrderBtn'), callback_data: 'start' }]] }
+        });
+      } catch (err) {
+        console.error('❌ Cancel order error:', err.message);
+        await safeEdit(chatId, query.message.message_id, t(lang, 'cancelFail'), {
+          reply_markup: { inline_keyboard: [[{ text: t(lang, 'backMain'), callback_data: 'start' }]] }
+        });
+      }
+      return;
+    }
+
+    if (data.startsWith('cancel_order_')) {
+      const saleId = parseInt(data.replace('cancel_order_', ''));
+      await safeEdit(chatId, query.message.message_id, t(lang, 'cancelConfirm'), {
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '✅ Ha, bekor qilish', callback_data: `cancel_order_confirm_${saleId}` }],
+            [{ text: t(lang, 'back'), callback_data: 'show_myorders' }],
+          ],
+        },
+      });
       return;
     }
 

@@ -40,7 +40,17 @@ module.exports = async (req, res) => {
         `CREATE TABLE IF NOT EXISTS inventory_logs (id SERIAL PRIMARY KEY, product_id INTEGER REFERENCES products(id) ON DELETE SET NULL, change_type VARCHAR(30) NOT NULL, quantity INTEGER NOT NULL, previous_stock INTEGER DEFAULT 0, new_stock INTEGER DEFAULT 0, note TEXT, created_by INTEGER REFERENCES users(id) ON DELETE SET NULL, created_at TIMESTAMP DEFAULT NOW())`,
         `CREATE TABLE IF NOT EXISTS customers (id SERIAL PRIMARY KEY, name VARCHAR(200) NOT NULL, phone VARCHAR(30), email VARCHAR(100), address TEXT, type VARCHAR(20) DEFAULT 'regular', tax_id VARCHAR(50), notes TEXT, total_purchases DECIMAL(14,2) DEFAULT 0, total_paid DECIMAL(14,2) DEFAULT 0, debt DECIMAL(14,2) DEFAULT 0, bonus_points INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW())`,
         `CREATE TABLE IF NOT EXISTS suppliers (id SERIAL PRIMARY KEY, name VARCHAR(200) NOT NULL, phone VARCHAR(30), email VARCHAR(100), address TEXT, contact_person VARCHAR(200), tax_id VARCHAR(50), notes TEXT, total_purchases DECIMAL(14,2) DEFAULT 0, total_paid DECIMAL(14,2) DEFAULT 0, debt DECIMAL(14,2) DEFAULT 0, created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW())`,
-        `CREATE TABLE IF NOT EXISTS settings (id SERIAL PRIMARY KEY, store_name VARCHAR(100) DEFAULT 'My Store', store_address TEXT, store_phone VARCHAR(30), store_email VARCHAR(100), logo_url TEXT, admin_telegram TEXT DEFAULT '', currency VARCHAR(10) DEFAULT 'UZS', currency_symbol VARCHAR(10) DEFAULT 'so''m', tax_percentage DECIMAL(5,2) DEFAULT 0, receipt_header TEXT, receipt_footer TEXT, low_stock_threshold INTEGER DEFAULT 10, created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW())`
+        `CREATE TABLE IF NOT EXISTS settings (id SERIAL PRIMARY KEY, store_name VARCHAR(100) DEFAULT 'My Store', store_address TEXT, store_phone VARCHAR(30), store_email VARCHAR(100), logo_url TEXT, admin_telegram TEXT DEFAULT '', currency VARCHAR(10) DEFAULT 'UZS', currency_symbol VARCHAR(10) DEFAULT 'so''m', tax_percentage DECIMAL(5,2) DEFAULT 0, receipt_header TEXT, receipt_footer TEXT, low_stock_threshold INTEGER DEFAULT 10, smtp_host TEXT, smtp_port INTEGER DEFAULT 587, created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW())`,
+        // New tables for enhanced POS
+        `CREATE TABLE IF NOT EXISTS shifts (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id) ON DELETE SET NULL, opened_at TIMESTAMP DEFAULT NOW(), closed_at TIMESTAMP, opening_cash DECIMAL(12,2) DEFAULT 0, closing_cash DECIMAL(12,2), expected_cash DECIMAL(12,2), cash_difference DECIMAL(12,2), total_sales DECIMAL(12,2) DEFAULT 0, total_transactions INTEGER DEFAULT 0, status VARCHAR(20) DEFAULT 'open', notes TEXT, opened_by_name TEXT)`,
+        `CREATE TABLE IF NOT EXISTS audit_logs (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id) ON DELETE SET NULL, username VARCHAR(100), action VARCHAR(50) NOT NULL, entity_type VARCHAR(50), entity_id INTEGER, old_value TEXT, new_value TEXT, ip_address VARCHAR(50), created_at TIMESTAMP DEFAULT NOW())`,
+        `CREATE TABLE IF NOT EXISTS refunds (id SERIAL PRIMARY KEY, sale_id INTEGER REFERENCES sales(id) ON DELETE CASCADE, user_id INTEGER REFERENCES users(id) ON DELETE SET NULL, refund_amount DECIMAL(12,2) NOT NULL, reason TEXT, status VARCHAR(20) DEFAULT 'completed', created_at TIMESTAMP DEFAULT NOW())`,
+        `CREATE TABLE IF NOT EXISTS refund_items (id SERIAL PRIMARY KEY, refund_id INTEGER REFERENCES refunds(id) ON DELETE CASCADE, product_id INTEGER REFERENCES products(id) ON DELETE SET NULL, quantity INTEGER NOT NULL, price DECIMAL(12,2) NOT NULL, subtotal DECIMAL(12,2) NOT NULL)`,
+        `CREATE TABLE IF NOT EXISTS discounts (id SERIAL PRIMARY KEY, name VARCHAR(200) NOT NULL, type VARCHAR(20) NOT NULL DEFAULT 'percentage', value DECIMAL(12,2) NOT NULL, min_purchase DECIMAL(12,2) DEFAULT 0, max_discount DECIMAL(12,2), start_date TIMESTAMP, end_date TIMESTAMP, is_active BOOLEAN DEFAULT true, created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW())`,
+        `CREATE TABLE IF NOT EXISTS promo_codes (id SERIAL PRIMARY KEY, code VARCHAR(50) UNIQUE NOT NULL, discount_id INTEGER REFERENCES discounts(id) ON DELETE CASCADE, max_uses INTEGER DEFAULT 0, current_uses INTEGER DEFAULT 0, is_active BOOLEAN DEFAULT true, created_at TIMESTAMP DEFAULT NOW())`,
+        `CREATE TABLE IF NOT EXISTS product_variants (id SERIAL PRIMARY KEY, product_id INTEGER REFERENCES products(id) ON DELETE CASCADE, name VARCHAR(100) NOT NULL, sku VARCHAR(50), price DECIMAL(12,2), stock_quantity INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT NOW())`,
+        `CREATE TABLE IF NOT EXISTS combo_items (id SERIAL PRIMARY KEY, product_id INTEGER REFERENCES products(id) ON DELETE CASCADE, combo_id INTEGER REFERENCES products(id) ON DELETE CASCADE, quantity INTEGER DEFAULT 1, created_at TIMESTAMP DEFAULT NOW())`,
+        `CREATE TABLE IF NOT EXISTS backups (id SERIAL PRIMARY KEY, filename TEXT, filepath TEXT, size_bytes INTEGER, status VARCHAR(20) DEFAULT 'completed', created_at TIMESTAMP DEFAULT NOW())`
       ];
       
       for (const sql of tables) {
@@ -49,6 +59,19 @@ module.exports = async (req, res) => {
         } catch (e) {
           console.error('Table error:', e.message);
         }
+      }
+      
+      // Add missing columns to existing tables
+      const alterStatements = [
+        "ALTER TABLE sales ADD COLUMN IF NOT EXISTS shift_id INTEGER",
+        "ALTER TABLE sales ADD COLUMN IF NOT EXISTS sale_type VARCHAR(20) DEFAULT 'sale'",
+        "ALTER TABLE sales ADD COLUMN IF NOT EXISTS discount_id INTEGER",
+        "ALTER TABLE sales ADD COLUMN IF NOT EXISTS promo_code VARCHAR(50)",
+        "ALTER TABLE products ADD COLUMN IF NOT EXISTS has_variants BOOLEAN DEFAULT false",
+        "ALTER TABLE products ADD COLUMN IF NOT EXISTS is_combo BOOLEAN DEFAULT false",
+      ];
+      for (const sql of alterStatements) {
+        try { await db.query(sql); } catch (e) { /* ignore if exists */ }
       }
       
       // Indexes

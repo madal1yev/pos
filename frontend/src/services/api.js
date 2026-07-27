@@ -92,6 +92,7 @@ export const salesAPI = {
   getById: (id) => api.get(`/sales/${id}`),
   create: (data) => api.post('/sales', data),
   getInvoice: (id) => api.get(`/sales/${id}/invoice`),
+  cancelOrder: (id, reason) => api.post(`/sales/${id}/cancel`, { reason }),
 };
 
 // Reports
@@ -139,6 +140,54 @@ export const bulkAPI = {
   deleteProducts: (ids) => api.post('/bulk/bulk-delete-products', { ids }),
   importCSV: (formData) => api.post('/bulk/import-csv', formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
   exportCSV: () => api.get('/bulk/export-csv', { responseType: 'blob' }),
+};
+
+// Shifts (Smena)
+export const shiftsAPI = {
+  getAll: (params) => api.get('/shifts', { params }),
+  getById: (id) => api.get(`/shifts/${id}`),
+  getActive: () => api.get('/shifts/active'),
+  open: (data) => api.post('/shifts/open', data),
+  close: (id, data) => api.post(`/shifts/${id}/close`, data),
+  getZReport: (id) => api.get(`/shifts/${id}/z-report`),
+};
+
+// Refunds
+export const refundsAPI = {
+  getAll: (params) => api.get('/refunds', { params }),
+  getById: (id) => api.get(`/refunds/${id}`),
+  getBySaleId: (saleId) => api.get(`/refunds/by-sale/${saleId}`),
+  create: (data) => api.post('/refunds', data),
+};
+
+// Discounts & Promo Codes
+export const discountsAPI = {
+  getAll: (params) => api.get('/discounts', { params }),
+  getById: (id) => api.get(`/discounts/${id}`),
+  create: (data) => api.post('/discounts', data),
+  update: (id, data) => api.put(`/discounts/${id}`, data),
+  delete: (id) => api.delete(`/discounts/${id}`),
+  getPromoCodes: () => api.get('/discounts/promo-codes'),
+  createPromoCode: (data) => api.post('/discounts/promo-codes', data),
+  validatePromo: (data) => api.post('/discounts/validate-promo', data),
+};
+
+// Inventory / Stock Ledger
+export const inventoryAPI = {
+  getLedger: (productId, params) => api.get(`/inventory/ledger/${productId}`, { params }),
+  getMovements: (params) => api.get('/inventory/movements', { params }),
+  adjust: (data) => api.post('/inventory/adjust', data),
+  getSummary: () => api.get('/inventory/summary'),
+};
+
+// Profit/Loss Reports
+export const reportsAPI_extended = {
+  profitLoss: (params) => api.get('/reports/profit-loss', { params }),
+};
+
+// Audit Logs
+export const auditAPI = {
+  getAll: (params) => api.get('/audit-logs', { params }),
 };
 
 export default api;

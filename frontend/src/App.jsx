@@ -13,6 +13,9 @@ import Reports from './pages/Reports';
 import Settings from './pages/Settings';
 import Profile from './pages/Profile';
 import Categories from './pages/Categories';
+import Shifts from './pages/Shifts';
+import Discounts from './pages/Discounts';
+import Refunds from './pages/Refunds';
 import PWAInstall from './components/PWAInstall';
 import ErrorBoundary from './components/ErrorBoundary';
 import { useDarkMode } from './hooks/useDarkMode';
@@ -43,6 +46,9 @@ function App() {
             <Route path="reports" element={<Reports />} />
             <Route path="settings" element={<Settings />} />
             <Route path="categories" element={<Categories />} />
+            <Route path="shifts" element={<Shifts />} />
+            <Route path="discounts" element={<Discounts />} />
+            <Route path="refunds" element={<Refunds />} />
             <Route path="profile" element={<Profile />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />

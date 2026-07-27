@@ -45,10 +45,13 @@ const saleItemSchema = z.object({
 
 const saleSchema = z.object({
   customer_name: z.string().optional(),
-  payment_method: z.enum(['cash', 'card', 'other']),
+  payment_method: z.enum(['cash', 'card', 'other', 'debt', 'telegram']),
   received_amount: z.coerce.number().min(0),
   items: z.array(saleItemSchema).min(1, 'At least one item is required'),
   notes: z.string().optional(),
+  delivery_address: z.string().optional(),
+  shift_id: z.coerce.number().int().optional(),
+  promo_code: z.string().optional(),
 });
 
 const settingsSchema = z.object({

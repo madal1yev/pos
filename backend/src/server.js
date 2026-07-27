@@ -43,6 +43,7 @@ try {
 }
 
 const klentBot = require('./klentBot');
+const { startBackupScheduler } = require('./services/backupScheduler');
 
 // Botlarni yuklaymiz
 let botModule = null;
@@ -51,6 +52,15 @@ try {
   console.log('🤖 Bot module yuklandi');
 } catch (err) {
   console.log('⚠️ Bot module yuklanmadi:', err.message);
+}
+
+// Backup scheduler (faqat lokal, Vercel emas)
+if (!process.env.VERCEL) {
+  try {
+    startBackupScheduler();
+  } catch (err) {
+    console.log('⚠️ Backup scheduler yuklanmadi:', err.message);
+  }
 }
 
 const authRoutes = require('./routes/auth');
@@ -64,6 +74,12 @@ const customerRoutes = require('./routes/customers');
 const supplierRoutes = require('./routes/suppliers');
 const bulkRoutes = require('./routes/bulk');
 const uploadRoutes = require('./routes/upload');
+const userRoutes = require('./routes/users');
+const shiftRoutes = require('./routes/shifts');
+const refundRoutes = require('./routes/refunds');
+const discountRoutes = require('./routes/discounts');
+const auditRoutes = require('./routes/audit');
+const inventoryRoutes = require('./routes/inventory');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -128,6 +144,12 @@ app.use('/api/customers', customerRoutes);
 app.use('/api/suppliers', supplierRoutes);
 app.use('/api/bulk', bulkRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/shifts', shiftRoutes);
+app.use('/api/refunds', refundRoutes);
+app.use('/api/discounts', discountRoutes);
+app.use('/api/audit-logs', auditRoutes);
+app.use('/api/inventory', inventoryRoutes);
 
 // Data overview endpoint — barcha buyurtmalar va mahsulotlarni ko'rish
 app.get('/api/data/overview', async (req, res) => {

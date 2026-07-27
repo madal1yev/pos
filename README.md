@@ -201,7 +201,47 @@ The POS page supports two scanning methods:
 
 Scanned barcodes automatically lookup the product and add to cart.
 
+## Vercel Deployment
+
+Bu loyiha Vercel'ga deploy qilingan. Frontend quyidagi linkda:
+
+**🔗 https://frontend-smoky-three-96.vercel.app/**
+
+### Vercel'ga push qilish
+
+Loyiha birinchi marta ulanyotgan bo'lsa:
+```bash
+cd frontend
+npx vercel link --project frontend-smoky-three-96
+```
+
+Har safar o'zgarishlarni deploy qilish uchun:
+```bash
+cd frontend
+npx vercel --prod
+```
+
+> **Muhim:** Faqat yuqoridagi linkdagi loyihaga (frontend-smoky-three-96) deploy qiling. Boshqa Vercel loyihalariga adashib push qilmang!
+
+### Telegram Bot 24/7 ishlashi
+
+Telegram botning uzluksiz ishlashi uchun backend server doimiy ishga tushgan bo'lishi kerak:
+
+**Serverda (Railway/Render/Heroku yoki VPS):**
+```bash
+cd backend
+npm start
+```
+
+**O'z serveringizda pm2 bilan:**
+```bash
+cd backend
+npm install -g pm2
+pm2 start src/server.js --name pos-backend
+pm2 save
+pm2 startup
+```
+
 ## License
 
 MIT
-# pos

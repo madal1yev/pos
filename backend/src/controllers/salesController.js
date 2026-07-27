@@ -103,8 +103,20 @@ exports.getById = async (req, res, next) => {
 
 exports.create = async (req, res, next) => {
   try {
-    const { customer_name, payment_method, received_amount, items, notes, delivery_address } = req.body;
+    const { customer_name, payment_method, received_amount, items, notes, delivery_address, shift_id, promo_code } = req.body;
     const invoiceNumber = generateInvoiceNumber();
+
+    // If shift_id not provided, try to get active shift for user
+    let activeShiftId = shift_id;
+    if (!activeShiftId) {
+      const activeShift = await db.query(
+        `SELECT id FROM shifts WHERE user_id = $1 AND status = 'open' LIMIT 1`,
+        [req.user.id]
+      );
+      if (activeShift.rows.length > 0) {
+        activeShiftId = activeShift.rows[0].id;
+      }
+    }
 
     const settingsResult = await db.query('SELECT tax_percentage FROM settings LIMIT 1');
     const taxRate = parseFloat(settingsResult.rows[0]?.tax_percentage || 0) / 100;
@@ -136,13 +148,39 @@ exports.create = async (req, res, next) => {
       totalDiscount += discount;
     }
 
+    // Apply promo code discount if provided
+    let finalDiscount = 0;
+    let appliedPromoId = null;
+    if (promo_code) {
+      const promoResult = await db.query(
+        `SELECT pc.*, d.type, d.value, d.max_discount, d.min_purchase
+         FROM promo_codes pc JOIN discounts d ON pc.discount_id = d.id
+         WHERE pc.code = $1 AND pc.is_active = 1 AND d.is_active = 1`,
+        [promo_code.toUpperCase()]
+      );
+      if (promoResult.rows.length > 0) {
+        const promo = promoResult.rows[0];
+        if (promo.type === 'percentage') {
+          finalDiscount = Math.min(totalAmount * (promo.value / 100), promo.max_discount || totalAmount);
+        } else {
+          finalDiscount = Math.min(promo.value, promo.max_discount || promo.value);
+        }
+        totalAmount = Math.max(0, totalAmount - finalDiscount);
+        appliedPromoId = promo.id;
+
+        // Increment promo usage
+        await db.query(`UPDATE promo_codes SET current_uses = current_uses + 1 WHERE id = $1`, [promo.id]);
+      }
+    }
+
     const changeAmount = Math.max(0, (received_amount || 0) - totalAmount);
 
     const saleResult = await db.query(
-      `INSERT INTO sales (user_id, customer_name, total_amount, payment_method, received_amount, change_amount, invoice_number, notes, delivery_address)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
+      `INSERT INTO sales (user_id, customer_name, total_amount, payment_method, received_amount, change_amount, invoice_number, notes, delivery_address, shift_id, sale_type, promo_code)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'sale', $11) RETURNING *`,
       [req.user.id, customer_name || null, totalAmount, payment_method,
-        received_amount || totalAmount, changeAmount, invoiceNumber, notes || null, delivery_address || null]
+        received_amount || totalAmount, changeAmount, invoiceNumber, notes || null,
+        delivery_address || null, activeShiftId || null, promo_code || null]
     );
 
     const sale = saleResult.rows[0];
@@ -177,6 +215,66 @@ exports.create = async (req, res, next) => {
     }
 
     res.status(201).json({ sale, message: 'Sale completed successfully' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.cancelOrder = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    
+    // Find the sale
+    const sale = await db.query('SELECT * FROM sales WHERE id = $1', [id]);
+    if (sale.rows.length === 0) {
+      return res.status(404).json({ error: 'Savdo topilmadi' });
+    }
+
+    const saleData = sale.rows[0];
+    
+    // Only allow cancel if sale is from telegram and not already refunded/voided
+    if (saleData.payment_method !== 'telegram') {
+      return res.status(400).json({ error: 'Faqat Telegram buyurtmalarini bekor qilish mumkin' });
+    }
+    
+    if (saleData.sale_type === 'fully_refunded' || saleData.sale_type === 'voided') {
+      return res.status(400).json({ error: 'Bu buyurtma allaqachon bekor qilingan' });
+    }
+
+    // Restore stock for each item
+    const items = await db.query(
+      `SELECT si.*, p.stock_quantity as current_stock FROM sale_items si
+       LEFT JOIN products p ON si.product_id = p.id
+       WHERE si.sale_id = $1`,
+      [id]
+    );
+
+    const nowExpr = db.isSqlite ? "datetime('now')" : 'NOW()';
+    for (const item of items.rows) {
+      const newStock = (item.current_stock || 0) + item.quantity;
+      await db.query(
+        `UPDATE products SET stock_quantity = $1, updated_at = ${nowExpr} WHERE id = $2`,
+        [newStock, item.product_id]
+      );
+      
+      await db.query(
+        `INSERT INTO inventory_logs (product_id, change_type, quantity, previous_stock, new_stock, note, created_by)
+         VALUES ($1, 'void', $2, $3, $4, $5, $6)`,
+        [item.product_id, item.quantity, item.current_stock || 0, newStock,
+          `Buyurtma bekor qilindi: ${saleData.invoice_number}`, req.user?.id || 1]
+      );
+    }
+
+    // Mark sale as voided
+    await db.query(
+      `UPDATE sales SET sale_type = 'voided', notes = COALESCE($1, notes || '') || ' | Bekor qilindi: ' || ${nowExpr} WHERE id = $2`,
+      [req.body?.reason || null, id]
+    );
+
+    res.json({ 
+      message: 'Buyurtma bekor qilindi va mahsulotlar omborga qaytarildi',
+      sale_id: id
+    });
   } catch (error) {
     next(error);
   }

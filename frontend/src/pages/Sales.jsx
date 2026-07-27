@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { salesAPI } from '../services/api';
 import { UZ, formatCurrency, formatTashkentDate, formatTashkentShort } from '../utils/uzbek';
-import { HiOutlineMagnifyingGlass, HiOutlineEye, HiOutlineXMark, HiOutlinePrinter, HiOutlineCalendarDays, HiOutlineArrowPath, HiOutlineClipboardDocumentList } from 'react-icons/hi2';
+import { HiOutlineMagnifyingGlass, HiOutlineEye, HiOutlineXMark, HiOutlinePrinter, HiOutlineCalendarDays, HiOutlineArrowPath, HiOutlineClipboardDocumentList, HiOutlineNoSymbol } from 'react-icons/hi2';
 import { emitDataChanged } from '../utils/events';
 import toast from 'react-hot-toast';
 
@@ -170,6 +170,7 @@ export default function Sales() {
   const [dateTo, setDateTo] = useState('');
   const [loading, setLoading] = useState(true);
   const [viewInvoice, setViewInvoice] = useState(null);
+  const [cancelling, setCancelling] = useState(null);
 
   useEffect(() => { loadSales(); }, [search, paymentFilter, dateFrom, dateTo]);
 
@@ -186,6 +187,21 @@ export default function Sales() {
       setSales(data?.sales || []);
       setPagination(data?.pagination || { page: 1, total: 0 });
     } catch { toast.error("Sotuvlar yuklanmadi"); } finally { setLoading(false); }
+  };
+
+  const handleCancelOrder = async (saleId, reason) => {
+    if (!window.confirm('Buyurtmani bekor qilishni tasdiqlaysizmi? Mahsulotlar omborga qaytariladi.')) return;
+    setCancelling(saleId);
+    try {
+      await salesAPI.cancelOrder(saleId, reason);
+      toast.success('Buyurtma bekor qilindi');
+      loadSales(pagination.page);
+    } catch (err) {
+      const msg = err.response?.data?.error || err.message || 'Xatolik';
+      toast.error(msg);
+    } finally {
+      setCancelling(null);
+    }
   };
 
   const totalRevenue = sales.reduce((sum, s) => sum + (parseFloat(s.total_amount) || 0), 0);
@@ -264,7 +280,9 @@ export default function Sales() {
               <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
                 {sales.map((sale) => (
                   <tr key={sale.id} className="hover:bg-indigo-50/50 dark:hover:bg-indigo-900/10 transition-colors cursor-pointer" onClick={() => setViewInvoice(sale.id)}>
-                    <td className="py-3.5 px-4 font-mono text-xs font-semibold text-indigo-600 dark:text-indigo-400">{sale.invoice_number}</td>
+                    <td className="py-3.5 px-4 font-mono text-xs font-semibold">
+                      <span className={sale.sale_type === 'voided' ? 'text-gray-400 line-through' : 'text-indigo-600 dark:text-indigo-400'}>{sale.invoice_number}</span>
+                    </td>
                     <td className="py-3.5 px-4">
                       <span className="text-gray-900 dark:text-white font-medium">{sale.customer_name || "O'tib ketgan"}</span>
                     </td>
@@ -276,13 +294,21 @@ export default function Sales() {
                         sale.payment_method === 'telegram' ? 'bg-sky-50 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400' :
                         'bg-violet-50 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400'
                       }`}>{sale.payment_method === 'cash' ? UZ.cash : sale.payment_method === 'card' ? UZ.card : sale.payment_method === 'telegram' ? '🤖 Telegram' : UZ.other}</span>
+                      {sale.sale_type === 'voided' && <span className="ml-1 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">Bekor</span>}
                     </td>
-                    <td className="py-3.5 px-4 text-right font-bold text-gray-900 dark:text-white text-base">{formatCurrency(sale.total_amount)}</td>
+                    <td className={`py-3.5 px-4 text-right font-bold text-base ${sale.sale_type === 'voided' ? 'text-gray-400 line-through' : 'text-gray-900 dark:text-white'}`}>{formatCurrency(sale.total_amount)}</td>
                     <td className="py-3.5 px-4 text-right text-gray-500 text-xs">{formatTashkentShort(sale.created_at)}</td>
                     <td className="py-3.5 px-4 text-right">
-                      <button className="p-1.5 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 transition-colors">
-                        <HiOutlineEye className="w-4 h-4" />
-                      </button>
+                      <div className="flex items-center justify-end gap-1" onClick={e => e.stopPropagation()}>
+                        {sale.payment_method === 'telegram' && sale.sale_type !== 'voided' && (
+                          <button onClick={() => handleCancelOrder(sale.id)} disabled={cancelling === sale.id} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500 transition-colors" title="Bekor qilish">
+                            <HiOutlineNoSymbol className="w-4 h-4" />
+                          </button>
+                        )}
+                        <button onClick={() => setViewInvoice(sale.id)} className="p-1.5 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 transition-colors" title="Ko'rish">
+                          <HiOutlineEye className="w-4 h-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

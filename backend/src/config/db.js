@@ -103,12 +103,21 @@ if (DATABASE_URL) {
     return { rows: [], rowCount: info.changes };
   }
 
-  // Auto-migration: add missing columns
+  // Auto-migration: add missing columns and tables
   function autoMigrate() {
     const migrations = [
       { table: 'categories', column: 'status', sql: "ALTER TABLE categories ADD COLUMN status TEXT DEFAULT 'active'" },
       { table: 'sales', column: 'delivery_address', sql: "ALTER TABLE sales ADD COLUMN delivery_address TEXT" },
+      { table: 'sales', column: 'shift_id', sql: "ALTER TABLE sales ADD COLUMN shift_id INTEGER" },
+      { table: 'sales', column: 'sale_type', sql: "ALTER TABLE sales ADD COLUMN sale_type TEXT DEFAULT 'sale'" },
+      { table: 'sales', column: 'discount_id', sql: "ALTER TABLE sales ADD COLUMN discount_id INTEGER" },
+      { table: 'sales', column: 'promo_code', sql: "ALTER TABLE sales ADD COLUMN promo_code TEXT" },
       { table: 'settings', column: 'admin_telegram', sql: "ALTER TABLE settings ADD COLUMN admin_telegram TEXT" },
+      { table: 'settings', column: 'smtp_host', sql: "ALTER TABLE settings ADD COLUMN smtp_host TEXT" },
+      { table: 'settings', column: 'smtp_port', sql: "ALTER TABLE settings ADD COLUMN smtp_port INTEGER DEFAULT 587" },
+      { table: 'products', column: 'has_variants', sql: "ALTER TABLE products ADD COLUMN has_variants INTEGER DEFAULT 0" },
+      { table: 'products', column: 'is_combo', sql: "ALTER TABLE products ADD COLUMN is_combo INTEGER DEFAULT 0" },
+      { table: 'roles', column: 'permissions', sql: "ALTER TABLE roles ADD COLUMN permissions TEXT" },
     ];
     for (const m of migrations) {
       try {
@@ -119,6 +128,108 @@ if (DATABASE_URL) {
         }
       } catch (e) {
         // Column might already exist, ignore
+      }
+    }
+
+    // Create new tables if not exist
+    const newTables = [
+      `CREATE TABLE IF NOT EXISTS shifts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        opened_at TEXT DEFAULT (datetime('now')),
+        closed_at TEXT,
+        opening_cash REAL DEFAULT 0,
+        closing_cash REAL,
+        expected_cash REAL,
+        cash_difference REAL,
+        total_sales REAL DEFAULT 0,
+        total_transactions INTEGER DEFAULT 0,
+        status TEXT DEFAULT 'open',
+        notes TEXT,
+        opened_by_name TEXT
+      )`,
+      `CREATE TABLE IF NOT EXISTS audit_logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        username TEXT,
+        action TEXT NOT NULL,
+        entity_type TEXT,
+        entity_id INTEGER,
+        old_value TEXT,
+        new_value TEXT,
+        ip_address TEXT,
+        created_at TEXT DEFAULT (datetime('now'))
+      )`,
+      `CREATE TABLE IF NOT EXISTS refunds (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        sale_id INTEGER REFERENCES sales(id) ON DELETE CASCADE,
+        user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        refund_amount REAL NOT NULL,
+        reason TEXT,
+        status TEXT DEFAULT 'completed',
+        created_at TEXT DEFAULT (datetime('now'))
+      )`,
+      `CREATE TABLE IF NOT EXISTS refund_items (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        refund_id INTEGER REFERENCES refunds(id) ON DELETE CASCADE,
+        product_id INTEGER REFERENCES products(id) ON DELETE SET NULL,
+        quantity INTEGER NOT NULL,
+        price REAL NOT NULL,
+        subtotal REAL NOT NULL
+      )`,
+      `CREATE TABLE IF NOT EXISTS discounts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        type TEXT NOT NULL DEFAULT 'percentage',
+        value REAL NOT NULL,
+        min_purchase REAL DEFAULT 0,
+        max_discount REAL,
+        start_date TEXT,
+        end_date TEXT,
+        is_active INTEGER DEFAULT 1,
+        created_at TEXT DEFAULT (datetime('now')),
+        updated_at TEXT DEFAULT (datetime('now'))
+      )`,
+      `CREATE TABLE IF NOT EXISTS promo_codes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        code TEXT UNIQUE NOT NULL,
+        discount_id INTEGER REFERENCES discounts(id) ON DELETE CASCADE,
+        max_uses INTEGER DEFAULT 0,
+        current_uses INTEGER DEFAULT 0,
+        is_active INTEGER DEFAULT 1,
+        created_at TEXT DEFAULT (datetime('now'))
+      )`,
+      `CREATE TABLE IF NOT EXISTS product_variants (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        product_id INTEGER REFERENCES products(id) ON DELETE CASCADE,
+        name TEXT NOT NULL,
+        sku TEXT,
+        price REAL,
+        stock_quantity INTEGER DEFAULT 0,
+        created_at TEXT DEFAULT (datetime('now'))
+      )`,
+      `CREATE TABLE IF NOT EXISTS combo_items (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        product_id INTEGER REFERENCES products(id) ON DELETE CASCADE,
+        combo_id INTEGER REFERENCES products(id) ON DELETE CASCADE,
+        quantity INTEGER DEFAULT 1,
+        created_at TEXT DEFAULT (datetime('now'))
+      )`,
+      `CREATE TABLE IF NOT EXISTS backups (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        filename TEXT,
+        filepath TEXT,
+        size_bytes INTEGER,
+        status TEXT DEFAULT 'completed',
+        created_at TEXT DEFAULT (datetime('now'))
+      )`
+    ];
+
+    for (const sql of newTables) {
+      try {
+        sqlite.exec(sql);
+      } catch (e) {
+        console.error('Table creation error:', e.message);
       }
     }
   }

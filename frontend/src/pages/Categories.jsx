@@ -347,7 +347,8 @@ export default function Categories() {
               <colgroup>
                 <col className="w-10" />
                 <col />
-                <col className="w-24 sm:w-28" />
+                <col className="w-20" />
+                <col className="w-20 sm:w-24" />
                 <col className="w-24 hidden sm:table-column" />
                 <col className="w-28 sm:w-32" />
               </colgroup>
@@ -357,6 +358,7 @@ export default function Categories() {
                     <input type="checkbox" checked={allVisibleSelected} onChange={toggleSelectAll} className="w-5 h-5 rounded border-gray-300 text-indigo-600" />
                   </th>
                   <th className="px-4 pt-4 pb-3 font-medium">Nomi</th>
+                  <th className="px-4 pt-4 pb-3 font-medium text-center">Holati</th>
                   <th className="px-4 pt-4 pb-3 font-medium text-right">Mahsulotlar</th>
                   <th className="px-4 pt-4 pb-3 font-medium text-center hidden sm:table-cell">Yaratilgan</th>
                   <th className="px-4 pt-4 pb-3 font-medium text-right">Amallar</th>
@@ -375,6 +377,15 @@ export default function Categories() {
                           {cat.description && <p className="text-xs text-gray-400 truncate max-w-full">{cat.description}</p>}
                         </div>
                       </div>
+                    </td>
+                    <td className="px-4 py-3 align-middle text-center">
+                      <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold ${
+                        cat.status === 'active' || !cat.status
+                          ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400'
+                          : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'
+                      }`}>
+                        {cat.status === 'active' || !cat.status ? '✅ Faol' : '⛔ Nofaol'}
+                      </span>
                     </td>
                     <td className="px-4 py-3 align-middle text-right font-semibold text-gray-900 dark:text-white whitespace-nowrap">{cat.product_count ?? 0}</td>
                     <td className="px-4 py-3 align-middle text-center hidden sm:table-cell">
