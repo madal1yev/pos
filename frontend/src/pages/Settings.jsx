@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import api, { settingsAPI } from '../services/api';
 import { useSettingsStore } from '../context/SettingsContext';
-import { UZ } from '../utils/uzbek';
+import { t } from '../utils/uzbek';
 import { getErrorMessage } from '../utils/errors';
 import { emitDataChanged } from '../utils/events';
 import { HiOutlineCheckCircle, HiOutlineCloudArrowUp, HiOutlineXMark, HiOutlinePhoto, HiOutlineUser } from 'react-icons/hi2';
@@ -29,7 +29,7 @@ export default function Settings() {
       const payload = { ...settings, tax_percentage: parseFloat(settings.tax_percentage) || 0, low_stock_threshold: parseInt(settings.low_stock_threshold) || 10 };
       await settingsAPI.update(payload);
       updateGlobalSettings(payload);
-      toast.success(UZ.settingsSaved);
+      toast.success(t('settingsSaved'));
       emitDataChanged();
     }
     catch (err) { toast.error(getErrorMessage(err)); } finally { setSaving(false); }
@@ -53,10 +53,10 @@ export default function Settings() {
 
   return (
     <div className="max-w-3xl space-y-6">
-      <div><h1 className="text-2xl font-bold text-gray-900 dark:text-white">{UZ.settingsTitle}</h1></div>
+      <div><h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('settingsTitle')}</h1></div>
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="card">
-          <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-4">{UZ.storeInfo}</h2>
+          <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-4">{t('storeInfo')}</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Do'kon logosi</label>
@@ -75,37 +75,37 @@ export default function Settings() {
                 </label>
               </div>
             </div>
-            <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{UZ.storeName}</label><input type="text" value={settings.store_name || ''} onChange={(e) => setSettings({ ...settings, store_name: e.target.value })} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" /></div>
-            <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{UZ.phone}</label><input type="text" value={settings.store_phone || ''} onChange={(e) => setSettings({ ...settings, store_phone: e.target.value })} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" /></div>
-            <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{UZ.email}</label><input type="email" value={settings.store_email || ''} onChange={(e) => setSettings({ ...settings, store_email: e.target.value })} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" /></div>
-            <div className="md:col-span-2"><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{UZ.address}</label><textarea value={settings.store_address || ''} onChange={(e) => setSettings({ ...settings, store_address: e.target.value })} rows={2} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" /></div>
+            <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('storeName')}</label><input type="text" value={settings.store_name || ''} onChange={(e) => setSettings({ ...settings, store_name: e.target.value })} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" /></div>
+            <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('phone')}</label><input type="text" value={settings.store_phone || ''} onChange={(e) => setSettings({ ...settings, store_phone: e.target.value })} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" /></div>
+            <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('email')}</label><input type="email" value={settings.store_email || ''} onChange={(e) => setSettings({ ...settings, store_email: e.target.value })} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" /></div>
+            <div className="md:col-span-2"><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('address')}</label><textarea value={settings.store_address || ''} onChange={(e) => setSettings({ ...settings, store_address: e.target.value })} rows={2} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" /></div>
           </div>
         </div>
         <div className="card">
-          <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-4">{UZ.currencyTax}</h2>
+          <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-4">{t('currencyTax')}</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{UZ.currency}</label>
+            <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('currency')}</label>
               <select value={settings.currency} onChange={(e) => setSettings({ ...settings, currency: e.target.value })} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                 <option value="UZS">UZS - O'zbek so'mi</option>
                 <option value="USD">USD - AQSH dollari</option>
                 <option value="RUB">RUB - Rossiya rubli</option>
               </select>
             </div>
-            <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{UZ.symbol}</label><input type="text" value={settings.currency_symbol || ''} onChange={(e) => setSettings({ ...settings, currency_symbol: e.target.value })} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" /></div>
-            <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{UZ.taxPercent}</label><input type="number" step="0.01" value={settings.tax_percentage || 0} onChange={(e) => setSettings({ ...settings, tax_percentage: e.target.value })} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" /></div>
+            <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('symbol')}</label><input type="text" value={settings.currency_symbol || ''} onChange={(e) => setSettings({ ...settings, currency_symbol: e.target.value })} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" /></div>
+            <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('taxPercent')}</label><input type="number" step="0.01" value={settings.tax_percentage || 0} onChange={(e) => setSettings({ ...settings, tax_percentage: e.target.value })} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" /></div>
           </div>
         </div>
         <div className="card">
-          <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-4">{UZ.receiptSettings}</h2>
+          <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-4">{t('receiptSettings')}</h2>
           <div className="space-y-4">
-            <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{UZ.receiptHeader} <span className="text-xs text-gray-400">(chek yuqorisida ko'rinadi)</span></label><textarea value={settings.receipt_header || ''} onChange={(e) => setSettings({ ...settings, receipt_header: e.target.value })} rows={2} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Masalan: Xush kelibsiz!" /></div>
-            <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{UZ.receiptFooter} <span className="text-xs text-gray-400">(chek pastida ko'rinadi)</span></label><textarea value={settings.receipt_footer || ''} onChange={(e) => setSettings({ ...settings, receipt_footer: e.target.value })} rows={2} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Masalan: Admin: @username" /></div>
-            <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{UZ.lowStockThreshold}</label><input type="number" value={settings.low_stock_threshold || 10} onChange={(e) => setSettings({ ...settings, low_stock_threshold: e.target.value })} className="input-field w-32 dark:bg-gray-700 dark:border-gray-600 dark:text-white" /></div>
+            <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('receiptHeader')} <span className="text-xs text-gray-400">(chek yuqorisida ko'rinadi)</span></label><textarea value={settings.receipt_header || ''} onChange={(e) => setSettings({ ...settings, receipt_header: e.target.value })} rows={2} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Masalan: Xush kelibsiz!" /></div>
+            <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('receiptFooter')} <span className="text-xs text-gray-400">(chek pastida ko'rinadi)</span></label><textarea value={settings.receipt_footer || ''} onChange={(e) => setSettings({ ...settings, receipt_footer: e.target.value })} rows={2} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Masalan: Admin: @username" /></div>
+            <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('lowStockThreshold')}</label><input type="number" value={settings.low_stock_threshold || 10} onChange={(e) => setSettings({ ...settings, low_stock_threshold: e.target.value })} className="input-field w-32 dark:bg-gray-700 dark:border-gray-600 dark:text-white" /></div>
           </div>
         </div>
         <div className="flex justify-end">
           <button type="submit" disabled={saving} className="bg-indigo-600 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-indigo-700 transition-all disabled:opacity-50 flex items-center gap-2 shadow-md shadow-indigo-500/20 active:scale-[0.98]">
-            <HiOutlineCheckCircle className="w-5 h-5" /> {saving ? UZ.loading : UZ.saveSettings}
+            <HiOutlineCheckCircle className="w-5 h-5" /> {saving ? t('loading') : t('saveSettings')}
           </button>
         </div>
       </form>

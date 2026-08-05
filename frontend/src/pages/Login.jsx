@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../context/AuthContext';
 import { useSettingsStore } from '../context/SettingsContext';
-import { UZ } from '../utils/uzbek';
+import { t } from '../utils/uzbek';
 import { getErrorMessage } from '../utils/errors';
 import { HiOutlineEye, HiOutlineEyeSlash } from 'react-icons/hi2';
 import toast from 'react-hot-toast';
@@ -29,7 +29,7 @@ export default function Login() {
     clearError();
     try {
       await login(email, password, remember);
-      toast.success(UZ.welcomeBack);
+      toast.success(t('welcomeBack'));
       navigate('/');
     } catch (err) {
       toast.error(getErrorMessage(err));
@@ -57,10 +57,10 @@ export default function Login() {
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 p-8 animate-fade-in-up">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">{UZ.welcomeBack}</h2>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">{t('welcomeBack')}</h2>
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">{UZ.email}</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">{t('email')}</label>
               <input
                 type="email"
                 value={email}
@@ -73,7 +73,7 @@ export default function Login() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">{UZ.password}</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">{t('password')}</label>
               <div className="relative">
                 <input
                   type={showPassword ? 'text' : 'password'}
@@ -100,7 +100,7 @@ export default function Login() {
                 onChange={(e) => setRemember(e.target.checked)}
                 className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
               />
-              <span className="text-sm text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-gray-200 transition-colors">{UZ.rememberMe}</span>
+              <span className="text-sm text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-gray-200 transition-colors">{t('rememberMe')}</span>
             </label>
 
             <button
@@ -111,9 +111,9 @@ export default function Login() {
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
                   <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
-                  {UZ.signingIn}
+                  {t('signingIn')}
                 </span>
-              ) : UZ.signIn}
+              ) : t('signIn')}
             </button>
           </form>
 
@@ -125,7 +125,7 @@ export default function Login() {
         </div>
 
         <p className="text-center text-xs text-gray-400 dark:text-gray-500 mt-6">
-          {UZ.demoCredentials}
+          {t('demoCredentials')}
         </p>
       </div>
     </div>

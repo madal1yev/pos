@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAuthStore } from '../context/AuthContext';
 import { authAPI } from '../services/api';
-import { UZ } from '../utils/uzbek';
+import { t } from '../utils/uzbek';
 import { HiOutlineUser, HiOutlineShieldCheck, HiOutlineCalendarDays, HiOutlineEnvelope, HiOutlinePencil, HiOutlineLockClosed, HiOutlineCheck, HiOutlineXMark } from 'react-icons/hi2';
 import toast from 'react-hot-toast';
 
@@ -68,7 +68,7 @@ export default function Profile() {
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{UZ.profileTitle}</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('profileTitle')}</h1>
         {!editing ? (
           <button onClick={() => setEditing(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-indigo-600 hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-900/20 transition-all">
             <HiOutlinePencil className="w-4 h-4" /> Tahrirlash
@@ -93,7 +93,7 @@ export default function Profile() {
           <div>
             <h2 className="text-xl font-bold text-gray-900 dark:text-white">{user?.name}</h2>
             <p className="text-sm text-gray-500 dark:text-gray-400 capitalize">
-              {user?.role === 'admin' ? UZ.admin : UZ.cashier_role}
+              {user?.role === 'admin' ? t('admin') : t('cashier_role')}
             </p>
           </div>
         </div>
@@ -103,7 +103,7 @@ export default function Profile() {
           <div className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
             <HiOutlineUser className="w-5 h-5 text-gray-400" />
             <div className="flex-1">
-              <p className="text-xs text-gray-500 dark:text-gray-400">{UZ.name}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{t('name')}</p>
               {editing ? (
                 <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="w-full text-sm font-medium bg-white dark:bg-gray-600 border border-gray-300 dark:border-gray-500 rounded-lg px-2 py-1 text-gray-900 dark:text-white outline-none focus:border-indigo-500" />
               ) : (
@@ -116,7 +116,7 @@ export default function Profile() {
           <div className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
             <HiOutlineEnvelope className="w-5 h-5 text-gray-400" />
             <div className="flex-1">
-              <p className="text-xs text-gray-500 dark:text-gray-400">{UZ.email}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{t('email')}</p>
               {editing ? (
                 <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full text-sm font-medium bg-white dark:bg-gray-600 border border-gray-300 dark:border-gray-500 rounded-lg px-2 py-1 text-gray-900 dark:text-white outline-none focus:border-indigo-500" />
               ) : (
@@ -129,7 +129,7 @@ export default function Profile() {
           <div className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
             <HiOutlineShieldCheck className="w-5 h-5 text-gray-400" />
             <div>
-              <p className="text-xs text-gray-500 dark:text-gray-400">{UZ.role}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{t('role')}</p>
               <p className="text-sm font-medium text-gray-900 dark:text-white capitalize">{user?.role}</p>
             </div>
           </div>
@@ -138,7 +138,7 @@ export default function Profile() {
           <div className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
             <HiOutlineCalendarDays className="w-5 h-5 text-gray-400" />
             <div>
-              <p className="text-xs text-gray-500 dark:text-gray-400">{UZ.memberSince}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{t('memberSince')}</p>
               <p className="text-sm font-medium text-gray-900 dark:text-white">
                 {new Date().toLocaleDateString('uz-UZ')}
               </p>

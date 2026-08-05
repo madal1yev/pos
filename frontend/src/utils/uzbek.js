@@ -211,6 +211,17 @@ export const translations = {
     totalDebt: 'Jami qarz',
     night: 'Tun',
     day: 'Kun',
+    // Header
+    toggleSidebar: 'Sidebarni ochish/yopish',
+    changeLang: "Tilni o'zgartirish",
+    hideAll: 'Barchasini yashirish',
+    hide: 'Yashirish',
+    remaining: 'qoldi',
+    // Sidebar
+    posSystem: 'POS System',
+    user: 'Foydalanuvchi',
+    admin: 'Admin',
+    cashier_role: 'Kassir',
   },
   ru: {
     // Common
@@ -424,6 +435,17 @@ export const translations = {
     totalDebt: 'Общий долг',
     night: 'Ночь',
     day: 'День',
+    // Header
+    toggleSidebar: 'Открыть/закрыть боковую панель',
+    changeLang: 'Изменить язык',
+    hideAll: 'Скрыть все',
+    hide: 'Скрыть',
+    remaining: 'осталось',
+    // Sidebar
+    posSystem: 'POS System',
+    user: 'Пользователь',
+    admin: 'Администратор',
+    cashier_role: 'Кассир',
   },
   en: {
     // Common
@@ -637,6 +659,17 @@ export const translations = {
     totalDebt: 'Total Debt',
     night: 'Night',
     day: 'Day',
+    // Header
+    toggleSidebar: 'Toggle sidebar',
+    changeLang: 'Change language',
+    hideAll: 'Hide all',
+    hide: 'Hide',
+    remaining: 'remaining',
+    // Sidebar
+    posSystem: 'POS System',
+    user: 'User',
+    admin: 'Admin',
+    cashier_role: 'Cashier',
   },
 };
 
@@ -655,10 +688,10 @@ export const t = (key) => {
   return translations[currentLang]?.[key] || translations.uz[key] || key;
 };
 
-// Legacy UZ object (backward compatible)
+// Legacy UZ object (uses current language)
 export const UZ = new Proxy({}, {
   get(target, prop) {
-    return translations.uz[prop] || prop;
+    return translations[currentLang]?.[prop] || translations.uz[prop] || prop;
   }
 });
 

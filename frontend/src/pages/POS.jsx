@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useCartStore } from '../context/CartContext';
 import { productsAPI, salesAPI, settingsAPI } from '../services/api';
-import { UZ, t, formatCurrency } from '../utils/uzbek';
+import { t, formatCurrency } from '../utils/uzbek';
 import { getErrorMessage } from '../utils/errors';
 import { emitDataChanged } from '../utils/events';
 import { playSuccessSound, playScanSound } from '../utils/sounds';
@@ -312,7 +312,7 @@ function ScannerModal({ onClose, onScan }) {
         async (text) => { onScan(text); await stopScanner(); onClose(); },
         () => {}
       );
-    } catch { setError(UZ.cameraError); setScanning(false); }
+    } catch { setError(t('cameraError')); setScanning(false); }
   };
 
   const handleClose = async () => {
@@ -325,13 +325,13 @@ function ScannerModal({ onClose, onScan }) {
       <div className="fixed inset-0 bg-black/50 backdrop-blur-sm modal-overlay" onClick={handleClose} />
       <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md modal-content">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{UZ.scanBarcode}</h2>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{t('scanBarcode')}</h2>
           <button onClick={handleClose} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"><HiOutlineXMark className="w-5 h-5" /></button>
         </div>
         <div className="p-4">
           <div id="scanner-viewport" className="rounded-lg overflow-hidden" />
           {error && <p className="text-sm text-amber-600 dark:text-amber-400 text-center mt-3">{error}</p>}
-          {scanning && <p className="text-sm text-gray-500 text-center mt-3 animate-pulse">{UZ.pointCamera}</p>}
+          {scanning && <p className="text-sm text-gray-500 text-center mt-3 animate-pulse">{t('pointCamera')}</p>}
         </div>
       </div>
     </div>
@@ -368,24 +368,24 @@ function CheckoutModal({ total, taxRate, onClose, onComplete }) {
       <div className="fixed inset-0 bg-black/50 backdrop-blur-sm modal-overlay" onClick={onClose} />
       <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] modal-content flex flex-col">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex-shrink-0">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{UZ.checkout}</h2>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{t('checkout')}</h2>
           <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"><HiOutlineXMark className="w-5 h-5" /></button>
         </div>
         <div className="p-6 space-y-5 overflow-y-auto flex-1">
           <div className="text-center py-4 bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-900/20 dark:to-blue-900/20 rounded-2xl">
-            <p className="text-sm text-gray-500 mb-1">{UZ.totalAmount}</p>
+            <p className="text-sm text-gray-500 mb-1">{t('totalAmount')}</p>
             <p className="text-4xl font-bold text-indigo-600 dark:text-indigo-400">{formatCurrency(total)}</p>
           </div>
           {taxRate > 0 && (
             <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-3 space-y-1.5 text-sm">
-              <div className="flex justify-between"><span className="text-gray-500">{UZ.subtotal || 'Oraliq yig'}</span><span className="font-medium">{formatCurrency(subtotal)}</span></div>
-              <div className="flex justify-between"><span className="text-gray-500">{UZ.tax || 'Soliq'} ({(taxRate * 100).toFixed(0)}%)</span><span className="font-medium">{formatCurrency(taxAmount)}</span></div>
-              <div className="flex justify-between font-bold border-t border-gray-200 dark:border-gray-600 pt-1.5"><span>{UZ.total}</span><span>{formatCurrency(total)}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">{t('subtotal') || 'Oraliq yig'}</span><span className="font-medium">{formatCurrency(subtotal)}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">{t('tax') || 'Soliq'} ({(taxRate * 100).toFixed(0)}%)</span><span className="font-medium">{formatCurrency(taxAmount)}</span></div>
+              <div className="flex justify-between font-bold border-t border-gray-200 dark:border-gray-600 pt-1.5"><span>{t('total')}</span><span>{formatCurrency(total)}</span></div>
             </div>
           )}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">{UZ.customerName}</label>
-            <input type="text" value={customerName} onChange={(e) => setCustomerName(e.target.value)} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder={UZ.walkInCustomer} />
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">{t('customerName')}</label>
+            <input type="text" value={customerName} onChange={(e) => setCustomerName(e.target.value)} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder={t('walkInCustomer')} />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">🏷️ Promo-kod</label>
@@ -409,9 +409,9 @@ function CheckoutModal({ total, taxRate, onClose, onComplete }) {
             </div>
           )}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{UZ.paymentMethod}</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('paymentMethod')}</label>
             <div className="grid grid-cols-3 gap-2">
-              {[['cash', UZ.cash, '💵'], ['card', UZ.card, '💳'], ['other', UZ.other, '📱']].map(([m, l, e]) => (
+              {[['cash', t('cash'), '💵'], ['card', t('card'), '💳'], ['other', t('other'), '📱']].map(([m, l, e]) => (
                 <button key={m} onClick={() => setPaymentMethod(m)} className={`py-3 px-3 rounded-xl text-sm font-medium border-2 transition-all ${paymentMethod === m ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 shadow-md shadow-indigo-500/10' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-indigo-300'}`}>
                   <span className="text-lg block mb-0.5">{e}</span>
                   <span>{l}</span>
@@ -422,17 +422,17 @@ function CheckoutModal({ total, taxRate, onClose, onComplete }) {
           {paymentMethod === 'cash' && (
             <>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">{UZ.receivedAmount}</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">{t('receivedAmount')}</label>
                 <input type="number" value={receivedAmount} onChange={(e) => setReceivedAmount(e.target.value)} className="input-field text-lg font-semibold dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
               </div>
               <div className="bg-gradient-to-r from-indigo-50 to-blue-50 dark:from-indigo-900/20 dark:to-blue-900/20 rounded-xl p-4 text-center">
-                <p className="text-sm text-gray-500 mb-1">{UZ.change}</p>
+                <p className="text-sm text-gray-500 mb-1">{t('change')}</p>
                 <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">{formatCurrency(change)}</p>
               </div>
             </>
           )}
           <button onClick={handleComplete} disabled={processing} className="w-full bg-gradient-to-r from-indigo-600 to-indigo-700 text-white py-3.5 rounded-xl text-base font-semibold hover:from-indigo-700 hover:to-indigo-800 transition-all disabled:opacity-50 shadow-lg shadow-indigo-500/25 active:scale-[0.98]">
-            {processing ? UZ.processing : UZ.completeSale}
+            {processing ? t('processing') : t('completeSale')}
           </button>
         </div>
       </div>
@@ -465,7 +465,7 @@ function ReceiptModal({ sale, onClose }) {
   const changeAmount = Number(sale.change_amount || Math.max(0, receivedAmount - totalAmount));
   const taxAmount = receiptItems.reduce((sum, item) => sum + Number(item.tax || 0), 0);
   const discountAmount = receiptItems.reduce((sum, item) => sum + Number(item.discount || 0), 0);
-  const paymentLabel = sale.payment_method === 'cash' ? UZ.cash : sale.payment_method === 'card' ? UZ.card : UZ.other;
+  const paymentLabel = sale.payment_method === 'cash' ? t('cash') : sale.payment_method === 'card' ? t('card') : t('other');
 
   const formatQty = (qty) => {
     const num = Number(qty || 0);
@@ -491,7 +491,7 @@ function ReceiptModal({ sale, onClose }) {
       <div className="fixed inset-0 bg-black/50 backdrop-blur-sm modal-overlay no-print" onClick={onClose} />
       <div className="relative bg-neutral-100 dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-sm max-h-[90vh] overflow-y-auto modal-content">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700 no-print sticky top-0 bg-white dark:bg-gray-800 z-10">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{UZ.receipt || 'Chek'}</h2>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{t('receipt') || 'Chek'}</h2>
           <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"><HiOutlineXMark className="w-5 h-5" /></button>
         </div>
         <div className="p-4 sm:p-6 print:p-0 bg-neutral-100 dark:bg-gray-800">
@@ -564,8 +564,8 @@ function ReceiptModal({ sale, onClose }) {
           </div>
         </div>
         <div className="flex justify-center gap-3 px-6 py-4 border-t border-gray-100 dark:border-gray-700 no-print">
-          <button onClick={handlePrint} className="bg-gray-900 text-white px-4 py-2 rounded-lg font-medium hover:bg-black">{UZ.print}</button>
-          <button onClick={onClose} className="btn-secondary">{UZ.close}</button>
+          <button onClick={handlePrint} className="bg-gray-900 text-white px-4 py-2 rounded-lg font-medium hover:bg-black">{t('print')}</button>
+          <button onClick={onClose} className="btn-secondary">{t('close')}</button>
         </div>
       </div>
     </div>
@@ -624,15 +624,15 @@ export default function POS() {
     try {
       playScanSound();
       const { data } = await productsAPI.getByBarcode(barcode);
-      if (!data?.product) { toast.error(UZ.notFound); return; }
+      if (!data?.product) { toast.error(t('notFound')); return; }
       setQuantityProduct(data.product);
-    } catch { toast.error(UZ.notFound); }
+    } catch { toast.error(t('notFound')); }
   };
 
   const handleAddToCart = (product, quantity, unit) => {
     const added = addItem(product, quantity, unit);
-    if (!added) toast.error(UZ.notEnoughStock);
-    else toast.success(`${product.name} ${quantity} ${unit} ${UZ.productAdded}`);
+    if (!added) toast.error(t('notEnoughStock'));
+    else toast.success(`${product.name} ${quantity} ${unit} ${t('productAdded')}`);
   };
 
   const handleHoldOrder = () => {
@@ -669,14 +669,14 @@ export default function POS() {
           <div className="flex flex-col sm:flex-row gap-2 mb-4">
             <div className="relative flex-1">
               <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input ref={searchRef} type="text" placeholder={UZ.searchOrScan} value={search} onChange={(e) => setSearch(e.target.value)} data-barcode="true" className="input-field pl-10 dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
+              <input ref={searchRef} type="text" placeholder={t('searchOrScan')} value={search} onChange={(e) => setSearch(e.target.value)} data-barcode="true" className="input-field pl-10 dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
             </div>
             <div className="flex gap-2">
               <button onClick={() => setShowCalcModal(true)} className="bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-3 py-2 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-600 transition-all flex items-center justify-center gap-1.5 border border-gray-200 dark:border-gray-600 shadow-sm">
                 <HiOutlineCalculator className="w-4 h-4" /> Kalk
               </button>
               <button onClick={() => setShowScanner(true)} className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-indigo-700 transition-all flex items-center justify-center gap-2 whitespace-nowrap shadow-md shadow-indigo-500/20">
-                <HiOutlineCamera className="w-4 h-4" /> {UZ.scan}
+                <HiOutlineCamera className="w-4 h-4" /> {t('scan')}
               </button>
             </div>
           </div>
@@ -708,8 +708,8 @@ export default function POS() {
                 <HiOutlineShoppingCart className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
               </div>
               <div>
-                <h2 className="font-semibold text-gray-900 dark:text-white text-sm">{UZ.cart}</h2>
-                {items.length > 0 && <p className="text-[10px] text-gray-400">{items.length} {UZ.items} / {getItemCount()} dona</p>}
+                <h2 className="font-semibold text-gray-900 dark:text-white text-sm">{t('cart')}</h2>
+                {items.length > 0 && <p className="text-[10px] text-gray-400">{items.length} {t('items')} / {getItemCount()} dona</p>}
               </div>
             </div>
             <div className="flex items-center gap-1">
@@ -724,7 +724,7 @@ export default function POS() {
                     <HiOutlinePause className="w-3.5 h-3.5" /> Saqlash
                   </button>
                   <button onClick={clearCart} className="text-xs text-red-500 hover:text-red-600 font-medium px-2 py-1 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
-                    {UZ.clear}
+                    {t('clear')}
                   </button>
                 </>
               )}
@@ -736,8 +736,8 @@ export default function POS() {
                 <div className="w-20 h-20 rounded-2xl bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-3">
                   <HiOutlineShoppingCart className="w-10 h-10 text-gray-300 dark:text-gray-600" />
                 </div>
-                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{UZ.emptyCart}</p>
-                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{UZ.emptyCartHint}</p>
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('emptyCart')}</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{t('emptyCartHint')}</p>
               </div>
             ) : items.map((item, idx) => (
               <div key={item.product_id} className="group flex items-center gap-2.5 p-2.5 bg-gradient-to-r from-gray-50 to-white dark:from-gray-700/50 dark:to-gray-700/30 rounded-xl border border-gray-100 dark:border-gray-700/50 hover:border-indigo-200 dark:hover:border-indigo-800/50 transition-all animate-fade-in" style={{ animationDelay: `${idx * 0.03}s` }}>
@@ -820,13 +820,13 @@ export default function POS() {
                 <HiOutlineShoppingCart className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
               </div>
               <div>
-                <p className="text-xs text-gray-500 dark:text-gray-400">{getItemCount()} {UZ.items}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{getItemCount()} {t('items')}</p>
                 <p className="text-lg font-bold text-indigo-600 dark:text-indigo-400">{formatCurrency(getTotal())}</p>
               </div>
             </div>
             <button onClick={() => setShowCheckout(true)} className="bg-gradient-to-r from-indigo-600 to-indigo-700 text-white px-6 py-3 rounded-xl text-sm font-semibold hover:from-indigo-700 hover:to-indigo-800 transition-all shadow-lg shadow-indigo-500/25 active:scale-[0.98] flex items-center justify-center gap-2">
               <HiOutlineCheckCircle className="w-5 h-5" />
-              {UZ.completeSale}
+              {t('completeSale')}
             </button>
           </div>
         </div>

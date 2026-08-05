@@ -114,7 +114,7 @@ export default function Sidebar({ open, onClose, dark, toggleDark }) {
         )}
         <div className="flex-1 min-w-0">
           <h1 className="text-sm font-bold text-gray-900 dark:text-white truncate leading-tight">{storeName}</h1>
-          <p className="text-[10px] font-medium text-gray-400 dark:text-gray-500">POS System</p>
+          <p className="text-[10px] font-medium text-gray-400 dark:text-gray-500">{t('posSystem')}</p>
         </div>
       </div>
 
@@ -151,8 +151,8 @@ export default function Sidebar({ open, onClose, dark, toggleDark }) {
             <span className="text-xs font-bold text-white">{user?.name?.charAt(0)?.toUpperCase() || 'U'}</span>
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-semibold text-gray-900 dark:text-white truncate">{user?.name || 'Foydalanuvchi'}</p>
-            <p className="text-[10px] text-gray-400 dark:text-gray-500">{user?.role === 'admin' ? 'Admin' : 'Kassir'}</p>
+            <p className="text-xs font-semibold text-gray-900 dark:text-white truncate">{user?.name || t('user')}</p>
+            <p className="text-[10px] text-gray-400 dark:text-gray-500">{user?.role === 'admin' ? t('admin') : t('cashier_role')}</p>
           </div>
         </NavLink>
 

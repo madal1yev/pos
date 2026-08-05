@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { reportsAPI, dashboardAPI } from '../services/api';
-import { UZ, formatCurrency, formatTashkentTime } from '../utils/uzbek';
+import { formatCurrency, formatTashkentTime } from '../utils/uzbek';
 import {
   HiOutlineChartBar, HiOutlineCube, HiOutlineArrowTrendingUp, HiOutlineCalendarDays,
   HiOutlineDocumentChartBar, HiOutlineMagnifyingGlass, HiOutlineBanknotes,
