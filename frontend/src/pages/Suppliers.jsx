@@ -8,8 +8,9 @@ import { emitDataChanged } from '../utils/events';
 function SupplierModal({ supplier, onClose, onSave }) {
   const [form, setForm] = useState({
     name: supplier?.name || '', phone: supplier?.phone || '',
-    email: supplier?.email || '', address: supplier?.address || '',
-    contact_person: supplier?.contact_person || '', notes: supplier?.notes || '',
+    car_number: supplier?.car_number || supplier?.contact_person || '',
+    address: supplier?.address || '',
+    notes: supplier?.notes || '',
   });
   const [saving, setSaving] = useState(false);
 
@@ -17,8 +18,9 @@ function SupplierModal({ supplier, onClose, onSave }) {
     e.preventDefault();
     setSaving(true);
     try {
-      if (supplier) { await suppliersAPI.update(supplier.id, form); toast.success('Yetkazib beruvchi yangilandi'); }
-      else { await suppliersAPI.create(form); toast.success("Yetkazib beruvchi qo'shildi"); }
+      const payload = { ...form, contact_person: form.car_number };
+      if (supplier) { await suppliersAPI.update(supplier.id, payload); toast.success('Yetkazib beruvchi yangilandi'); }
+      else { await suppliersAPI.create(payload); toast.success("Yetkazib beruvchi qo'shildi"); }
       emitDataChanged(); onSave();
     } catch (err) { toast.error('Xatolik yuz berdi'); } finally { setSaving(false); }
   };
@@ -35,23 +37,19 @@ function SupplierModal({ supplier, onClose, onSave }) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Nomi *</label>
-              <input type="text" value={form.name} onChange={(e) => setForm({...form, name: e.target.value})} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" required />
+              <input type="text" value={form.name} onChange={(e) => setForm({...form, name: e.target.value})} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Yetkazib beruvchi nomi" required />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Telefon</label>
               <input type="tel" value={form.phone} onChange={(e) => setForm({...form, phone: e.target.value})} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="+998901234567" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Email</label>
-              <input type="email" value={form.email} onChange={(e) => setForm({...form, email: e.target.value})} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Mashina raqami</label>
+              <input type="text" value={form.car_number} onChange={(e) => setForm({...form, car_number: e.target.value.toUpperCase()})} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white font-mono uppercase" placeholder="Masalan: 01A123BC" />
             </div>
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Manzil</label>
               <input type="text" value={form.address} onChange={(e) => setForm({...form, address: e.target.value})} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Aloqa shaxsi</label>
-              <input type="text" value={form.contact_person} onChange={(e) => setForm({...form, contact_person: e.target.value})} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Ism familiya" />
             </div>
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Izoh</label>
@@ -123,7 +121,7 @@ export default function Suppliers() {
                 <tr className="text-left text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-800">
                   <th className="pb-3 font-medium">Nomi</th>
                   <th className="pb-3 font-medium hidden sm:table-cell">Telefon</th>
-                  <th className="pb-3 font-medium hidden md:table-cell">Aloqa shaxsi</th>
+                  <th className="pb-3 font-medium hidden md:table-cell">Mashina</th>
                   <th className="pb-3 font-medium text-right">Qarzdorlik</th>
                   <th className="pb-3 font-medium text-right">Xaridlar</th>
                   <th className="pb-3 font-medium text-right w-20"></th>
@@ -137,7 +135,7 @@ export default function Suppliers() {
                       {s.email && <p className="text-[11px] text-gray-400">{s.email}</p>}
                     </td>
                     <td className="py-3 text-gray-600 dark:text-gray-400 hidden sm:table-cell">{s.phone || '-'}</td>
-                    <td className="py-3 text-gray-600 dark:text-gray-400 hidden md:table-cell">{s.contact_person || '-'}</td>
+                    <td className="py-3 text-gray-600 dark:text-gray-400 hidden md:table-cell font-mono text-xs">{s.contact_person || '-'}</td>
                     <td className="py-3 text-right">
                       <span className={`font-bold ${parseFloat(s.debt) > 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
                         {formatCurrency(s.debt || 0)}

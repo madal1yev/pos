@@ -1,10 +1,12 @@
 {
   "name": "pos-system",
   "version": "1.0.0",
-  "description": "POS System with Telegram Bot",
+  "description": "POS System — Point of Sale & Inventory Management",
+  "private": true,
   "scripts": {
-    "start": "cd backend && node src/server.js",
-    "build": "cd backend && npm install",
-    "postinstall": "cd backend && npm install"
+    "start": "cd backend && npm start",
+    "dev": "cd backend && npm run dev",
+    "build": "cd frontend && npm run build",
+    "migrate": "cd backend && npm run migrate"
   }
 }

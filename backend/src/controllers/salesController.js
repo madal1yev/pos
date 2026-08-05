@@ -232,11 +232,6 @@ exports.cancelOrder = async (req, res, next) => {
 
     const saleData = sale.rows[0];
     
-    // Only allow cancel if sale is from telegram and not already refunded/voided
-    if (saleData.payment_method !== 'telegram') {
-      return res.status(400).json({ error: 'Faqat Telegram buyurtmalarini bekor qilish mumkin' });
-    }
-    
     if (saleData.sale_type === 'fully_refunded' || saleData.sale_type === 'voided') {
       return res.status(400).json({ error: 'Bu buyurtma allaqachon bekor qilingan' });
     }
@@ -275,6 +270,52 @@ exports.cancelOrder = async (req, res, next) => {
       message: 'Buyurtma bekor qilindi va mahsulotlar omborga qaytarildi',
       sale_id: id
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.remove = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const sale = await db.query('SELECT * FROM sales WHERE id = $1', [id]);
+    if (sale.rows.length === 0) {
+      return res.status(404).json({ error: 'Savdo topilmadi' });
+    }
+
+    const saleData = sale.rows[0];
+    if (saleData.sale_type === 'voided') {
+      return res.status(400).json({ error: 'Bu savdo allaqachon bekor qilingan' });
+    }
+
+    // Restore stock for each item
+    const items = await db.query(
+      `SELECT si.*, p.stock_quantity as current_stock FROM sale_items si
+       LEFT JOIN products p ON si.product_id = p.id
+       WHERE si.sale_id = $1`,
+      [id]
+    );
+
+    const nowExpr = db.isSqlite ? "datetime('now')" : 'NOW()';
+    for (const item of items.rows) {
+      const newStock = (item.current_stock || 0) + item.quantity;
+      await db.query(
+        `UPDATE products SET stock_quantity = $1, updated_at = ${nowExpr} WHERE id = $2`,
+        [newStock, item.product_id]
+      );
+      await db.query(
+        `INSERT INTO inventory_logs (product_id, change_type, quantity, previous_stock, new_stock, note, created_by)
+         VALUES ($1, 'delete', $2, $3, $4, $5, $6)`,
+        [item.product_id, item.quantity, item.current_stock || 0, newStock,
+          `Savdo o'chirildi: ${saleData.invoice_number}`, req.user?.id || 1]
+      );
+    }
+
+    // Delete sale items then sale
+    await db.query('DELETE FROM sale_items WHERE sale_id = $1', [id]);
+    await db.query('DELETE FROM sales WHERE id = $1', [id]);
+
+    res.json({ message: "Savdo muvaffaqiyatli o'chirildi va mahsulotlar omborga qaytarildi" });
   } catch (error) {
     next(error);
   }

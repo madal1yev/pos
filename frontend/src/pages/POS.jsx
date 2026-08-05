@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useCartStore } from '../context/CartContext';
 import { productsAPI, salesAPI, settingsAPI } from '../services/api';
-import { UZ, formatCurrency } from '../utils/uzbek';
+import { UZ, t, formatCurrency } from '../utils/uzbek';
 import { getErrorMessage } from '../utils/errors';
 import { emitDataChanged } from '../utils/events';
 import { playSuccessSound, playScanSound } from '../utils/sounds';
@@ -287,7 +287,21 @@ function ScannerModal({ onClose, onScan }) {
   useEffect(() => { startScanner(); return () => stopScanner(); }, []);
 
   const stopScanner = async () => {
-    try { if (html5QrCodeRef.current) { const s = html5QrCodeRef.current.getState(); if (s === 2) await html5QrCodeRef.current.stop(); html5QrCodeRef.current.clear(); html5QrCodeRef.current = null; } } catch {}
+    try {
+      if (html5QrCodeRef.current) {
+        await html5QrCodeRef.current.stop();
+        html5QrCodeRef.current.clear();
+        html5QrCodeRef.current = null;
+      }
+      const viewport = document.getElementById('scanner-viewport');
+      if (viewport) {
+        const video = viewport.querySelector('video');
+        if (video && video.srcObject) {
+          video.srcObject.getTracks().forEach((t) => t.stop());
+          video.srcObject = null;
+        }
+      }
+    } catch {}
   };
 
   const startScanner = async () => {
@@ -295,19 +309,24 @@ function ScannerModal({ onClose, onScan }) {
       html5QrCodeRef.current = new Html5Qrcode('scanner-viewport');
       await html5QrCodeRef.current.start(
         { facingMode: 'environment' }, { fps: 10, qrbox: { width: 250, height: 150 } },
-        (text) => { onScan(text); stopScanner(); onClose(); },
+        async (text) => { onScan(text); await stopScanner(); onClose(); },
         () => {}
       );
     } catch { setError(UZ.cameraError); setScanning(false); }
   };
 
+  const handleClose = async () => {
+    await stopScanner();
+    onClose();
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm modal-overlay" onClick={onClose} />
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm modal-overlay" onClick={handleClose} />
       <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md modal-content">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{UZ.scanBarcode}</h2>
-          <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"><HiOutlineXMark className="w-5 h-5" /></button>
+          <button onClick={handleClose} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"><HiOutlineXMark className="w-5 h-5" /></button>
         </div>
         <div className="p-4">
           <div id="scanner-viewport" className="rounded-lg overflow-hidden" />
@@ -323,6 +342,7 @@ function CheckoutModal({ total, taxRate, onClose, onComplete }) {
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [receivedAmount, setReceivedAmount] = useState(total.toFixed(0));
   const [customerName, setCustomerName] = useState('');
+  const [promoCode, setPromoCode] = useState('');
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [showDelivery, setShowDelivery] = useState(false);
   const [processing, setProcessing] = useState(false);
@@ -337,6 +357,7 @@ function CheckoutModal({ total, taxRate, onClose, onComplete }) {
       payment_method: paymentMethod,
       received_amount: parseFloat(receivedAmount),
       customer_name: customerName || undefined,
+      promo_code: promoCode || undefined,
       delivery_address: showDelivery ? (deliveryAddress || undefined) : undefined,
     });
     setProcessing(false);
@@ -345,12 +366,12 @@ function CheckoutModal({ total, taxRate, onClose, onComplete }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="fixed inset-0 bg-black/50 backdrop-blur-sm modal-overlay" onClick={onClose} />
-      <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md modal-content">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700">
+      <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] modal-content flex flex-col">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex-shrink-0">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{UZ.checkout}</h2>
           <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"><HiOutlineXMark className="w-5 h-5" /></button>
         </div>
-        <div className="p-6 space-y-5">
+        <div className="p-6 space-y-5 overflow-y-auto flex-1">
           <div className="text-center py-4 bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-900/20 dark:to-blue-900/20 rounded-2xl">
             <p className="text-sm text-gray-500 mb-1">{UZ.totalAmount}</p>
             <p className="text-4xl font-bold text-indigo-600 dark:text-indigo-400">{formatCurrency(total)}</p>
@@ -365,6 +386,10 @@ function CheckoutModal({ total, taxRate, onClose, onComplete }) {
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">{UZ.customerName}</label>
             <input type="text" value={customerName} onChange={(e) => setCustomerName(e.target.value)} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder={UZ.walkInCustomer} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">🏷️ Promo-kod</label>
+            <input type="text" value={promoCode} onChange={(e) => setPromoCode(e.target.value.toUpperCase())} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white font-mono uppercase" placeholder="Masalan: BONUS10" />
           </div>
           <div>
             <button onClick={() => setShowDelivery(!showDelivery)} className={`w-full flex items-center justify-between p-3 rounded-xl border-2 transition-all ${showDelivery ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20' : 'border-gray-200 dark:border-gray-700 hover:border-indigo-300'}`}>
@@ -723,7 +748,14 @@ export default function POS() {
                   </div>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-gray-900 dark:text-white leading-tight line-clamp-1">{item.name}</p>
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-sm font-semibold text-gray-900 dark:text-white leading-tight line-clamp-1">{item.name}</p>
+                    {item.discount > 0 && (
+                      <span className="flex-shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-bold bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400">
+                        SALE
+                      </span>
+                    )}
+                  </div>
                   <div className="flex items-center gap-1.5 mt-0.5">
                     <span className="text-[11px] font-medium text-indigo-600 dark:text-indigo-400">{formatCurrency(item.price)}</span>
                     <span className="text-[10px] text-gray-400">/ {item.unit || 'dona'}</span>
@@ -773,7 +805,7 @@ export default function POS() {
               </div>
               <button onClick={() => setShowCheckout(true)} className="w-full bg-gradient-to-r from-indigo-600 to-indigo-700 text-white py-3.5 rounded-xl text-sm font-semibold hover:from-indigo-700 hover:to-indigo-800 transition-all hover-lift shadow-lg shadow-indigo-500/25 active:scale-[0.98] flex items-center justify-center gap-2">
                 <HiOutlineCheckCircle className="w-5 h-5" />
-                {UZ.proceedCheckout}
+                {t('proceedCheckout')}
               </button>
             </div>
           )}

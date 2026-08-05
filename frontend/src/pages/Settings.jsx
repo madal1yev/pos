@@ -15,7 +15,7 @@ async function uploadImage(file) {
 }
 
 export default function Settings() {
-  const [settings, setSettings] = useState({ store_name: '', store_address: '', store_phone: '', store_email: '', currency: 'UZS', currency_symbol: "so'm", tax_percentage: 0, receipt_header: '', receipt_footer: '', low_stock_threshold: 10, logo_url: '', admin_telegram: '' });
+  const [settings, setSettings] = useState({ store_name: '', store_address: '', store_phone: '', store_email: '', currency: 'UZS', currency_symbol: "so'm", tax_percentage: 0, receipt_header: '', receipt_footer: '', low_stock_threshold: 10, logo_url: '' });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -93,18 +93,6 @@ export default function Settings() {
             </div>
             <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{UZ.symbol}</label><input type="text" value={settings.currency_symbol || ''} onChange={(e) => setSettings({ ...settings, currency_symbol: e.target.value })} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" /></div>
             <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{UZ.taxPercent}</label><input type="number" step="0.01" value={settings.tax_percentage || 0} onChange={(e) => setSettings({ ...settings, tax_percentage: e.target.value })} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" /></div>
-          </div>
-        </div>
-        <div className="card">
-          <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-4">Aloqa va admin</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"><HiOutlineUser className="w-4 h-4 inline mr-1" />Admin Telegram</label>
-              <div className="flex gap-2">
-                <span className="flex items-center text-gray-400 text-sm">@</span>
-                <input type="text" value={settings.admin_telegram?.replace('@', '') || ''} onChange={(e) => setSettings({ ...settings, admin_telegram: e.target.value })} className="input-field flex-1 dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="admin_username" />
-              </div>
-              <p className="text-[11px] text-gray-400 mt-1">Chek va botda admin bilan bog'lanish uchun</p>
-            </div>
           </div>
         </div>
         <div className="card">

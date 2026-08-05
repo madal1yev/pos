@@ -50,11 +50,11 @@ exports.getById = async (req, res, next) => {
 
 exports.create = async (req, res, next) => {
   try {
-    const { name, phone, email, address, type, tax_id, notes } = req.body;
+    const { name, phone, email, address, type, tax_id, notes, debt } = req.body;
     const result = await db.query(
-      `INSERT INTO customers (name, phone, email, address, type, tax_id, notes)
-       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-      [name, phone || null, email || null, address || null, type || 'regular', tax_id || null, notes || null]
+      `INSERT INTO customers (name, phone, email, address, type, tax_id, notes, debt)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+      [name, phone || null, email || null, address || null, type || 'regular', tax_id || null, notes || null, parseFloat(debt) || 0]
     );
     res.status(201).json({ customer: result.rows[0] });
   } catch (error) { next(error); }
@@ -62,15 +62,15 @@ exports.create = async (req, res, next) => {
 
 exports.update = async (req, res, next) => {
   try {
-    const { name, phone, email, address, type, tax_id, notes } = req.body;
+    const { name, phone, email, address, type, tax_id, notes, debt } = req.body;
     const nowExpr = db.isSqlite ? "datetime('now')" : 'NOW()';
     const result = await db.query(
       `UPDATE customers SET name = COALESCE($1, name), phone = COALESCE($2, phone),
        email = COALESCE($3, email), address = COALESCE($4, address),
        type = COALESCE($5, type), tax_id = COALESCE($6, tax_id),
-       notes = COALESCE($7, notes), updated_at = ${nowExpr}
-       WHERE id = $8 RETURNING *`,
-      [name, phone, email, address, type, tax_id, notes, req.params.id]
+       notes = COALESCE($7, notes), debt = COALESCE($8, debt), updated_at = ${nowExpr}
+       WHERE id = $9 RETURNING *`,
+      [name, phone, email, address, type, tax_id, notes, debt, req.params.id]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Customer not found' });
     res.json({ customer: result.rows[0] });

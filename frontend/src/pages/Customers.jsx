@@ -1,15 +1,15 @@
 import { useState, useEffect } from 'react';
 import { customersAPI } from '../services/api';
 import { formatCurrency } from '../utils/uzbek';
-import { HiOutlinePlus, HiOutlineMagnifyingGlass, HiOutlinePencil, HiOutlineTrash, HiOutlineXMark, HiOutlinePhone, HiOutlineEnvelope, HiOutlineMapPin } from 'react-icons/hi2';
+import { HiOutlinePlus, HiOutlineMagnifyingGlass, HiOutlinePencil, HiOutlineTrash, HiOutlineXMark } from 'react-icons/hi2';
 import toast from 'react-hot-toast';
 import { emitDataChanged } from '../utils/events';
 
 function CustomerModal({ customer, onClose, onSave }) {
   const [form, setForm] = useState({
     name: customer?.name || '', phone: customer?.phone || '',
-    email: customer?.email || '', address: customer?.address || '',
-    type: customer?.type || 'regular', notes: customer?.notes || '',
+    debt: customer?.debt || '', address: customer?.address || '',
+    notes: customer?.notes || '',
   });
   const [saving, setSaving] = useState(false);
 
@@ -17,8 +17,15 @@ function CustomerModal({ customer, onClose, onSave }) {
     e.preventDefault();
     setSaving(true);
     try {
-      if (customer) { await customersAPI.update(customer.id, form); toast.success('Mijoz yangilandi'); }
-      else { await customersAPI.create(form); toast.success("Mijoz qo'shildi"); }
+      const payload = {
+        name: form.name,
+        phone: form.phone || null,
+        debt: parseFloat(form.debt) || 0,
+        address: form.address || null,
+        notes: form.notes || null,
+      };
+      if (customer) { await customersAPI.update(customer.id, payload); toast.success('Qarzdor yangilandi'); }
+      else { await customersAPI.create(payload); toast.success("Qarzdor qo'shildi"); }
       emitDataChanged(); onSave();
     } catch (err) { toast.error('Xatolik yuz berdi'); } finally { setSaving(false); }
   };
@@ -28,37 +35,30 @@ function CustomerModal({ customer, onClose, onSave }) {
       <div className="fixed inset-0 bg-black/50 backdrop-blur-sm modal-overlay" onClick={onClose} />
       <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto modal-content">
         <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-6 py-4 flex items-center justify-between z-10">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{customer ? 'Mijozni tahrirlash' : "Yangi mijoz qo'shish"}</h2>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{customer ? 'Qarzdorni tahrirlash' : "Yangi qarzdor qo'shish"}</h2>
           <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"><HiOutlineXMark className="w-5 h-5" /></button>
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Mijoz ismi *</label>
-              <input type="text" value={form.name} onChange={(e) => setForm({...form, name: e.target.value})} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" required />
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Ism familiya *</label>
+              <input type="text" value={form.name} onChange={(e) => setForm({...form, name: e.target.value})} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Qarzdor ismi" required />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Telefon</label>
               <input type="tel" value={form.phone} onChange={(e) => setForm({...form, phone: e.target.value})} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="+998901234567" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Email</label>
-              <input type="email" value={form.email} onChange={(e) => setForm({...form, email: e.target.value})} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Qarz miqdori (so'm)</label>
+              <input type="number" step="0.01" min="0" value={form.debt} onChange={(e) => setForm({...form, debt: e.target.value})} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="0" />
             </div>
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Manzil</label>
               <input type="text" value={form.address} onChange={(e) => setForm({...form, address: e.target.value})} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Tur</label>
-              <select value={form.type} onChange={(e) => setForm({...form, type: e.target.value})} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                <option value="regular">Jismoniy shaxs</option>
-                <option value="business">Yuridik shaxs</option>
-              </select>
-            </div>
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Izoh</label>
-              <textarea value={form.notes} onChange={(e) => setForm({...form, notes: e.target.value})} rows={2} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
+              <textarea value={form.notes} onChange={(e) => setForm({...form, notes: e.target.value})} rows={2} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Qo'shimcha ma'lumot..." />
             </div>
           </div>
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-gray-700">
@@ -92,7 +92,7 @@ export default function Customers() {
   const loadCustomers = async () => {
     setLoading(true);
     try { const { data } = await customersAPI.getAll({ search }); setCustomers(data?.customers || []); }
-    catch { toast.error("Mijozlar yuklanmadi"); } finally { setLoading(false); }
+    catch { toast.error("Qarzdorlar yuklanmadi"); } finally { setLoading(false); }
   };
 
   const handleDelete = async () => {
@@ -100,35 +100,39 @@ export default function Customers() {
     catch { toast.error("O'chirishda xato"); }
   };
 
+  const totalDebt = customers.reduce((sum, c) => sum + (parseFloat(c.debt) || 0), 0);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-fade-in-down">
-        <div><h1 className="text-2xl font-bold text-gray-900 dark:text-white">Mijozlar</h1><p className="text-sm text-gray-500 mt-1">{customers.length} ta mijoz</p></div>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Qarzdorlar</h1>
+          <p className="text-sm text-gray-500 mt-1">{customers.length} ta qarzdor, jami: <span className={`font-bold ${totalDebt > 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>{formatCurrency(totalDebt)}</span></p>
+        </div>
         <button onClick={() => { setEditCustomer(null); setShowModal(true); }} className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-indigo-700 transition-all flex items-center gap-2 shadow-md">
-          <HiOutlinePlus className="w-5 h-5" /> Mijoz qo'shish
+          <HiOutlinePlus className="w-5 h-5" /> Qarzdor qo'shish
         </button>
       </div>
 
       <div className="card">
         <div className="relative flex-1 mb-4">
           <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <input type="text" placeholder="Mijoz qidirish (ism, telefon, email)..." value={search} onChange={(e) => setSearch(e.target.value)} className="input-field pl-10 dark:bg-gray-700 dark:border-gray-600 dark:text-white w-full" />
+          <input type="text" placeholder="Qarzdor qidirish (ism, telefon)..." value={search} onChange={(e) => setSearch(e.target.value)} className="input-field pl-10 dark:bg-gray-700 dark:border-gray-600 dark:text-white w-full" />
         </div>
 
         {loading ? (
           <div className="flex justify-center py-8"><div className="animate-spin h-6 w-6 border-4 border-indigo-500 border-t-transparent rounded-full" /></div>
         ) : customers.length === 0 ? (
-          <div className="text-center py-12 text-gray-400">Mijoz topilmadi</div>
+          <div className="text-center py-12 text-gray-400">Qarzdor topilmadi</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-800">
-                  <th className="pb-3 font-medium">Mijoz</th>
+                  <th className="pb-3 font-medium">Qarzdor</th>
                   <th className="pb-3 font-medium hidden sm:table-cell">Telefon</th>
                   <th className="pb-3 font-medium hidden md:table-cell">Manzil</th>
-                  <th className="pb-3 font-medium text-right">Qarzdorlik</th>
-                  <th className="pb-3 font-medium text-right">Bonus</th>
+                  <th className="pb-3 font-medium text-right">Qarz miqdori</th>
                   <th className="pb-3 font-medium text-right">Xaridlar</th>
                   <th className="pb-3 font-medium text-right w-20"></th>
                 </tr>
@@ -143,7 +147,6 @@ export default function Customers() {
                         </div>
                         <div>
                           <p className="font-semibold text-gray-900 dark:text-white">{c.name}</p>
-                          {c.email && <p className="text-[11px] text-gray-400">{c.email}</p>}
                         </div>
                       </div>
                     </td>
@@ -154,7 +157,6 @@ export default function Customers() {
                         {formatCurrency(c.debt || 0)}
                       </span>
                     </td>
-                    <td className="py-3 text-right font-semibold text-amber-600 dark:text-amber-400">{c.bonus_points || 0}</td>
                     <td className="py-3 text-right font-semibold text-gray-900 dark:text-white">{formatCurrency(c.total_purchases || 0)}</td>
                     <td className="py-3 text-right">
                       <div className="flex items-center justify-end gap-1">
@@ -177,7 +179,7 @@ export default function Customers() {
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm modal-overlay" onClick={() => setDeleteCustomer(null)} />
           <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md p-6 modal-content text-center">
             <div className="mx-auto w-16 h-16 rounded-2xl bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center mb-4 shadow-lg"><HiOutlineTrash className="w-8 h-8 text-white" /></div>
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white">Mijozni o'chirish</h3>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white">Qarzdorni o'chirish</h3>
             <p className="text-sm text-gray-500 mt-2">{deleteCustomer.name} ni o'chirmoqchimisiz?</p>
             <div className="flex justify-center gap-3 mt-6">
               <button onClick={() => setDeleteCustomer(null)} className="btn-secondary">Bekor qilish</button>

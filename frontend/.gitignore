@@ -1,1 +1,6 @@
 .vercel
+.env
+.env.*
+dist/
+dev-dist/
+node_modules/

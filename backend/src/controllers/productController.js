@@ -1,4 +1,3 @@
-const { sendNotification, formatNotification } = require('../services/telegramNotifier');
 const db = require('../config/db');
 const { generateProductCode, generateBarcode, guessImageUrl } = require('../utils/helpers');
 
@@ -136,8 +135,7 @@ exports.create = async (req, res, next) => {
        );
      }
 
-     sendNotification(formatNotification('create', result.rows[0]));
-     res.status(201).json({ product: result.rows[0] });
+res.status(201).json({ product: result.rows[0] });
   } catch (error) {
     next(error);
   }
@@ -185,7 +183,6 @@ exports.update = async (req, res, next) => {
      }
 
      if (current.rows[0].status !== result.rows[0].status || stockDiff !== 0) {
-       sendNotification(formatNotification('update', result.rows[0]));
      }
 
      res.json({ product: result.rows[0] });
@@ -201,7 +198,6 @@ exports.remove = async (req, res, next) => {
       return res.status(404).json({ error: 'Product not found' });
     }
     await db.query('DELETE FROM products WHERE id = $1', [req.params.id]);
-    sendNotification(formatNotification('delete', product.rows[0]));
     res.json({ message: 'Product deleted successfully' });
   } catch (error) {
     next(error);

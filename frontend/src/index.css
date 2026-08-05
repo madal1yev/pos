@@ -251,12 +251,64 @@
 }
 
 /* Smooth scroll */
-.scrollbar-none::-webkit-scrollbar {
+.scrollbar-none::-webkit-scrollbar,
+.hide-scrollbar::-webkit-scrollbar {
   display: none;
 }
-.scrollbar-none {
+.scrollbar-none,
+.hide-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+/* Touch-friendly inputs for elderly users */
+@media (hover: none) and (pointer: coarse) {
+  .input-field {
+    @apply text-base py-2.5;
+    min-height: 44px;
+  }
+  select.input-field {
+    min-height: 44px;
+  }
+}
+
+/* Mobile-first responsive table */
+@media (max-width: 640px) {
+  .card {
+    @apply p-4;
+  }
+  table {
+    @apply text-xs;
+  }
+  th, td {
+    @apply px-2 py-2;
+  }
+}
+
+/* Large touch targets for elderly users */
+@media (hover: none) and (pointer: coarse) {
+  button {
+    min-height: 36px;
+    min-width: 36px;
+  }
+}
+
+/* Prevent text overlap on mobile */
+.truncate-mobile {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Safe area for mobile bottom bar */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Better focus for accessibility */
+:focus-visible {
+  outline: 3px solid #6366f1;
+  outline-offset: 2px;
 }
 
 /* Focus visible for keyboard navigation */

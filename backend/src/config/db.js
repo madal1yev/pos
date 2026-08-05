@@ -14,7 +14,6 @@ if (DATABASE_URL) {
   async function pgAutoMigrate() {
     const migrations = [
       { table: 'sales', column: 'delivery_address', sql: "ALTER TABLE sales ADD COLUMN IF NOT EXISTS delivery_address TEXT" },
-      { table: 'settings', column: 'admin_telegram', sql: "ALTER TABLE settings ADD COLUMN IF NOT EXISTS admin_telegram TEXT" },
     ];
     for (const m of migrations) {
       try {
@@ -112,7 +111,6 @@ if (DATABASE_URL) {
       { table: 'sales', column: 'sale_type', sql: "ALTER TABLE sales ADD COLUMN sale_type TEXT DEFAULT 'sale'" },
       { table: 'sales', column: 'discount_id', sql: "ALTER TABLE sales ADD COLUMN discount_id INTEGER" },
       { table: 'sales', column: 'promo_code', sql: "ALTER TABLE sales ADD COLUMN promo_code TEXT" },
-      { table: 'settings', column: 'admin_telegram', sql: "ALTER TABLE settings ADD COLUMN admin_telegram TEXT" },
       { table: 'settings', column: 'smtp_host', sql: "ALTER TABLE settings ADD COLUMN smtp_host TEXT" },
       { table: 'settings', column: 'smtp_port', sql: "ALTER TABLE settings ADD COLUMN smtp_port INTEGER DEFAULT 587" },
       { table: 'products', column: 'has_variants', sql: "ALTER TABLE products ADD COLUMN has_variants INTEGER DEFAULT 0" },
@@ -213,14 +211,6 @@ if (DATABASE_URL) {
         product_id INTEGER REFERENCES products(id) ON DELETE CASCADE,
         combo_id INTEGER REFERENCES products(id) ON DELETE CASCADE,
         quantity INTEGER DEFAULT 1,
-        created_at TEXT DEFAULT (datetime('now'))
-      )`,
-      `CREATE TABLE IF NOT EXISTS backups (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        filename TEXT,
-        filepath TEXT,
-        size_bytes INTEGER,
-        status TEXT DEFAULT 'completed',
         created_at TEXT DEFAULT (datetime('now'))
       )`
     ];

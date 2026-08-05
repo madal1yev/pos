@@ -107,6 +107,42 @@ exports.logout = async (req, res) => {
   res.json({ message: 'Logged out successfully' });
 };
 
+exports.updateProfile = async (req, res, next) => {
+  try {
+    const { name, email } = req.body;
+    
+    if (email) {
+      const existing = await db.query('SELECT id FROM users WHERE email = $1 AND id != $2', [email, req.user.id]);
+      if (existing.rows.length > 0) {
+        return res.status(400).json({ error: 'Bu email allaqachon band' });
+      }
+    }
+
+    const nowExpr = db.isSqlite ? "datetime('now')" : 'NOW()';
+    const result = await db.query(
+      `UPDATE users SET name = COALESCE($1, name), email = COALESCE($2, email), updated_at = ${nowExpr} WHERE id = $3 RETURNING id, name, email`,
+      [name || req.user.name, email || req.user.email, req.user.id]
+    );
+
+    const updated = result.rows[0];
+    
+    // Update user in request
+    req.user.name = updated.name;
+    req.user.email = updated.email;
+    
+    res.json({
+      user: {
+        id: updated.id,
+        name: updated.name,
+        email: updated.email,
+        role: req.user.role,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.changePassword = async (req, res, next) => {
   try {
     const { current_password, new_password } = req.body;

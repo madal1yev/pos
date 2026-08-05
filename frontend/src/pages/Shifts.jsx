@@ -89,7 +89,7 @@ function ZReportModal({ shift, onClose }) {
                 <p className="font-bold mb-1">TO'LOV TURLARI</p>
                 {paymentBreakdown.map((p, i) => (
                   <div key={i} className="flex justify-between">
-                    <span>{p.payment_method === 'cash' ? 'Naqd' : p.payment_method === 'card' ? 'Karta' : p.payment_method === 'telegram' ? 'Telegram' : 'Boshqa'}:</span>
+                    <span>{p.payment_method === 'cash' ? 'Naqd' : p.payment_method === 'card' ? 'Karta' : 'Boshqa'}:</span>
                     <span>{p.count} ta / {formatCurrency(p.total)}</span>
                   </div>
                 ))}

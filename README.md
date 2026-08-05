@@ -91,24 +91,26 @@ npm run dev
 
 Open `http://localhost:3000` and login with:
 - **Email:** admin@pos.uz
-- **Password:** password
+- **Password:** admin123
 
 ## Project Structure
 
 ```
 pos-system/
+├── api/                          # Vercel serverless proxy
 ├── backend/
+│   ├── api/index.js              # Vercel serverless entry
+│   ├── migrations/               # DB migrations & seed data
+│   ├── scripts/                  # Utility & check scripts
 │   ├── src/
-│   │   ├── config/db.js          # PostgreSQL connection pool
+│   │   ├── config/db.js          # Database (PostgreSQL / SQLite)
 │   │   ├── controllers/          # Route handlers
 │   │   ├── middleware/auth.js     # JWT authentication
 │   │   ├── routes/               # API routes
 │   │   ├── validators/schemas.js # Zod validation schemas
 │   │   ├── utils/helpers.js      # Code generators
 │   │   └── server.js             # Express app entry
-│   ├── migrations/
-│   │   ├── run.js                # Database migration
-│   │   └── seed.js               # Sample data
+│   ├── tests/                    # Test scripts
 │   ├── .env                      # Environment variables
 │   └── package.json
 ├── frontend/
@@ -123,6 +125,9 @@ pos-system/
 │   ├── tailwind.config.js
 │   ├── vite.config.js
 │   └── package.json
+├── scripts/                      # Windows / PM2 / check scripts
+├── render.yaml                   # Render deploy config
+├── vercel.json                   # Vercel config
 └── README.md
 ```
 
@@ -222,25 +227,6 @@ npx vercel --prod
 ```
 
 > **Muhim:** Faqat yuqoridagi linkdagi loyihaga (frontend-smoky-three-96) deploy qiling. Boshqa Vercel loyihalariga adashib push qilmang!
-
-### Telegram Bot 24/7 ishlashi
-
-Telegram botning uzluksiz ishlashi uchun backend server doimiy ishga tushgan bo'lishi kerak:
-
-**Serverda (Railway/Render/Heroku yoki VPS):**
-```bash
-cd backend
-npm start
-```
-
-**O'z serveringizda pm2 bilan:**
-```bash
-cd backend
-npm install -g pm2
-pm2 start src/server.js --name pos-backend
-pm2 save
-pm2 startup
-```
 
 ## License
 

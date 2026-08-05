@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import api, { productsAPI, categoriesAPI, bulkAPI } from '../services/api';
-import { UZ, formatCurrency } from '../utils/uzbek';
+import { t, formatCurrency } from '../utils/uzbek';
 import { getErrorMessage } from '../utils/errors';
 import { emitDataChanged } from '../utils/events';
 import { HiOutlinePlus, HiOutlineMagnifyingGlass, HiOutlinePencil, HiOutlineTrash, HiOutlineQrCode, HiOutlineXMark, HiOutlinePhoto, HiOutlineCurrencyDollar, HiOutlineCamera, HiOutlineChevronDown, HiOutlineCheckCircle, HiOutlineCloudArrowUp, HiOutlineArrowDownTray, HiOutlineArrowUpTray } from 'react-icons/hi2';
@@ -152,10 +152,6 @@ function ProductModal({ product, categories, onClose, onSave }) {
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Mahsulot nomi *</label>
               <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Masalan: Coca-Cola 1L" required />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Brend</label>
-              <input type="text" value={form.brand} onChange={(e) => setForm({ ...form, brand: e.target.value })} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Masalan: Coca-Cola" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Kategoriya</label>
@@ -599,9 +595,9 @@ export default function Products() {
   };
 
   const getStockStatus = (p) => {
-    if (p.stock_quantity === 0) return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">{UZ.outOfStockStatus}</span>;
-    if (p.minimum_stock > 0 && p.stock_quantity < p.minimum_stock) return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">{UZ.lowStockStatus}</span>;
-    return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">{UZ.inStockStatus}</span>;
+    if (p.stock_quantity === 0) return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">{t("outOfStockStatus")}</span>;
+    if (p.minimum_stock > 0 && p.stock_quantity < p.minimum_stock) return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">{t("lowStockStatus")}</span>;
+    return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">{t("inStockStatus")}</span>;
   };
 
   const allVisibleSelected = products.length > 0 && products.every((p) => selectedProducts.has(p.id));
@@ -610,7 +606,7 @@ export default function Products() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-fade-in-down">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{UZ.productsTitle}</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t("productsTitle")}</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{pagination.total} ta mahsulot</p>
         </div>
         <div className="flex gap-2 flex-wrap">
@@ -644,7 +640,7 @@ export default function Products() {
             <HiOutlineArrowDownTray className="w-5 h-5" /> Export CSV
           </button>
           <button onClick={() => { setEditProduct(null); setShowModal(true); }} className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-indigo-700 transition-all flex items-center gap-2 shadow-md shadow-indigo-500/20 active:scale-[0.98]">
-            <HiOutlinePlus className="w-5 h-5" /> {UZ.addProduct}
+            <HiOutlinePlus className="w-5 h-5" /> {t("addProduct")}
           </button>
         </div>
       </div>

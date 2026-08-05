@@ -61,6 +61,7 @@ export const authAPI = {
   getMe: () => api.get('/auth/me'),
   logout: () => api.post('/auth/logout'),
   changePassword: (data) => api.post('/auth/change-password', data),
+  updateProfile: (data) => api.put('/auth/profile', data),
 };
 
 // Products
@@ -93,6 +94,7 @@ export const salesAPI = {
   create: (data) => api.post('/sales', data),
   getInvoice: (id) => api.get(`/sales/${id}/invoice`),
   cancelOrder: (id, reason) => api.post(`/sales/${id}/cancel`, { reason }),
+  delete: (id) => api.delete(`/sales/${id}`),
 };
 
 // Reports

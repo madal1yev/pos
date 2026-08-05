@@ -13,7 +13,6 @@ const defaults = {
   receipt_header: '',
   receipt_footer: '',
   low_stock_threshold: 10,
-  admin_telegram: '',
 };
 
 export const useSettingsStore = create((set, get) => ({

@@ -45,7 +45,7 @@ const saleItemSchema = z.object({
 
 const saleSchema = z.object({
   customer_name: z.string().optional(),
-  payment_method: z.enum(['cash', 'card', 'other', 'debt', 'telegram']),
+  payment_method: z.enum(['cash', 'card', 'other', 'debt']),
   received_amount: z.coerce.number().min(0),
   items: z.array(saleItemSchema).min(1, 'At least one item is required'),
   notes: z.string().optional(),

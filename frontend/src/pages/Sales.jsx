@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { salesAPI } from '../services/api';
-import { UZ, formatCurrency, formatTashkentDate, formatTashkentShort } from '../utils/uzbek';
-import { HiOutlineMagnifyingGlass, HiOutlineEye, HiOutlineXMark, HiOutlinePrinter, HiOutlineCalendarDays, HiOutlineArrowPath, HiOutlineClipboardDocumentList, HiOutlineNoSymbol } from 'react-icons/hi2';
+import { t, formatCurrency, formatTashkentDate, formatTashkentShort } from '../utils/uzbek';
+import { HiOutlineMagnifyingGlass, HiOutlineEye, HiOutlineXMark, HiOutlinePrinter, HiOutlineCalendarDays, HiOutlineArrowPath, HiOutlineClipboardDocumentList, HiOutlineNoSymbol, HiOutlineTrash } from 'react-icons/hi2';
 import { emitDataChanged } from '../utils/events';
 import toast from 'react-hot-toast';
 
@@ -103,7 +103,7 @@ function InvoiceModal({ saleId, onClose }) {
               <div className="flex justify-between gap-3"><span>Chek:</span><span className="font-bold text-right break-all font-mono">{invoice?.invoice_number}</span></div>
               <div className="flex justify-between"><span>Sana:</span><span>{formatTashkentDate(invoice?.created_at)}</span></div>
               <div className="flex justify-between"><span>Kassir:</span><span>{invoice?.cashier_name}</span></div>
-              <div className="flex justify-between"><span>To'lov:</span><span className="font-semibold">{invoice?.payment_method === 'cash' ? '💵 Naqd' : invoice?.payment_method === 'card' ? '💳 Karta' : invoice?.payment_method === 'telegram' ? '🤖 Telegram' : 'Boshqa'}</span></div>
+              <div className="flex justify-between"><span>To'lov:</span><span className="font-semibold">{invoice?.payment_method === 'cash' ? '💵 Naqd' : invoice?.payment_method === 'card' ? '💳 Karta' : 'Boshqa'}</span></div>
             </div>
 
             <div className="py-2 border-b border-dashed border-black">
@@ -151,9 +151,9 @@ function InvoiceModal({ saleId, onClose }) {
         </div>
 
         <div className="flex gap-3 px-6 py-4 border-t border-gray-100 dark:border-gray-700 no-print">
-          <button onClick={onClose} className="flex-1 btn-secondary">{UZ.close}</button>
+          <button onClick={onClose} className="flex-1 btn-secondary">{t('close')}</button>
           <button onClick={handlePrint} className="flex-1 bg-indigo-600 text-white px-4 py-2.5 rounded-lg font-medium hover:bg-indigo-700 transition-all flex items-center justify-center gap-2">
-            <HiOutlinePrinter className="w-4 h-4" /> {UZ.print}
+            <HiOutlinePrinter className="w-4 h-4" /> {t('print')}
           </button>
         </div>
       </div>
@@ -171,6 +171,7 @@ export default function Sales() {
   const [loading, setLoading] = useState(true);
   const [viewInvoice, setViewInvoice] = useState(null);
   const [cancelling, setCancelling] = useState(null);
+  const [deleting, setDeleting] = useState(null);
 
   useEffect(() => { loadSales(); }, [search, paymentFilter, dateFrom, dateTo]);
 
@@ -204,13 +205,28 @@ export default function Sales() {
     }
   };
 
+  const handleDeleteSale = async (saleId) => {
+    if (!window.confirm("Sotuv tarixini o'chirishni tasdiqlaysizmi? Mahsulotlar omborga qaytariladi. Bu amalni bekor qilib bo'lmaydi.")) return;
+    setDeleting(saleId);
+    try {
+      await salesAPI.delete(saleId);
+      toast.success("Sotuv o'chirildi va mahsulotlar omborga qaytarildi");
+      loadSales(pagination.page);
+    } catch (err) {
+      const msg = err.response?.data?.error || err.message || 'Xatolik';
+      toast.error(msg);
+    } finally {
+      setDeleting(null);
+    }
+  };
+
   const totalRevenue = sales.reduce((sum, s) => sum + (parseFloat(s.total_amount) || 0), 0);
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-fade-in-down">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{UZ.salesTitle}</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('salesTitle')}</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{pagination.total} ta sotuv</p>
         </div>
         {sales.length > 0 && (
@@ -225,14 +241,13 @@ export default function Sales() {
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
             <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input type="text" placeholder={`${UZ.search}... (chek, mijoz)`} value={search} onChange={(e) => setSearch(e.target.value)} className="input-field pl-10 dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
+            <input type="text" placeholder={`${t('search')}... (chek, mijoz)`} value={search} onChange={(e) => setSearch(e.target.value)} className="input-field pl-10 dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
           </div>
           <select value={paymentFilter} onChange={(e) => setPaymentFilter(e.target.value)} className="input-field w-auto sm:w-40 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
             <option value="">Barcha usul</option>
-            <option value="cash">{UZ.cash}</option>
-            <option value="card">{UZ.card}</option>
-            <option value="telegram">Telegram Bot</option>
-            <option value="other">{UZ.other}</option>
+            <option value="cash">{t('cash')}</option>
+            <option value="card">{t('card')}</option>
+            <option value="other">{t('other')}</option>
           </select>
           <div className="relative">
             <HiOutlineCalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -268,12 +283,12 @@ export default function Sales() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/50">
-                  <th className="py-3 px-4 font-medium">{UZ.invoice}</th>
-                  <th className="py-3 px-4 font-medium">{UZ.customer}</th>
-                  <th className="py-3 px-4 font-medium">{UZ.cashier}</th>
-                  <th className="py-3 px-4 font-medium">{UZ.payment}</th>
-                  <th className="py-3 px-4 font-medium text-right">{UZ.amount}</th>
-                  <th className="py-3 px-4 font-medium text-right">{UZ.date}</th>
+                  <th className="py-3 px-4 font-medium">{t('invoice')}</th>
+                  <th className="py-3 px-4 font-medium">{t('customer')}</th>
+                  <th className="py-3 px-4 font-medium">{t('cashier')}</th>
+                  <th className="py-3 px-4 font-medium">{t('payment')}</th>
+                  <th className="py-3 px-4 font-medium text-right">{t('amount')}</th>
+                  <th className="py-3 px-4 font-medium text-right">{t('date')}</th>
                   <th className="py-3 px-4 font-medium text-right w-12"></th>
                 </tr>
               </thead>
@@ -291,22 +306,19 @@ export default function Sales() {
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-lg text-xs font-semibold ${
                         sale.payment_method === 'cash' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' :
                         sale.payment_method === 'card' ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
-                        sale.payment_method === 'telegram' ? 'bg-sky-50 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400' :
                         'bg-violet-50 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400'
-                      }`}>{sale.payment_method === 'cash' ? UZ.cash : sale.payment_method === 'card' ? UZ.card : sale.payment_method === 'telegram' ? '🤖 Telegram' : UZ.other}</span>
+                      }`}>{sale.payment_method === 'cash' ? t('cash') : sale.payment_method === 'card' ? t('card') : t('other')}</span>
                       {sale.sale_type === 'voided' && <span className="ml-1 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">Bekor</span>}
                     </td>
                     <td className={`py-3.5 px-4 text-right font-bold text-base ${sale.sale_type === 'voided' ? 'text-gray-400 line-through' : 'text-gray-900 dark:text-white'}`}>{formatCurrency(sale.total_amount)}</td>
                     <td className="py-3.5 px-4 text-right text-gray-500 text-xs">{formatTashkentShort(sale.created_at)}</td>
                     <td className="py-3.5 px-4 text-right">
                       <div className="flex items-center justify-end gap-1" onClick={e => e.stopPropagation()}>
-                        {sale.payment_method === 'telegram' && sale.sale_type !== 'voided' && (
-                          <button onClick={() => handleCancelOrder(sale.id)} disabled={cancelling === sale.id} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500 transition-colors" title="Bekor qilish">
-                            <HiOutlineNoSymbol className="w-4 h-4" />
-                          </button>
-                        )}
                         <button onClick={() => setViewInvoice(sale.id)} className="p-1.5 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 transition-colors" title="Ko'rish">
                           <HiOutlineEye className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => handleDeleteSale(sale.id)} disabled={deleting === sale.id} className="p-1.5 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 transition-colors disabled:opacity-50" title="O'chirish">
+                          <HiOutlineTrash className="w-4 h-4" />
                         </button>
                       </div>
                     </td>

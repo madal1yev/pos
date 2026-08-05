@@ -10,12 +10,19 @@ export default function Layout({ dark, toggleDark }) {
 
   useEffect(() => { loadSettings(); }, []);
 
+  const toggleSidebar = () => setSidebarOpen((prev) => !prev);
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex">
-      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} dark={dark} toggleDark={toggleDark} />
-      <div className="flex-1 flex flex-col min-w-0 lg:ml-64">
-        <Header onMenuClick={() => setSidebarOpen(true)} />
-        <main className="flex-1 p-4 md:p-6 overflow-auto">
+      <Sidebar
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        dark={dark}
+        toggleDark={toggleDark}
+      />
+      <div className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${sidebarOpen ? 'lg:ml-[280px]' : 'lg:ml-0'}`}>
+        <Header onMenuClick={toggleSidebar} />
+        <main className="flex-1 p-3 md:p-6 overflow-auto">
           <Outlet />
         </main>
       </div>

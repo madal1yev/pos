@@ -1,6 +1,6 @@
 @echo off
 title POS Tizimi
-cd /d "C:\Users\SHAX\Desktop\pos"
+cd /d "%~dp0.."
 
 :: Local IP ni aniqlash (faqat WiFi/ethernet - 192.168.x.x yoki 10.x.x.x)
 for /f "tokens=2 delims=:" %%i in ('ipconfig ^| findstr /r "IPv4.*192\.168\."') do set IP=%%i
@@ -13,8 +13,8 @@ echo     🚀 POS TIZIMI ISHGA TUSHMOQDA...
 echo ============================================
 echo.
 
-:: PM2 orqali backend va botlarni ishga tushirish (background)
-pm2 start ecosystem.config.js
+:: PM2 orqali backendni ishga tushirish (background)
+pm2 start scripts\ecosystem.config.js
 
 :: PM2 configuratsiyani saqlash (qayta ishga tushganda tiklash uchun)
 pm2 save

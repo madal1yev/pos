@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { dashboardAPI } from '../services/api';
-import { UZ, formatCurrency, formatUzbekDate, formatTashkentTime } from '../utils/uzbek';
+import { t, formatCurrency, formatUzbekDate, formatTashkentTime } from '../utils/uzbek';
 import { playNewOrderSound } from '../utils/sounds';
 import {
   HiOutlineBanknotes, HiOutlineShoppingCart, HiOutlineCube, HiOutlineExclamationTriangle,
@@ -119,7 +119,7 @@ export default function Dashboard() {
     <div className="space-y-6">
       <div className="animate-fade-in-down flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{UZ.dashboardTitle}</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t("dashboardTitle")}</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
             Bugun: {formatUzbekDate()}
           </p>
@@ -214,11 +214,11 @@ export default function Dashboard() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-800">
-                  <th className="pb-3 font-medium">{UZ.invoice}</th>
-                  <th className="pb-3 font-medium">{UZ.customer}</th>
-                  <th className="pb-3 font-medium">{UZ.payment}</th>
-                  <th className="pb-3 font-medium text-right">{UZ.amount}</th>
-                  <th className="pb-3 font-medium text-right">{UZ.time}</th>
+                  <th className="pb-3 font-medium">{t("invoice")}</th>
+                  <th className="pb-3 font-medium">{t("customer")}</th>
+                  <th className="pb-3 font-medium">{t("payment")}</th>
+                  <th className="pb-3 font-medium text-right">{t("amount")}</th>
+                  <th className="pb-3 font-medium text-right">{t("time")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
@@ -231,7 +231,7 @@ export default function Dashboard() {
                         sale.payment_method === 'cash' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' :
                         sale.payment_method === 'card' ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
                         'bg-violet-50 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400'
-                      }`}>{sale.payment_method === 'cash' ? UZ.cash : sale.payment_method === 'card' ? UZ.card : UZ.other}</span>
+                      }`}>{sale.payment_method === 'cash' ? t("cash") : sale.payment_method === 'card' ? t("card") : t("other")}</span>
                     </td>
                     <td className="py-3 text-right font-semibold text-gray-900 dark:text-white">{formatCurrency(sale.total_amount)}</td>
                     <td className="py-3 text-right text-gray-500 text-xs">{formatTashkentTime(sale.created_at)}</td>
@@ -243,7 +243,7 @@ export default function Dashboard() {
         ) : (
           <div className="text-center py-8">
             <HiOutlineClock className="w-8 h-8 mx-auto text-gray-300 dark:text-gray-600 mb-2" />
-            <p className="text-sm text-gray-400">{UZ.noSalesToday}</p>
+            <p className="text-sm text-gray-400">{t("noSalesToday")}</p>
           </div>
         )}
       </div>

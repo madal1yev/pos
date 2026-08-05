@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '../../context/AuthContext';
-import { UZ } from '../../utils/uzbek';
-import { HiOutlineBars3, HiOutlineBell, HiOutlineXMark } from 'react-icons/hi2';
+import { t, getLanguage, setLanguage } from '../../utils/uzbek';
+import { HiOutlineBars3, HiOutlineBell, HiOutlineXMark, HiOutlineGlobeAlt } from 'react-icons/hi2';
 import { productsAPI } from '../../services/api';
 
 export default function Header({ onMenuClick }) {
   const user = useAuthStore((s) => s.user);
   const [showNotif, setShowNotif] = useState(false);
+  const [showLangMenu, setShowLangMenu] = useState(false);
+  const [currentLang, setCurrentLang] = useState(getLanguage());
   const [lowStockItems, setLowStockItems] = useState([]);
   const [dismissed, setDismissed] = useState(() => {
     try { return JSON.parse(localStorage.getItem('pos_dismissed_notifs') || '[]'); } catch { return []; }
@@ -38,19 +40,63 @@ export default function Header({ onMenuClick }) {
     localStorage.setItem('pos_dismissed_notifs', JSON.stringify(next));
   };
 
+  const handleLanguageChange = (lang) => {
+    setLanguage(lang);
+    setCurrentLang(lang);
+    setShowLangMenu(false);
+    window.location.reload();
+  };
+
+  const LANGUAGES = [
+    { code: 'uz', label: "O'zbek", flag: "🇺🇿" },
+    { code: 'ru', label: 'Русский', flag: '🇷🇺' },
+    { code: 'en', label: 'English', flag: '🇺🇸' },
+  ];
+
   return (
     <header className="sticky top-0 z-30 bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg border-b border-gray-200 dark:border-gray-800">
-      <div className="flex items-center justify-between px-4 md:px-6 h-16">
+      <div className="flex items-center justify-between px-4 md:px-6 h-14 md:h-16">
         <div className="flex items-center gap-3">
           <button
             onClick={onMenuClick}
-            className="lg:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            title="Sidebarni ochish/yopish"
           >
             <HiOutlineBars3 className="w-5 h-5 text-gray-600 dark:text-gray-400" />
           </button>
         </div>
 
         <div className="flex items-center gap-2 relative">
+          {/* Language Switcher */}
+          <div className="relative">
+            <button
+              onClick={() => { setShowLangMenu(!showLangMenu); setShowNotif(false); }}
+              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-1.5"
+              title="Tilni o'zgartirish"
+            >
+              <HiOutlineGlobeAlt className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+              <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase hidden sm:inline">{currentLang}</span>
+            </button>
+            {showLangMenu && (
+              <div className="absolute right-0 top-12 w-44 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 z-50 animate-fade-in-down overflow-hidden">
+                {LANGUAGES.map((lang) => (
+                  <button
+                    key={lang.code}
+                    onClick={() => handleLanguageChange(lang.code)}
+                    className={`w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors text-left ${
+                      currentLang === lang.code
+                        ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 font-semibold'
+                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                    }`}
+                  >
+                    <span className="text-lg">{lang.flag}</span>
+                    <span>{lang.label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
           <button
             onClick={() => setShowNotif(!showNotif)}
             className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors relative"
@@ -65,7 +111,7 @@ export default function Header({ onMenuClick }) {
             <div className="absolute right-0 top-12 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 z-50 animate-fade-in-down">
               <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-700">
                 <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
-                  {UZ.notifications}
+                  {t('notifications')}
                   {visibleItems.length > 0 && <span className="ml-1.5 text-xs font-normal text-gray-400">({visibleItems.length})</span>}
                 </h3>
                 <div className="flex items-center gap-1">
@@ -83,13 +129,13 @@ export default function Header({ onMenuClick }) {
                 {visibleItems.length === 0 ? (
                   <div className="py-8 text-center">
                     <HiOutlineBell className="w-8 h-8 mx-auto text-gray-300 dark:text-gray-600 mb-2" />
-                    <p className="text-sm text-gray-400">{UZ.noNotifications}</p>
+                    <p className="text-sm text-gray-400">{t('noNotifications')}</p>
                   </div>
                 ) : (
                   visibleItems.map((item) => (
                     <div key={item.id} className="px-4 py-3 border-b border-gray-50 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/50 group flex items-start gap-3">
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm text-amber-700 dark:text-amber-400 font-medium">{UZ.lowStockAlert}</p>
+                        <p className="text-sm text-amber-700 dark:text-amber-400 font-medium">{t('lowStockAlert')}</p>
                         <p className="text-xs text-gray-500 mt-0.5">
                           <strong>{item.name}</strong> — {item.stock_quantity} {item.unit} qoldi
                         </p>

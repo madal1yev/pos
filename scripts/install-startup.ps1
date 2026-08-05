@@ -4,7 +4,7 @@
 # Bu skript:
 # 1. PM2 ni Windows service qilib o'rnatadi (24/7)
 # 2. Windows boshlanganda POS tizimi avtomatik ishga tushadi
-# 3. Backend, botlar doimiy ishlaydi
+# 3. Backend doimiy ishlaydi
 
 Write-Host "============================================" -ForegroundColor Cyan
 Write-Host "  🚀 POS TIZIMINI O'RNATISH" -ForegroundColor Cyan
@@ -37,13 +37,13 @@ if ($LASTEXITCODE -ne 0) {
 
 # === 2. POS tizimini PM2 ga qo'shish ===
 Write-Host "[2/4] POS tizimini PM2 ga qo'shish..." -ForegroundColor Yellow
-Set-Location "C:\Users\SHAX\Desktop\pos"
+Set-Location $PSScriptRoot
 
 # Avval eski processlarni o'chiramiz
 pm2 delete all
 
-# POS backend va botlarni ishga tushirish
-pm2 start ecosystem.config.js
+# POS backendni ishga tushirish
+pm2 start scripts\ecosystem.config.js
 
 # PM2 konfiguratsiyani saqlash (qayta ishga tushganda avtomatik)
 pm2 save
@@ -54,7 +54,7 @@ Write-Host "  ✅ POS tizimi PM2 ga qo'shildi" -ForegroundColor Green
 Write-Host "[3/4] Windows Task Scheduler sozlanmoqda..." -ForegroundColor Yellow
 
 $taskName = "POS Tizimi (PM2)"
-$taskDescription = "POS tizimi va Telegram botlar avtomatik ishga tushadi"
+$taskDescription = "POS tizimi avtomatik ishga tushadi"
 
 # Eski taskni o'chirish
 Unregister-ScheduledTask -TaskName $taskName -Confirm:$false -ErrorAction SilentlyContinue
@@ -64,7 +64,7 @@ $pm2FullPath = "$env:USERPROFILE\AppData\Roaming\npm\pm2.cmd"
 if (-not (Test-Path $pm2FullPath)) {
     $pm2FullPath = "pm2"
 }
-$action = New-ScheduledTaskAction -Execute "C:\Windows\System32\cmd.exe" -Argument "/c cd /d C:\Users\SHAX\Desktop\pos && `"$pm2FullPath`" resurrect"
+$action = New-ScheduledTaskAction -Execute "C:\Windows\System32\cmd.exe" -Argument "/c cd /d `"$PSScriptRoot`" && `"$pm2FullPath`" resurrect"
 $trigger = New-ScheduledTaskTrigger -AtStartup
 $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1)
 

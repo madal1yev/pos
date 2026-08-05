@@ -6,7 +6,7 @@ import { formatCurrency } from '../utils/uzbek';
 import {
   HiOutlinePlus, HiOutlinePencil, HiOutlineTrash, HiOutlineXMark,
   HiOutlineCheckCircle, HiOutlineMagnifyingGlass, HiOutlineTableCells,
-  HiOutlineCheck, HiOutlineShoppingCart,
+  HiOutlineCheck, HiOutlineShoppingCart, HiOutlineArrowPath,
 } from 'react-icons/hi2';
 import toast from 'react-hot-toast';
 
@@ -236,6 +236,17 @@ export default function Categories() {
     } finally { setSaving(false); }
   }, [form, editCat, validateForm, closeModal, loadCategories]);
 
+  const handleToggleStatus = useCallback(async (cat) => {
+    const newStatus = cat.status === 'active' ? 'inactive' : 'active';
+    try {
+      await categoriesAPI.bulkStatus([cat.id], newStatus);
+      toast.success(`"${cat.name}" ${newStatus === 'active' ? 'faollashtirildi' : 'faolsizlantirildi'}`);
+      loadCategories();
+    } catch (err) {
+      toast.error(getErrorMessage(err, 'Holatni o\'zgartirishda xato'));
+    }
+  }, [loadCategories]);
+
   const handleDelete = useCallback(async (cat) => {
     try {
       await categoriesAPI.delete(cat.id);
@@ -379,13 +390,17 @@ export default function Categories() {
                       </div>
                     </td>
                     <td className="px-4 py-3 align-middle text-center">
-                      <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold ${
-                        cat.status === 'active' || !cat.status
-                          ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400'
-                          : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'
-                      }`}>
-                        {cat.status === 'active' || !cat.status ? '✅ Faol' : '⛔ Nofaol'}
-                      </span>
+                      <button
+                        onClick={() => handleToggleStatus(cat)}
+                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer hover:opacity-80 ${
+                          cat.status === 'active' || !cat.status
+                            ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400 hover:bg-emerald-100'
+                            : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400 hover:bg-gray-200'
+                        }`}
+                        title={cat.status === 'active' ? 'Nofaol qilish' : 'Faol qilish'}
+                      >
+                        {cat.status === 'active' || !cat.status ? 'Faol' : 'Nofaol'}
+                      </button>
                     </td>
                     <td className="px-4 py-3 align-middle text-right font-semibold text-gray-900 dark:text-white whitespace-nowrap">{cat.product_count ?? 0}</td>
                     <td className="px-4 py-3 align-middle text-center hidden sm:table-cell">

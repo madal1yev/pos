@@ -17,11 +17,4 @@ services:
         sync: false
       - key: JWT_SECRET
         generateValue: true
-      - key: TELEGRAM_BOT_TOKEN
-        value: "8805705606:AAG5TRIJjU-kMR9F0GkFlh4JcIJK95euYiE"
-      - key: KLENT_BOT_TOKEN
-        value: "8803269723:AAGrBjoCF8PENRZS5TNsm4iZNbmvx0aEZhI"
-      - key: KLENT_ADMIN_USERNAME
-        value: "azizvc_m"
-      - key: ADMIN_CHAT_ID
-        value: "7882709730"
+

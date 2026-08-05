@@ -36,10 +36,13 @@ exports.getById = async (req, res, next) => {
 exports.create = async (req, res, next) => {
   try {
     const { name, type, value, min_purchase, max_discount, start_date, end_date } = req.body;
+    if (!name || !type || value === undefined || value === null || value === '') {
+      return res.status(400).json({ error: 'Nom, tur va qiymat majburiy' });
+    }
     const result = await db.query(
       `INSERT INTO discounts (name, type, value, min_purchase, max_discount, start_date, end_date)
        VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-      [name, type, value, min_purchase || 0, max_discount || null, start_date || null, end_date || null]
+      [name, type, parseFloat(value), parseFloat(min_purchase) || 0, max_discount ? parseFloat(max_discount) : null, start_date || null, end_date || null]
     );
 
     // Log audit - safely handle if table doesn't exist
@@ -62,10 +65,20 @@ exports.create = async (req, res, next) => {
 exports.update = async (req, res, next) => {
   try {
     const current = await db.query('SELECT * FROM discounts WHERE id = $1', [req.params.id]);
-    if (current.rows.length === 0) return res.status(404).json({ error: 'Discount not found' });
+    if (current.rows.length === 0) return res.status(404).json({ error: 'Chegirma topilmadi' });
 
     const { name, type, value, min_purchase, max_discount, start_date, end_date, is_active } = req.body;
     const nowExpr = db.isSqlite ? "datetime('now')" : 'NOW()';
+    
+    const nameVal = name !== undefined ? name : null;
+    const typeVal = type !== undefined ? type : null;
+    const valueVal = value !== undefined ? parseFloat(value) : null;
+    const minPurchaseVal = min_purchase !== undefined ? parseFloat(min_purchase) : null;
+    const maxDiscountVal = max_discount !== undefined ? (max_discount ? parseFloat(max_discount) : null) : null;
+    const startDateVal = start_date !== undefined ? (start_date || null) : null;
+    const endDateVal = end_date !== undefined ? (end_date || null) : null;
+    const isActiveVal = is_active !== undefined ? (is_active ? 1 : 0) : null;
+
     const result = await db.query(
       `UPDATE discounts SET
         name = COALESCE($1, name), type = COALESCE($2, type), value = COALESCE($3, value),
@@ -73,7 +86,7 @@ exports.update = async (req, res, next) => {
         start_date = COALESCE($6, start_date), end_date = COALESCE($7, end_date),
         is_active = COALESCE($8, is_active), updated_at = ${nowExpr}
        WHERE id = $9 RETURNING *`,
-      [name, type, value, min_purchase, max_discount, start_date, end_date, is_active, req.params.id]
+      [nameVal, typeVal, valueVal, minPurchaseVal, maxDiscountVal, startDateVal, endDateVal, isActiveVal, req.params.id]
     );
 
     // Log audit - safely handle if table doesn't exist

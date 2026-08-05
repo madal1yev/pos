@@ -2,11 +2,13 @@
 // Backend frontendni ham serve qiladi (dist/build dan)
 // Alohida Vite server kerak emas
 
+const path = require('path');
+
 module.exports = {
   apps: [
     {
       name: 'pos-backend',
-      cwd: './backend',
+      cwd: path.join(__dirname, '..', 'backend'),
       script: 'src/server.js',
       watch: false,
       autorestart: true,

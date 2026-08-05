@@ -54,7 +54,6 @@ async function testHealthEndpoint() {
   ok(res.status === 200, `Health returns 200`);
   ok(res.data.status === 'ok', `Status is ok`);
   ok(res.data.db === 'connected', `DB connected`);
-  ok(res.data.bots === 'active', `Bots active`);
 }
 
 async function testCategoriesAPI() {
@@ -149,70 +148,9 @@ async function testFrontendLogin(page) {
   ok(buttons >= 1, `Login form has ${buttons} button(s)`);
 }
 
-async function testBotFlow() {
-  console.log('\n🤖 Test: Bot order flow (DB simulation)');
-  const db = require('./src/config/db');
-  
-  const cats = await db.query(`SELECT c.*, (SELECT COUNT(*) FROM products p WHERE p.category_id = c.id AND p.status = 'active') as product_count FROM categories c ORDER BY c.name`);
-  ok(cats.rows.length >= 5, `Categories: ${cats.rows.length}`);
-  
-  const activeCats = cats.rows.filter(c => c.product_count > 0);
-  ok(activeCats.length >= 5, `Active categories: ${activeCats.length}`);
-  
-  const firstCat = activeCats[0];
-  const prods = await db.query(`SELECT * FROM products WHERE status = 'active' AND category_id = $1 ORDER BY name`, [firstCat.id]);
-  ok(prods.rows.length > 0, `Products in "${firstCat.name}": ${prods.rows.length}`);
-  
-  const searchRes = await db.query(
-    `SELECT p.* FROM products p WHERE p.status = 'active' AND (p.name LIKE $1 OR p.barcode LIKE $1 OR p.product_code LIKE $1 OR p.description LIKE $1) LIMIT 10`,
-    ['%Product%']
-  );
-  ok(searchRes.rows.length > 0, `Search "Product": ${searchRes.rows.length}`);
-  
-  const product = prods.rows[0];
-  const invoiceNumber = `PW-${Date.now().toString().slice(-8)}`;
-  const total = product.selling_price * 2;
-  
-  const sale = await db.query(
-    `INSERT INTO sales (invoice_number, customer_name, total_amount, payment_method, received_amount, change_amount, notes, delivery_address) VALUES ($1, $2, $3, 'telegram', $3, 0, $4, $5) RETURNING *`,
-    [invoiceNumber, '@pw_test', total, 'Telegram zakaz', 'Toshkent']
-  );
-  ok(sale.rows.length > 0, `Order created: ${invoiceNumber}`);
-  ok(sale.rows[0].total_amount === total, `Total correct: ${sale.rows[0].total_amount}`);
-  ok(sale.rows[0].received_amount === total, `Received correct: ${sale.rows[0].received_amount}`);
-  ok(sale.rows[0].delivery_address === 'Toshkent', `Address saved`);
-  
-  await db.query(`INSERT INTO sale_items (sale_id, product_id, quantity, price, subtotal) VALUES ($1, $2, $3, $4, $5)`, [sale.rows[0].id, product.id, 2, product.selling_price, total]);
-  
-  const newStock = Math.max(0, product.stock_quantity - 2);
-  const nowExpr = db.isSqlite ? "datetime('now')" : 'NOW()';
-  await db.query(`UPDATE products SET stock_quantity = $1, updated_at = ${nowExpr} WHERE id = $2`, [newStock, product.id]);
-  
-  const updated = await db.query(`SELECT stock_quantity FROM products WHERE id = $1`, [product.id]);
-  ok(updated.rows[0].stock_quantity === newStock, `Stock: ${product.stock_quantity} -> ${newStock}`);
-  
-  await db.query(`INSERT INTO inventory_logs (product_id, change_type, quantity, previous_stock, new_stock, note, created_by) VALUES ($1, 'sale', $2, $3, $4, $5, 1)`, [product.id, -2, product.stock_quantity, newStock, `Test: ${invoiceNumber}`]);
-  
-  await db.query('UPDATE products SET stock_quantity = $1 WHERE id = $2', [product.stock_quantity, product.id]);
-  await db.query('DELETE FROM sale_items WHERE sale_id = $1', [sale.rows[0].id]);
-  await db.query('DELETE FROM sales WHERE id = $1', [sale.rows[0].id]);
-  console.log('  🧹 Cleaned up');
-}
-
-async function testKlentBot() {
-  console.log('\n🔔 Test: KlentBot');
-  const klentBot = require('./src/klentBot');
-  const adminId = klentBot.getAdminChatId();
-  // Admin chat ID may be null in local test environment (admin hasn't started bot)
-  // This is expected - test passes if bot module loads successfully
-  ok(typeof klentBot.getAdminChatId === 'function', 'KlentBot module loaded');
-  console.log(`  ℹ️  Admin chat ID: ${adminId || 'not set (expected in test env)'}`);
-  passed++;
-}
-
 async function testMapParamsFix() {
   console.log('\n🔧 Test: mapParams fix');
-  const db = require('./src/config/db');
+  const db = require('../src/config/db');
   
   const repeated = await db.query(
     `SELECT p.* FROM products p WHERE p.status = 'active' AND (p.name LIKE $1 OR p.barcode LIKE $1 OR p.product_code LIKE $1 OR p.description LIKE $1) LIMIT 5`,
@@ -221,7 +159,7 @@ async function testMapParamsFix() {
   ok(repeated.rows.length > 0, `Repeated $1 works: ${repeated.rows.length} results`);
   
   const doubled = await db.query(
-    `INSERT INTO sales (invoice_number, customer_name, total_amount, payment_method, received_amount, change_amount, notes, delivery_address) VALUES ($1, $2, $3, 'telegram', $3, 0, $4, $5) RETURNING *`,
+    `INSERT INTO sales (invoice_number, customer_name, total_amount, payment_method, received_amount, change_amount, notes, delivery_address) VALUES ($1, $2, $3, 'cash', $3, 0, $4, $5) RETURNING *`,
     ['MP-TEST', 'MapParams Test', 99999, 'test notes', 'test addr']
   );
   ok(doubled.rows.length > 0, `INSERT with $3 twice works`);
@@ -252,8 +190,6 @@ async function runAllTests() {
     }
     
     await testMapParamsFix();
-    await testBotFlow();
-    await testKlentBot();
     
     browser = await chromium.launch({ headless: true });
     const page = await browser.newContext().then(c => c.newPage());

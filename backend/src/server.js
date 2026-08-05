@@ -42,27 +42,6 @@ try {
   console.log('⚠️ uploads papkasini yaratib bo\'lmadi:', err.message);
 }
 
-const klentBot = require('./klentBot');
-const { startBackupScheduler } = require('./services/backupScheduler');
-
-// Botlarni yuklaymiz
-let botModule = null;
-try {
-  botModule = require('./bot');
-  console.log('🤖 Bot module yuklandi');
-} catch (err) {
-  console.log('⚠️ Bot module yuklanmadi:', err.message);
-}
-
-// Backup scheduler (faqat lokal, Vercel emas)
-if (!process.env.VERCEL) {
-  try {
-    startBackupScheduler();
-  } catch (err) {
-    console.log('⚠️ Backup scheduler yuklanmadi:', err.message);
-  }
-}
-
 const authRoutes = require('./routes/auth');
 const productRoutes = require('./routes/products');
 const categoryRoutes = require('./routes/categories');
@@ -188,36 +167,6 @@ app.get('/api/data/overview', async (req, res) => {
   }
 });
 
-// Bot webhook routes
-app.post('/api/bot-webhook', (req, res) => {
-  try {
-    const { bot } = botModule || {};
-    if (bot && req.body) {
-      bot.processUpdate(req.body);
-    }
-    res.status(200).send('OK');
-  } catch (err) {
-    console.error('Bot webhook error:', err.message);
-    res.status(200).send('OK');
-  }
-});
-
-app.post('/api/klent-webhook', async (req, res) => {
-  try {
-    const update = req.body;
-    if (update?.message) {
-      await klentBot.handleMessage(update.message);
-    }
-    if (update?.callback_query) {
-      await klentBot.handleCallback(update.callback_query);
-    }
-    res.status(200).send('OK');
-  } catch (err) {
-    console.error('Klent webhook error:', err.message);
-    res.status(200).send('OK');
-  }
-});
-
 // Health check + network info
 app.get('/api/health', async (req, res) => {
   try {
@@ -229,7 +178,6 @@ app.get('/api/health', async (req, res) => {
       local_ip: LOCAL_IP,
       port: PORT,
       network_url: `http://${LOCAL_IP}:${PORT}`,
-      bots: botModule ? 'active' : 'inactive',
       timestamp: new Date().toISOString(),
     });
   } catch (err) {
@@ -314,13 +262,6 @@ if (!process.env.VERCEL) {
     console.log(`║  Telefon:  http://${LOCAL_IP}:${PORT}           ║`);
     console.log('║  Admin:    admin@pos.uz / admin123          ║');
     console.log('╚══════════════════════════════════════════════╝');
-
-    try {
-      klentBot.startPolling();
-      console.log('🤖 @klentlarchek_bot polling boshlandi');
-    } catch (err) {
-      console.log('⚠️ Botlarni ishga tushirishda xatolik:', err.message);
-    }
   });
 
   server.on('error', (err) => {
