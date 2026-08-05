@@ -26,7 +26,7 @@ export default function Layout({ dark, toggleDark }) {
         dark={dark}
         toggleDark={toggleDark}
       />
-      <div className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${sidebarOpen ? 'lg:ml-[240px]' : 'lg:ml-0'}`}>
+      <div className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${sidebarOpen ? 'lg:ml-[260px]' : 'lg:ml-0'}`}>
         <Header onMenuClick={toggleSidebar} />
         <main className="flex-1 p-3 md:p-6 overflow-auto">
           <Outlet />
