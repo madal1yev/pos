@@ -3,8 +3,48 @@ const { generateInvoiceNumber } = require('../utils/helpers');
 
 exports.getAll = async (req, res, next) => {
   try {
-    const { search, payment_method, from_date, to_date, page = 1, limit = 20 } = req.query;
+    const { search, payment_method, from_date, to_date, page = 1, limit = 20, all_ids } = req.query;
     const offset = (parseInt(page) - 1) * parseInt(limit);
+
+    // Return all matching IDs (for bulk select all)
+    if (all_ids === 'true') {
+      let where = ['1=1'];
+      let params = [];
+      let paramCount = 0;
+
+      if (search) {
+        paramCount++;
+        const likeOp = db.isSqlite ? 'LIKE' : 'ILIKE';
+        where.push(`(s.customer_name ${likeOp} $${paramCount} OR s.invoice_number ${likeOp} $${paramCount} OR COALESCE(u.name, '') ${likeOp} $${paramCount})`);
+        params.push(`%${search}%`);
+      }
+
+      if (payment_method) {
+        paramCount++;
+        where.push(`s.payment_method = $${paramCount}`);
+        params.push(payment_method);
+      }
+
+      if (from_date) {
+        paramCount++;
+        const dateVal = db.isSqlite ? `date($${paramCount})` : `$${paramCount}::date`;
+        where.push(`date(s.created_at) >= ${dateVal}`);
+        params.push(from_date);
+      }
+
+      if (to_date) {
+        paramCount++;
+        const dateVal = db.isSqlite ? `date($${paramCount})` : `$${paramCount}::date`;
+        where.push(`date(s.created_at) <= ${dateVal}`);
+        params.push(to_date);
+      }
+
+      const result = await db.query(
+        `SELECT s.id FROM sales s LEFT JOIN users u ON s.user_id = u.id WHERE ${where.join(' AND ')} ORDER BY s.created_at DESC`,
+        params
+      );
+      return res.json({ ids: result.rows.map(r => r.id) });
+    }
 
     let where = ['1=1'];
     let params = [];
@@ -316,6 +356,68 @@ exports.remove = async (req, res, next) => {
     await db.query('DELETE FROM sales WHERE id = $1', [id]);
 
     res.json({ message: "Savdo muvaffaqiyatli o'chirildi va mahsulotlar omborga qaytarildi" });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.bulkDelete = async (req, res, next) => {
+  try {
+    const { ids } = req.body;
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ error: "O'chirish uchun sotuvlar tanlanmadi" });
+    }
+
+    const nowExpr = db.isSqlite ? "datetime('now')" : 'NOW()';
+    let deleted = 0;
+    const errors = [];
+
+    for (const id of ids) {
+      try {
+        const sale = await db.query('SELECT * FROM sales WHERE id = $1', [id]);
+        if (sale.rows.length === 0) {
+          errors.push({ id, error: 'Savdo topilmadi' });
+          continue;
+        }
+
+        const saleData = sale.rows[0];
+
+        // Restore stock for each item
+        const items = await db.query(
+          `SELECT si.*, p.stock_quantity as current_stock FROM sale_items si
+           LEFT JOIN products p ON si.product_id = p.id
+           WHERE si.sale_id = $1`,
+          [id]
+        );
+
+        for (const item of items.rows) {
+          const newStock = (item.current_stock || 0) + item.quantity;
+          await db.query(
+            `UPDATE products SET stock_quantity = $1, updated_at = ${nowExpr} WHERE id = $2`,
+            [newStock, item.product_id]
+          );
+          await db.query(
+            `INSERT INTO inventory_logs (product_id, change_type, quantity, previous_stock, new_stock, note, created_by)
+             VALUES ($1, 'delete', $2, $3, $4, $5, $6)`,
+            [item.product_id, item.quantity, item.current_stock || 0, newStock,
+              `Savdo o'chirildi: ${saleData.invoice_number}`, req.user?.id || 1]
+          );
+        }
+
+        // Delete sale items then sale
+        await db.query('DELETE FROM sale_items WHERE sale_id = $1', [id]);
+        await db.query('DELETE FROM sales WHERE id = $1', [id]);
+        deleted++;
+      } catch (err) {
+        errors.push({ id, error: err.message });
+      }
+    }
+
+    res.json({
+      message: `${deleted} ta savdo o'chirildi va mahsulotlar omborga qaytarildi`,
+      deleted,
+      errors: errors.length > 0 ? errors : undefined,
+    });
   } catch (error) {
     next(error);
   }

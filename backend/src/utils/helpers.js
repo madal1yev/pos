@@ -121,4 +121,12 @@ const guessImageUrl = (name) => {
   return null;
 };
 
-module.exports = { generateProductCode, generateBarcode, generateInvoiceNumber, guessImageUrl };
+const getTashkentDate = () => {
+  const now = new Date();
+  const tashkent = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Tashkent' }));
+  return tashkent.getFullYear().toString() +
+    '-' + String(tashkent.getMonth() + 1).padStart(2, '0') +
+    '-' + String(tashkent.getDate()).padStart(2, '0');
+};
+
+module.exports = { generateProductCode, generateBarcode, generateInvoiceNumber, guessImageUrl, getTashkentDate };

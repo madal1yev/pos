@@ -90,11 +90,13 @@ export const categoriesAPI = {
 // Sales
 export const salesAPI = {
   getAll: (params) => api.get('/sales', { params }),
+  getAllIds: (params) => api.get('/sales', { params: { ...params, all_ids: 'true' } }),
   getById: (id) => api.get(`/sales/${id}`),
   create: (data) => api.post('/sales', data),
   getInvoice: (id) => api.get(`/sales/${id}/invoice`),
   cancelOrder: (id, reason) => api.post(`/sales/${id}/cancel`, { reason }),
   delete: (id) => api.delete(`/sales/${id}`),
+  bulkDelete: (ids) => api.post('/sales/bulk-delete', { ids }),
 };
 
 // Reports

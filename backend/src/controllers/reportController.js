@@ -1,4 +1,5 @@
 const db = require('../config/db');
+const { getTashkentDate } = require('../utils/helpers');
 
 async function safeQuery(label, queryFn) {
   try {
@@ -12,7 +13,7 @@ async function safeQuery(label, queryFn) {
 exports.daily = async (req, res, next) => {
   try {
     const { date } = req.query;
-    const targetDate = date || new Date().toISOString().split('T')[0];
+    const targetDate = date || getTashkentDate();
 
     const [salesResult, summary, paymentBreakdown] = await Promise.all([
       safeQuery('daily.sales', () =>
@@ -59,8 +60,10 @@ exports.daily = async (req, res, next) => {
 exports.monthly = async (req, res, next) => {
   try {
     const { year, month } = req.query;
-    const targetYear = year || new Date().getFullYear();
-    const targetMonth = month || new Date().getMonth() + 1;
+    const now = new Date();
+    const tashkentNow = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Tashkent' }));
+    const targetYear = year || tashkentNow.getFullYear();
+    const targetMonth = month || tashkentNow.getMonth() + 1;
     const isSqlite = db.isSqlite;
 
     const monthNum = parseInt(targetMonth, 10);

@@ -1,4 +1,5 @@
 const db = require('../config/db');
+const { getTashkentDate } = require('../utils/helpers');
 
 async function safeQuery(label, queryFn) {
   try {
@@ -11,7 +12,7 @@ async function safeQuery(label, queryFn) {
 
 exports.get = async (req, res, next) => {
   try {
-    const today = new Date().toISOString().split('T')[0];
+    const today = getTashkentDate();
     const isSqlite = db.isSqlite;
 
     const [todaySales, monthlySales, productStats, totalSales, recentSales, salesChart, topProducts] =

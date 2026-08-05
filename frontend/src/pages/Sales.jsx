@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { salesAPI } from '../services/api';
 import { t, formatCurrency, formatTashkentDate, formatTashkentShort } from '../utils/uzbek';
-import { HiOutlineMagnifyingGlass, HiOutlineEye, HiOutlineXMark, HiOutlinePrinter, HiOutlineCalendarDays, HiOutlineArrowPath, HiOutlineClipboardDocumentList, HiOutlineNoSymbol, HiOutlineTrash } from 'react-icons/hi2';
+import { HiOutlineMagnifyingGlass, HiOutlineEye, HiOutlineXMark, HiOutlinePrinter, HiOutlineCalendarDays, HiOutlineArrowPath, HiOutlineClipboardDocumentList, HiOutlineNoSymbol, HiOutlineTrash, HiOutlineCheckCircle } from 'react-icons/hi2';
 import { emitDataChanged } from '../utils/events';
 import toast from 'react-hot-toast';
 
@@ -172,6 +172,10 @@ export default function Sales() {
   const [viewInvoice, setViewInvoice] = useState(null);
   const [cancelling, setCancelling] = useState(null);
   const [deleting, setDeleting] = useState(null);
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [allPagesSelected, setAllPagesSelected] = useState(false);
+  const [loadingAllIds, setLoadingAllIds] = useState(false);
 
   useEffect(() => { loadSales(); }, [search, paymentFilter, dateFrom, dateTo]);
 
@@ -220,6 +224,56 @@ export default function Sales() {
     }
   };
 
+  const toggleSelect = (id) => {
+    setAllPagesSelected(false);
+    setSelectedIds((prev) => prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]);
+  };
+
+  const toggleSelectAll = () => {
+    setAllPagesSelected(false);
+    if (selectedIds.length === sales.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(sales.map((s) => s.id));
+    }
+  };
+
+  const selectAllPages = async () => {
+    if (allPagesSelected) {
+      setAllPagesSelected(false);
+      setSelectedIds([]);
+      return;
+    }
+    setLoadingAllIds(true);
+    try {
+      const { data } = await salesAPI.getAllIds({ search, payment_method: paymentFilter, from_date: dateFrom, to_date: dateTo });
+      setSelectedIds(data?.ids || []);
+      setAllPagesSelected(true);
+    } catch {
+      toast.error("Sotuvlar yuklanmadi");
+    } finally {
+      setLoadingAllIds(false);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+    if (!window.confirm(`${selectedIds.length} ta sotuvni o'chirishni tasdiqlaysizmi? Mahsulotlar omborga qaytariladi. Bu amalni bekor qilib bo'lmaydi.`)) return;
+    setBulkDeleting(true);
+    try {
+      const { data } = await salesAPI.bulkDelete(selectedIds);
+      toast.success(data?.message || `${selectedIds.length} ta savdo o'chirildi`);
+      setSelectedIds([]);
+      setAllPagesSelected(false);
+      loadSales(1);
+    } catch (err) {
+      const msg = err.response?.data?.error || err.message || 'Xatolik';
+      toast.error(msg);
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
+
   const totalRevenue = sales.reduce((sum, s) => sum + (parseFloat(s.total_amount) || 0), 0);
 
   return (
@@ -229,12 +283,42 @@ export default function Sales() {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('salesTitle')}</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{pagination.total} ta sotuv</p>
         </div>
-        {sales.length > 0 && (
-          <div className="flex items-center gap-2 px-4 py-2 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl">
-            <span className="text-sm text-gray-500">Ko'rsatilgan:</span>
-            <span className="text-lg font-bold text-indigo-600 dark:text-indigo-400">{formatCurrency(totalRevenue)}</span>
-          </div>
-        )}
+        <div className="flex items-center gap-3">
+          {selectedIds.length > 0 && (
+            <button
+              onClick={handleBulkDelete}
+              disabled={bulkDeleting}
+              className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition-all disabled:opacity-50 shadow-lg shadow-red-500/25"
+            >
+              <HiOutlineTrash className="w-4 h-4" />
+              {bulkDeleting ? "O'chirilmoqda..." : `${selectedIds.length} ta o'chirish`}
+            </button>
+          )}
+          {sales.length > 0 && (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={selectAllPages}
+                disabled={loadingAllIds}
+                className={`flex items-center gap-1.5 px-3 py-2 text-sm rounded-lg transition-all disabled:opacity-50 ${
+                  allPagesSelected
+                    ? 'bg-indigo-600 text-white'
+                    : 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/30'
+                }`}
+              >
+                {loadingAllIds ? (
+                  <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full" />
+                ) : (
+                  <HiOutlineCheckCircle className="w-4 h-4" />
+                )}
+                {allPagesSelected ? 'Tanlash bekor' : 'Hammasini tanlash'}
+              </button>
+              <div className="flex items-center gap-2 px-4 py-2 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl">
+                <span className="text-sm text-gray-500">Ko'rsatilgan:</span>
+                <span className="text-lg font-bold text-indigo-600 dark:text-indigo-400">{formatCurrency(totalRevenue)}</span>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="card animate-fade-in-up stagger-1">
@@ -283,6 +367,14 @@ export default function Sales() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/50">
+                  <th className="py-3 px-4 font-medium w-10">
+                    <input
+                      type="checkbox"
+                      checked={allPagesSelected || (sales.length > 0 && selectedIds.length === sales.length)}
+                      onChange={toggleSelectAll}
+                      className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                    />
+                  </th>
                   <th className="py-3 px-4 font-medium">{t('invoice')}</th>
                   <th className="py-3 px-4 font-medium">{t('customer')}</th>
                   <th className="py-3 px-4 font-medium">{t('cashier')}</th>
@@ -294,7 +386,15 @@ export default function Sales() {
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
                 {sales.map((sale) => (
-                  <tr key={sale.id} className="hover:bg-indigo-50/50 dark:hover:bg-indigo-900/10 transition-colors cursor-pointer" onClick={() => setViewInvoice(sale.id)}>
+                  <tr key={sale.id} className={`hover:bg-indigo-50/50 dark:hover:bg-indigo-900/10 transition-colors cursor-pointer ${selectedIds.includes(sale.id) ? 'bg-indigo-50 dark:bg-indigo-900/20' : ''}`} onClick={() => setViewInvoice(sale.id)}>
+                    <td className="py-3.5 px-4" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.includes(sale.id)}
+                        onChange={() => toggleSelect(sale.id)}
+                        className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                      />
+                    </td>
                     <td className="py-3.5 px-4 font-mono text-xs font-semibold">
                       <span className={sale.sale_type === 'voided' ? 'text-gray-400 line-through' : 'text-indigo-600 dark:text-indigo-400'}>{sale.invoice_number}</span>
                     </td>
