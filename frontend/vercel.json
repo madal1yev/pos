@@ -1,7 +1,5 @@
 {
   "rewrites": [
-    { "source": "/uploads/(.*)", "destination": "https://pos-production-523d.up.railway.app/uploads/$1" },
-    { "source": "/api/(.*)", "destination": "https://pos-production-523d.up.railway.app/api/$1" },
     { "source": "/((?!assets/|manifest\\.webmanifest|sw\\.js|workbox-.*\\.js).*)", "destination": "/index.html" }
   ]
 }
