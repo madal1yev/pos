@@ -13,7 +13,17 @@ if (DATABASE_URL) {
   // Auto-migration: add missing columns for PostgreSQL
   async function pgAutoMigrate() {
     const migrations = [
+      { table: 'categories', column: 'status', sql: "ALTER TABLE categories ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'active'" },
+      { table: 'categories', column: 'emoji', sql: "ALTER TABLE categories ADD COLUMN IF NOT EXISTS emoji TEXT" },
       { table: 'sales', column: 'delivery_address', sql: "ALTER TABLE sales ADD COLUMN IF NOT EXISTS delivery_address TEXT" },
+      { table: 'sales', column: 'shift_id', sql: "ALTER TABLE sales ADD COLUMN IF NOT EXISTS shift_id INTEGER" },
+      { table: 'sales', column: 'sale_type', sql: "ALTER TABLE sales ADD COLUMN IF NOT EXISTS sale_type TEXT DEFAULT 'sale'" },
+      { table: 'sales', column: 'discount_id', sql: "ALTER TABLE sales ADD COLUMN IF NOT EXISTS discount_id INTEGER" },
+      { table: 'sales', column: 'promo_code', sql: "ALTER TABLE sales ADD COLUMN IF NOT EXISTS promo_code TEXT" },
+      { table: 'settings', column: 'smtp_host', sql: "ALTER TABLE settings ADD COLUMN IF NOT EXISTS smtp_host TEXT" },
+      { table: 'products', column: 'has_variants', sql: "ALTER TABLE products ADD COLUMN IF NOT EXISTS has_variants INTEGER DEFAULT 0" },
+      { table: 'products', column: 'is_combo', sql: "ALTER TABLE products ADD COLUMN IF NOT EXISTS is_combo INTEGER DEFAULT 0" },
+      { table: 'roles', column: 'permissions', sql: "ALTER TABLE roles ADD COLUMN IF NOT EXISTS permissions TEXT" },
     ];
     for (const m of migrations) {
       try {

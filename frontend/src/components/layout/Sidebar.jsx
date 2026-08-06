@@ -54,7 +54,7 @@ const NavItem = memo(function NavItem({ item, onClose }) {
         return (
           <div
             className={`
-              group relative flex items-center gap-3 h-10 px-3.5 rounded-lg cursor-pointer
+              group relative flex items-center gap-3 h-9 px-3.5 rounded-lg cursor-pointer
               select-none transition-colors duration-150
               ${isAccent
                 ? 'bg-indigo-600 text-white shadow-sm'
@@ -118,14 +118,14 @@ export default function Sidebar({ open, onClose, dark, toggleDark }) {
         </div>
       </div>
 
-      {/* Navigation - skrolsiz */}
-      <nav className="flex-1 px-2.5 py-2.5 space-y-3 overflow-hidden">
+       {/* Navigation - All items visible, no scroll */}
+      <nav className="flex-1 min-h-0 overflow-y-auto px-2.5 py-2.5 scrollbar-none">
         {GROUPS.map((group) => {
           const items = NAV_ITEMS.filter((i) => i.group === group.key);
           if (!items.length) return null;
           return (
             <div key={group.key}>
-              <div className="px-2 pb-0.5">
+              <div className="px-2 pb-0.5 mt-1">
                 <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 tracking-wider uppercase select-none">
                   {group.title}
                 </span>
@@ -140,12 +140,12 @@ export default function Sidebar({ open, onClose, dark, toggleDark }) {
         })}
       </nav>
 
-      {/* Bottom */}
+      {/* Bottom - Profile, Theme, Logout */}
       <div className="flex-shrink-0 border-t border-gray-100 dark:border-gray-800 px-2.5 py-2.5 space-y-2">
         {/* User */}
         <NavLink
           to="/profile"
-          className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+          className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
         >
           <div className="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center flex-shrink-0">
             <span className="text-sm font-bold text-white">{user?.name?.charAt(0)?.toUpperCase() || 'U'}</span>

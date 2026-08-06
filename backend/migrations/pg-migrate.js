@@ -27,6 +27,8 @@ CREATE TABLE IF NOT EXISTS categories (
   description TEXT,
   parent_id INTEGER REFERENCES categories(id) ON DELETE SET NULL,
   sort_order INTEGER DEFAULT 0,
+  status VARCHAR(20) DEFAULT 'active',
+  emoji TEXT,
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW()
 );

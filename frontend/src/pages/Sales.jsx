@@ -260,12 +260,25 @@ export default function Sales() {
     if (selectedIds.length === 0) return;
     if (!window.confirm(`${selectedIds.length} ta sotuvni o'chirishni tasdiqlaysizmi? Mahsulotlar omborga qaytariladi. Bu amalni bekor qilib bo'lmaydi.`)) return;
     setBulkDeleting(true);
+    let deleted = 0;
+    const errors = [];
     try {
-      const { data } = await salesAPI.bulkDelete(selectedIds);
-      toast.success(data?.message || `${selectedIds.length} ta savdo o'chirildi`);
-      setSelectedIds([]);
-      setAllPagesSelected(false);
-      loadSales(1);
+      for (const id of selectedIds) {
+        try {
+          await salesAPI.delete(id);
+          deleted++;
+        } catch (err) {
+          errors.push(err.response?.data?.error || err.message || 'Xatolik');
+        }
+      }
+      if (deleted > 0) {
+        toast.success(`${deleted} ta savdo o'chirildi va mahsulotlar omborga qaytarildi`);
+        setSelectedIds([]);
+        setAllPagesSelected(false);
+        loadSales(pagination.page);
+      } else {
+        toast.error(errors[0] || "O'chirishda xatolik yuz berdi");
+      }
     } catch (err) {
       const msg = err.response?.data?.error || err.message || 'Xatolik';
       toast.error(msg);

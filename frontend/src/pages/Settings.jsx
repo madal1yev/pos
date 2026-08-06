@@ -21,7 +21,7 @@ export default function Settings() {
   const [uploading, setUploading] = useState(false);
   const updateGlobalSettings = useSettingsStore((s) => s.updateSettings);
 
-  useEffect(() => { (async () => { try { const { data } = await settingsAPI.get(); if (data.settings) setSettings(s => ({ ...s, ...Object.fromEntries(Object.entries(data.settings).map(([k,v]) => [k, v ?? ''])) })); } catch {} finally { setLoading(false); } })(); }, []);
+  useEffect(() => { (async () => { try { const { data } = await settingsAPI.get(); if (data.settings) setSettings(s => ({ ...s, ...Object.fromEntries(Object.entries(data.settings).map(([k,v]) => [k, v ?? ''])) })); } catch (err) { toast.error(getErrorMessage(err, 'Sozlamalar yuklanmadi')); } finally { setLoading(false); } })(); }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault(); setSaving(true);
