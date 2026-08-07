@@ -340,7 +340,7 @@ function ScannerModal({ onClose, onScan }) {
 
 function CheckoutModal({ total, subtotal, taxAmount, taxRate, finalTotal, onClose, onComplete }) {
   const [paymentMethod, setPaymentMethod] = useState('cash');
-  const [receivedAmount, setReceivedAmount] = useState(finalTotal.toFixed(0));
+  const [receivedAmount, setReceivedAmount] = useState(finalTotal.toFixed(2).replace(/\.?0+$/, ''));
   const [customerName, setCustomerName] = useState('');
   const [promoCode, setPromoCode] = useState('');
   const [deliveryAddress, setDeliveryAddress] = useState('');
@@ -349,11 +349,11 @@ function CheckoutModal({ total, subtotal, taxAmount, taxRate, finalTotal, onClos
   const change = Math.max(0, parseFloat(receivedAmount || 0) - finalTotal);
 
   const handleComplete = async () => {
-    if (parseFloat(receivedAmount) < finalTotal) { toast.error("Qabul qilingan summa kam"); return; }
+    if (paymentMethod === 'cash' && parseFloat(receivedAmount) < finalTotal) { toast.error("Qabul qilingan summa kam"); return; }
     setProcessing(true);
     await onComplete({
       payment_method: paymentMethod,
-      received_amount: parseFloat(receivedAmount),
+      received_amount: paymentMethod === 'cash' ? parseFloat(receivedAmount) : finalTotal,
       customer_name: customerName || undefined,
       promo_code: promoCode || undefined,
       delivery_address: showDelivery ? (deliveryAddress || undefined) : undefined,
