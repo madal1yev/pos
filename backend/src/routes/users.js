@@ -10,7 +10,7 @@ router.use(auth);
 router.get('/', authorize('admin'), async (req, res, next) => {
   try {
     const result = await db.query(
-      `SELECT u.id, u.name, u.email, u.is_active, u.avatar_url, u.created_at,
+      `SELECT u.id, u.name, u.email, u.is_active, u.avatar_url, u.pin, u.created_at,
         r.name as role_name, r.id as role_id
        FROM users u
        LEFT JOIN roles r ON u.role_id = r.id
@@ -26,7 +26,7 @@ router.get('/', authorize('admin'), async (req, res, next) => {
 router.get('/:id', authorize('admin'), async (req, res, next) => {
   try {
     const result = await db.query(
-      `SELECT u.id, u.name, u.email, u.is_active, u.avatar_url, u.created_at, u.role_id,
+      `SELECT u.id, u.name, u.email, u.is_active, u.avatar_url, u.pin, u.created_at, u.role_id,
         r.name as role_name
        FROM users u LEFT JOIN roles r ON u.role_id = r.id
        WHERE u.id = $1`,
@@ -47,7 +47,7 @@ router.put('/:id', async (req, res, next) => {
       return res.status(403).json({ error: 'Faqat admin boshqa foydalanuvchilarni tahrirlay oladi' });
     }
 
-    const { name, email, password, role_id, is_active } = req.body;
+    const { name, email, password, role_id, is_active, pin } = req.body;
 
     // Check if user exists
     const existing = await db.query('SELECT * FROM users WHERE id = $1', [req.params.id]);
@@ -57,6 +57,12 @@ router.put('/:id', async (req, res, next) => {
     if (email && email !== existing.rows[0].email) {
       const emailCheck = await db.query('SELECT id FROM users WHERE email = $1 AND id != $2', [email, req.params.id]);
       if (emailCheck.rows.length > 0) return res.status(400).json({ error: 'Bu email allaqachon mavjud' });
+    }
+
+    // PIN uniqueness check
+    if (pin && pin !== existing.rows[0].pin) {
+      const pinCheck = await db.query('SELECT id FROM users WHERE pin = $1 AND id != $2', [String(pin), req.params.id]);
+      if (pinCheck.rows.length > 0) return res.status(400).json({ error: 'Bu PIN allaqachon boshqa foydalanuvchida' });
     }
 
     const nowExpr = db.isSqlite ? "datetime('now')" : 'NOW()';
@@ -75,6 +81,13 @@ router.put('/:id', async (req, res, next) => {
       params.push(hashed);
     }
 
+    // PIN update
+    if (pin !== undefined && pin !== null) {
+      paramCount++;
+      query += `, pin = $${paramCount}`;
+      params.push(String(pin) || null);
+    }
+
     // Role update (only admin)
     if (role_id !== undefined && req.user.role === 'admin') {
       paramCount++;
@@ -86,7 +99,7 @@ router.put('/:id', async (req, res, next) => {
     if (is_active !== undefined && req.user.role === 'admin') {
       paramCount++;
       query += `, is_active = $${paramCount}`;
-      params.push(is_active ? 1 : 0);
+      params.push(is_active ? true : false);
     }
 
     paramCount++;
@@ -117,13 +130,17 @@ router.get('/roles/list', authorize('admin'), async (req, res, next) => {
 // Create new user (admin only)
 router.post('/', authorize('admin'), async (req, res, next) => {
   try {
-    const { name, email, password, role_id } = req.body;
+    const { name, email, password, role_id, pin } = req.body;
     const existing = await db.query('SELECT id FROM users WHERE email = $1', [email]);
     if (existing.rows.length > 0) return res.status(400).json({ error: 'Email already registered' });
+    if (pin) {
+      const pinCheck = await db.query('SELECT id FROM users WHERE pin = $1', [String(pin)]);
+      if (pinCheck.rows.length > 0) return res.status(400).json({ error: 'Bu PIN allaqachon boshqa foydalanuvchida' });
+    }
     const hashed = await bcrypt.hash(password, 10);
     const result = await db.query(
-      `INSERT INTO users (name, email, password, role_id) VALUES ($1, $2, $3, $4) RETURNING id, name, email`,
-      [name, email, hashed, role_id || 2]
+      `INSERT INTO users (name, email, password, role_id, pin) VALUES ($1, $2, $3, $4, $5) RETURNING id, name, email`,
+      [name, email, hashed, role_id || 2, pin ? String(pin) : null]
     );
     res.status(201).json({ user: result.rows[0] });
   } catch (error) {

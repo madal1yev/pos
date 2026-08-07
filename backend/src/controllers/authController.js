@@ -46,6 +46,44 @@ exports.login = async (req, res, next) => {
         name: user.name,
         email: user.email,
         role: user.role_name,
+        has_pin: !!user.pin,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.pinLogin = async (req, res, next) => {
+  try {
+    const { pin, remember } = req.body;
+
+    if (!pin) {
+      return res.status(400).json({ error: 'PIN kiritilmagan' });
+    }
+
+    const result = await db.query(
+      `SELECT u.*, r.name as role_name FROM users u 
+       LEFT JOIN roles r ON u.role_id = r.id 
+       WHERE u.pin = $1 AND u.is_active = true`,
+      [String(pin)]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(401).json({ error: 'PIN xato yoki foydalanuvchi faol emas' });
+    }
+
+    const user = result.rows[0];
+    const token = generateToken(user.id, remember);
+
+    res.json({
+      token,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role_name,
+        has_pin: true,
       },
     });
   } catch (error) {

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useCartStore } from '../context/CartContext';
-import { productsAPI, salesAPI, settingsAPI } from '../services/api';
+import { productsAPI, salesAPI, settingsAPI, reportsAPI } from '../services/api';
 import { t, formatCurrency } from '../utils/uzbek';
 import { getErrorMessage } from '../utils/errors';
 import { emitDataChanged } from '../utils/events';
@@ -423,6 +423,19 @@ function CheckoutModal({ total, subtotal, taxAmount, taxRate, finalTotal, onClos
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">{t('receivedAmount')}</label>
                 <input type="number" value={receivedAmount} onChange={(e) => setReceivedAmount(e.target.value)} className="input-field text-lg font-semibold dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
               </div>
+              <div>
+                <p className="text-xs text-gray-400 mb-1.5">Tezkor pul tugmalari</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {[1000, 2000, 5000, 10000, 20000, 50000].map(d => (
+                    <button key={d} onClick={() => setReceivedAmount(String(Math.max(finalTotal, Math.ceil(finalTotal / d) * d)))} className="px-2.5 py-1.5 rounded-lg text-xs font-semibold border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors">
+                      {d / 1000}k
+                    </button>
+                  ))}
+                  <button onClick={() => setReceivedAmount(finalTotal.toFixed(2).replace(/\.?0+$/, ''))} className="px-2.5 py-1.5 rounded-lg text-xs font-bold border border-emerald-300 text-emerald-700 dark:text-emerald-300 dark:border-emerald-800 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-colors">
+                    Aniq
+                  </button>
+                </div>
+              </div>
               <div className="bg-gradient-to-r from-indigo-50 to-blue-50 dark:from-indigo-900/20 dark:to-blue-900/20 rounded-xl p-4 text-center">
                 <p className="text-sm text-gray-500 mb-1">{t('change')}</p>
                 <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">{formatCurrency(change)}</p>
@@ -575,6 +588,7 @@ function ReceiptModal({ sale, onClose }) {
 export default function POS() {
   const { items, addItem, updateQuantity, updateDiscount, removeItem, clearCart, getTotal, getItemCount, holdOrder, resumeOrder, heldOrders, removeHeldOrder, currentHoldId } = useCartStore();
   const [products, setProducts] = useState([]);
+  const [topProducts, setTopProducts] = useState([]);
   const [search, setSearch] = useState('');
   const [showScanner, setShowScanner] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
@@ -590,6 +604,7 @@ export default function POS() {
   const searchTimeout = useRef(null);
 
   useEffect(() => { loadProducts(); loadSettings(); }, [search]);
+  useEffect(() => { loadTopProducts(); }, []);
 
   useEffect(() => {
     const handleKey = (e) => {
@@ -613,6 +628,14 @@ export default function POS() {
     } catch { setProducts([]); }
   };
 
+  const loadTopProducts = async () => {
+    try {
+      const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Tashkent' });
+      const { data } = await reportsAPI.topProducts({ from_date: today, to_date: today, limit: 5 });
+      setTopProducts(data?.top_products?.filter(p => p.stock_quantity > 0).slice(0, 5) || []);
+    } catch { setTopProducts([]); }
+  };
+
   const loadSettings = async () => {
     try {
       const { data } = await settingsAPI.get();
@@ -633,6 +656,12 @@ export default function POS() {
     const added = addItem(product, quantity, unit);
     if (!added) toast.error(t('notEnoughStock'));
     else toast.success(`${product.name} ${quantity} ${unit} ${t('productAdded')}`);
+  };
+
+  const handleQuickAdd = (product) => {
+    const u = product.unit || 'pcs';
+    const qty = u === 'pcs' ? 1 : parseFloat(0.5);
+    handleAddToCart(product, qty, u);
   };
 
   const handleHoldOrder = () => {
@@ -686,7 +715,23 @@ export default function POS() {
             </div>
           </div>
           <div className="flex-1 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3 gap-3 auto-rows-fr">
-            {products.map((product, i) => (
+            {topProducts.length > 0 && (
+              <div className="col-span-full mb-1">
+                <p className="text-[10px] uppercase tracking-wider text-amber-600 dark:text-amber-500 font-semibold mb-1.5 flex items-center gap-1">🔥 Bugungi hot-sotuvlar</p>
+                <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+                  {topProducts.map((p) => (
+                    <button key={p.id} onClick={() => handleQuickAdd(p)} className="flex-shrink-0 flex items-center gap-2 px-3 py-2 rounded-xl bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200 dark:border-amber-800/50 hover:shadow-md transition-all text-left w-[150px]">
+                      <span className="font-bold text-lg text-amber-600 dark:text-amber-400">+</span>
+                      <span className="min-w-0">
+                        <span className="block text-xs font-semibold text-gray-900 dark:text-white truncate">{p.name}</span>
+                        <span className="block text-[10px] text-amber-600 dark:text-amber-400 font-medium">{formatCurrency(p.selling_price)}</span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          {products.map((product, i) => (
               <button key={product.id} onClick={() => setQuantityProduct(product)} className="flex flex-col items-center justify-between gap-2 p-4 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-150 text-center hover:shadow-md border border-gray-100 dark:border-gray-700/50 h-full min-h-[160px] sm:min-h-[180px]" style={{ animationDelay: `${i * 0.02}s` }}>
                 <div className="flex flex-col items-center gap-2 flex-1 justify-center">
                   <POSImage src={product.image_url} name={product.name} size="w-16 h-16 sm:w-20 sm:h-20" />

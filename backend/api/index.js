@@ -32,7 +32,7 @@ module.exports = async (req, res) => {
       
       const tables = [
         `CREATE TABLE IF NOT EXISTS roles (id SERIAL PRIMARY KEY, name VARCHAR(50) UNIQUE NOT NULL, created_at TIMESTAMP DEFAULT NOW())`,
-        `CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, name VARCHAR(100) NOT NULL, email VARCHAR(100) UNIQUE NOT NULL, password VARCHAR(255) NOT NULL, role_id INTEGER REFERENCES roles(id) ON DELETE SET NULL, avatar_url TEXT, is_active BOOLEAN DEFAULT true, created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW())`,
+        `CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, name VARCHAR(100) NOT NULL, email VARCHAR(100) UNIQUE NOT NULL, password VARCHAR(255) NOT NULL, role_id INTEGER REFERENCES roles(id) ON DELETE SET NULL, avatar_url TEXT, is_active BOOLEAN DEFAULT true, pin VARCHAR(10), created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW())`,
         `CREATE TABLE IF NOT EXISTS categories (id SERIAL PRIMARY KEY, name VARCHAR(100) NOT NULL, description TEXT, parent_id INTEGER REFERENCES categories(id) ON DELETE SET NULL, sort_order INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW())`,
         `CREATE TABLE IF NOT EXISTS products (id SERIAL PRIMARY KEY, category_id INTEGER REFERENCES categories(id) ON DELETE SET NULL, name VARCHAR(200) NOT NULL, product_code VARCHAR(50) UNIQUE NOT NULL, barcode VARCHAR(50), qr_code TEXT, brand VARCHAR(100), purchase_price DECIMAL(12,2) DEFAULT 0, selling_price DECIMAL(12,2) NOT NULL DEFAULT 0, stock_quantity INTEGER DEFAULT 0, minimum_stock INTEGER DEFAULT 0, unit VARCHAR(20) DEFAULT 'pcs', image_url TEXT, description TEXT, status VARCHAR(20) DEFAULT 'active', created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW())`,
         `CREATE TABLE IF NOT EXISTS sales (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id) ON DELETE SET NULL, customer_name VARCHAR(100), total_amount DECIMAL(12,2) NOT NULL DEFAULT 0, payment_method VARCHAR(20) DEFAULT 'cash', received_amount DECIMAL(12,2) DEFAULT 0, change_amount DECIMAL(12,2) DEFAULT 0, invoice_number VARCHAR(50) UNIQUE, notes TEXT, created_at TIMESTAMP DEFAULT NOW())`,
@@ -66,6 +66,7 @@ module.exports = async (req, res) => {
         "ALTER TABLE sales ADD COLUMN IF NOT EXISTS sale_type VARCHAR(20) DEFAULT 'sale'",
         "ALTER TABLE sales ADD COLUMN IF NOT EXISTS discount_id INTEGER",
         "ALTER TABLE sales ADD COLUMN IF NOT EXISTS promo_code VARCHAR(50)",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS pin VARCHAR(10)",
         "ALTER TABLE products ADD COLUMN IF NOT EXISTS has_variants BOOLEAN DEFAULT false",
         "ALTER TABLE products ADD COLUMN IF NOT EXISTS is_combo BOOLEAN DEFAULT false",
       ];

@@ -29,6 +29,25 @@ export const useAuthStore = create((set, get) => ({
     }
   },
 
+  pinLogin: async (pin, remember = false) => {
+    set({ loading: true, error: null });
+    try {
+      const { data } = await authAPI.pinLogin({ pin, remember });
+      localStorage.setItem('pos_token', data.token);
+      localStorage.setItem('pos_user', JSON.stringify(data.user));
+      set({ user: data.user, token: data.token, loading: false });
+      return data;
+    } catch (error) {
+      const errData = error.response?.data;
+      const message = typeof errData?.error === 'string' ? errData.error
+        : typeof errData?.message === 'string' ? errData.message
+        : typeof errData === 'string' ? errData
+        : 'PIN xato';
+      set({ error: message, loading: false });
+      throw new Error(message);
+    }
+  },
+
   logout: async () => {
     try {
       await authAPI.logout();

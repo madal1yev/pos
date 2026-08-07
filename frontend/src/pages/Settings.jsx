@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import api, { settingsAPI } from '../services/api';
 import { useSettingsStore } from '../context/SettingsContext';
+import { useAuthStore } from '../context/AuthContext';
 import { t } from '../utils/uzbek';
 import { getErrorMessage } from '../utils/errors';
 import { emitDataChanged } from '../utils/events';
-import { HiOutlineCheckCircle, HiOutlineCloudArrowUp, HiOutlineXMark, HiOutlinePhoto, HiOutlineUser } from 'react-icons/hi2';
+import { HiOutlineCheckCircle, HiOutlineCloudArrowUp, HiOutlineXMark, HiOutlinePhoto, HiOutlineUser, HiOutlineArrowDownTray } from 'react-icons/hi2';
 import toast from 'react-hot-toast';
 
 async function uploadImage(file) {
@@ -19,7 +20,9 @@ export default function Settings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [backingUp, setBackingUp] = useState(false);
   const updateGlobalSettings = useSettingsStore((s) => s.updateSettings);
+  const isAdmin = useAuthStore((s) => s.isAdmin());
 
   useEffect(() => { (async () => { try { const { data } = await settingsAPI.get(); if (data.settings) setSettings(s => ({ ...s, ...Object.fromEntries(Object.entries(data.settings).map(([k,v]) => [k, v ?? ''])) })); } catch (err) { toast.error(getErrorMessage(err, 'Sozlamalar yuklanmadi')); } finally { setLoading(false); } })(); }, []);
 
@@ -33,6 +36,25 @@ export default function Settings() {
       emitDataChanged();
     }
     catch (err) { toast.error(getErrorMessage(err)); } finally { setSaving(false); }
+  };
+
+  const handleBackup = async () => {
+    if (!window.confirm("Baza zaxira nusxasini yuklab olsaingizma? Bu ma'lumotlaringizni saqlash uchun.")) return;
+    setBackingUp(true);
+    try {
+      const { data } = await settingsAPI.backup();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const d = new Date();
+      a.href = url;
+      a.download = `pos-backup-${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success('Zaxira nusxa yuklab olindi');
+    } catch (err) { toast.error(getErrorMessage(err, 'Zaxira yuklab olinmadi')); } finally { setBackingUp(false); }
   };
 
   const handleLogoUpload = async (e) => {
@@ -103,6 +125,15 @@ export default function Settings() {
             <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('lowStockThreshold')}</label><input type="number" value={settings.low_stock_threshold || 10} onChange={(e) => setSettings({ ...settings, low_stock_threshold: e.target.value })} className="input-field w-32 dark:bg-gray-700 dark:border-gray-600 dark:text-white" /></div>
           </div>
         </div>
+        {isAdmin && (
+          <div className="card">
+            <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-1">💾 Ma'lumotlar zaxira nusxasi</h2>
+            <p className="text-xs text-gray-400 mb-3">Barcha ma'lumotlar (mahsulotlar, sotuvlar, mijozlar, sozlamalar) YAGONA JSON fayl ko'rinishida yuklab olinadi. Telefon o'chib qolsa yoki xato bo'lsa, ma'lumotlaringiz xavfsiz bo'ladi.</p>
+            <button type="button" onClick={handleBackup} disabled={backingUp} className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white px-5 py-2.5 rounded-lg font-medium hover:from-emerald-700 hover:to-teal-700 transition-all disabled:opacity-50 flex items-center gap-2 shadow-md shadow-emerald-500/20 active:scale-[0.98]">
+              <HiOutlineArrowDownTray className="w-5 h-5" /> {backingUp ? 'Yuklanmoqda...' : 'Zaxira nusxani yuklab olish'}
+            </button>
+          </div>
+        )}
         <div className="flex justify-end">
           <button type="submit" disabled={saving} className="bg-indigo-600 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-indigo-700 transition-all disabled:opacity-50 flex items-center gap-2 shadow-md shadow-indigo-500/20 active:scale-[0.98]">
             <HiOutlineCheckCircle className="w-5 h-5" /> {saving ? t('loading') : t('saveSettings')}

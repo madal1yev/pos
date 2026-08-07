@@ -129,6 +129,7 @@ app.use('/api/refunds', refundRoutes);
 app.use('/api/discounts', discountRoutes);
 app.use('/api/audit-logs', auditRoutes);
 app.use('/api/inventory', inventoryRoutes);
+app.use('/api/backup', require('./routes/backup'));
 
 // Data overview endpoint — barcha buyurtmalar va mahsulotlarni ko'rish
 app.get('/api/data/overview', async (req, res) => {

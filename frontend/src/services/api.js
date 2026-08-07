@@ -60,6 +60,7 @@ api.interceptors.response.use(
 // Auth
 export const authAPI = {
   login: (data) => api.post('/auth/login', data),
+  pinLogin: (data) => api.post('/auth/pin-login', data),
   register: (data) => api.post('/auth/register', data),
   getMe: () => api.get('/auth/me'),
   logout: () => api.post('/auth/logout'),
@@ -120,6 +121,7 @@ export const dashboardAPI = {
 export const settingsAPI = {
   get: () => api.get('/settings'),
   update: (data) => api.put('/settings', data),
+  backup: () => api.get('/backup'),
 };
 
 // Customers
