@@ -196,9 +196,13 @@ router.get('/summary', async (req, res, next) => {
 
     // Get recent movements count
     const recent = await db.query(
-      `SELECT change_type, COUNT(*) as count FROM inventory_logs
-       WHERE created_at >= date(${db.isSqlite ? "'now'" : "CURRENT_DATE"}, '-7 days')
-       GROUP BY change_type`
+`SELECT change_type, COUNT(*) as count FROM inventory_logs
+        WHERE created_at >= ${
+          db.isSqlite
+            ? "datetime('now', '-7 days')"
+            : "(CURRENT_DATE - INTERVAL '7 days')"
+        }
+        GROUP BY change_type`
     );
 
     res.json({
