@@ -2,16 +2,15 @@ const db = require('../config/db');
 
 const generateProductCode = async () => {
   const result = await db.query(
-    `SELECT product_code FROM products ORDER BY id DESC LIMIT 1`
+    `SELECT product_code FROM products WHERE product_code LIKE 'PRD-%' ORDER BY id DESC`
   );
 
-  if (result.rows.length === 0) {
-    return 'PRD-0001';
-  }
+  const maxNum = result.rows.reduce((max, r) => {
+    const n = parseInt((r.product_code || '').replace('PRD-', ''), 10);
+    return Number.isFinite(n) && n > max ? n : max;
+  }, 0);
 
-  const lastCode = result.rows[0].product_code;
-  const num = parseInt(lastCode.replace('PRD-', ''), 10) + 1;
-  return `PRD-${String(num).padStart(4, '0')}`;
+  return `PRD-${String(maxNum + 1).padStart(4, '0')}`;
 };
 
 const generateBarcode = (productCode) => {
@@ -26,7 +25,7 @@ const generateInvoiceNumber = () => {
   const dateStr = date.getFullYear().toString() +
     String(date.getMonth() + 1).padStart(2, '0') +
     String(date.getDate()).padStart(2, '0');
-  const random = Math.floor(Math.random() * 9000 + 1000);
+  const random = Math.floor(Math.random() * 900000 + 100000);
   return `${prefix}-${dateStr}-${random}`;
 };
 
