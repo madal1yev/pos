@@ -338,20 +338,18 @@ function ScannerModal({ onClose, onScan }) {
   );
 }
 
-function CheckoutModal({ total, taxRate, onClose, onComplete }) {
+function CheckoutModal({ total, subtotal, taxAmount, taxRate, finalTotal, onClose, onComplete }) {
   const [paymentMethod, setPaymentMethod] = useState('cash');
-  const [receivedAmount, setReceivedAmount] = useState(total.toFixed(0));
+  const [receivedAmount, setReceivedAmount] = useState(finalTotal.toFixed(0));
   const [customerName, setCustomerName] = useState('');
   const [promoCode, setPromoCode] = useState('');
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [showDelivery, setShowDelivery] = useState(false);
   const [processing, setProcessing] = useState(false);
-  const change = Math.max(0, parseFloat(receivedAmount || 0) - total);
-  const taxAmount = Math.round(total * taxRate / (1 + taxRate));
-  const subtotal = total - taxAmount;
+  const change = Math.max(0, parseFloat(receivedAmount || 0) - finalTotal);
 
   const handleComplete = async () => {
-    if (parseFloat(receivedAmount) < total) { toast.error("Qabul qilingan summa kam"); return; }
+    if (parseFloat(receivedAmount) < finalTotal) { toast.error("Qabul qilingan summa kam"); return; }
     setProcessing(true);
     await onComplete({
       payment_method: paymentMethod,
@@ -374,13 +372,13 @@ function CheckoutModal({ total, taxRate, onClose, onComplete }) {
         <div className="p-6 space-y-5 overflow-y-auto flex-1">
           <div className="text-center py-4 bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-900/20 dark:to-blue-900/20 rounded-2xl">
             <p className="text-sm text-gray-500 mb-1">{t('totalAmount')}</p>
-            <p className="text-4xl font-bold text-indigo-600 dark:text-indigo-400">{formatCurrency(total)}</p>
+            <p className="text-4xl font-bold text-indigo-600 dark:text-indigo-400">{formatCurrency(finalTotal)}</p>
           </div>
           {taxRate > 0 && (
             <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-3 space-y-1.5 text-sm">
-              <div className="flex justify-between"><span className="text-gray-500">{t('subtotal') || 'Oraliq yig'}</span><span className="font-medium">{formatCurrency(subtotal)}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">{t('subtotal') || 'Subtotal'}</span><span className="font-medium">{formatCurrency(subtotal)}</span></div>
               <div className="flex justify-between"><span className="text-gray-500">{t('tax') || 'Soliq'} ({(taxRate * 100).toFixed(0)}%)</span><span className="font-medium">{formatCurrency(taxAmount)}</span></div>
-              <div className="flex justify-between font-bold border-t border-gray-200 dark:border-gray-600 pt-1.5"><span>{t('total')}</span><span>{formatCurrency(total)}</span></div>
+              <div className="flex justify-between font-bold border-t border-gray-200 dark:border-gray-600 pt-1.5"><span>{t('total')}</span><span>{formatCurrency(finalTotal)}</span></div>
             </div>
           )}
           <div>
@@ -431,6 +429,8 @@ function CheckoutModal({ total, taxRate, onClose, onComplete }) {
               </div>
             </>
           )}
+        </div>
+        <div className="flex-shrink-0 p-4 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 safe-area-bottom">
           <button onClick={handleComplete} disabled={processing} className="w-full bg-gradient-to-r from-indigo-600 to-indigo-700 text-white py-3.5 rounded-xl text-base font-semibold hover:from-indigo-700 hover:to-indigo-800 transition-all disabled:opacity-50 shadow-lg shadow-indigo-500/25 active:scale-[0.98]">
             {processing ? t('processing') : t('completeSale')}
           </button>
@@ -655,8 +655,13 @@ export default function POS() {
 
   const handleCheckout = async (info) => {
     try {
-      const { data } = await salesAPI.create({ ...info, items: items.map((i) => ({ product_id: i.product_id, quantity: i.quantity, price: i.price, unit: i.unit || 'pcs', discount: i.discount || 0, tax: i.tax || 0 })) });
-      const saleWithItems = { ...data?.sale, items: items.map((i) => ({ ...i, product_name: i.name })) };
+      const lineSubtotal = items.reduce((sum, i) => sum + (i.price * i.quantity - (i.discount || 0)), 0);
+      const itemTax = items.map((i) => Math.round((i.price * i.quantity - (i.discount || 0)) * taxRate));
+      const taxTotal = itemTax.reduce((a, b) => a + b, 0);
+      const finalTotal = lineSubtotal + taxTotal;
+
+      const { data } = await salesAPI.create({ ...info, received_amount: info.received_amount ?? finalTotal, items: items.map((i, idx) => ({ product_id: i.product_id, quantity: i.quantity, price: i.price, unit: i.unit || 'pcs', discount: i.discount || 0, tax: itemTax[idx] })) });
+      const saleWithItems = { ...data?.sale, items: items.map((i, idx) => ({ ...i, tax: itemTax[idx], product_name: i.name })) };
       setReceipt(saleWithItems); setShowCheckout(false); clearCart(); loadProducts(); emitDataChanged();
       playSuccessSound();
     } catch (err) { toast.error(getErrorMessage(err, "Sotuvda xato")); }
@@ -834,7 +839,13 @@ export default function POS() {
 
       {showScanner && <ScannerModal onClose={() => setShowScanner(false)} onScan={(text) => handleBarcodeScan(text)} />}
       {quantityProduct && <QuantityModal product={quantityProduct} onClose={() => setQuantityProduct(null)} onAdd={handleAddToCart} />}
-      {showCheckout && <CheckoutModal total={getTotal()} taxRate={taxRate} onClose={() => setShowCheckout(false)} onComplete={handleCheckout} />}
+      {showCheckout && (() => {
+        const subtotal = getTotal();
+        const itemTaxes = items.map((i) => Math.round((i.price * i.quantity - (i.discount || 0)) * taxRate));
+        const taxAmount = itemTaxes.reduce((a, b) => a + b, 0);
+        const finalTotal = subtotal + taxAmount;
+        return <CheckoutModal total={subtotal} subtotal={subtotal} taxAmount={taxAmount} taxRate={taxRate} finalTotal={finalTotal} onClose={() => setShowCheckout(false)} onComplete={handleCheckout} />;
+      })()}
       {receipt && <ReceiptModal sale={receipt} onClose={() => setReceipt(null)} />}
       {showCalcModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">

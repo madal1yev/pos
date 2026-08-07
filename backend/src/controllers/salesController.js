@@ -195,7 +195,7 @@ exports.create = async (req, res, next) => {
       const promoResult = await db.query(
         `SELECT pc.*, d.type, d.value, d.max_discount, d.min_purchase
          FROM promo_codes pc JOIN discounts d ON pc.discount_id = d.id
-         WHERE pc.code = $1 AND pc.is_active = 1 AND d.is_active = 1`,
+         WHERE pc.code = $1 AND pc.is_active = TRUE AND d.is_active = TRUE`,
         [promo_code.toUpperCase()]
       );
       if (promoResult.rows.length > 0) {

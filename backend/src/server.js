@@ -154,7 +154,7 @@ app.get('/api/data/overview', async (req, res) => {
         (SELECT COALESCE(SUM(total_amount), 0) FROM sales) as total_revenue,
         (SELECT COUNT(*) FROM products WHERE status = 'active') as active_products,
         (SELECT COUNT(*) FROM products WHERE stock_quantity <= minimum_stock AND status = 'active') as low_stock
-       FROM sqlite_master WHERE type='table' LIMIT 1`
+       ${db.isSqlite ? "FROM sqlite_master WHERE type='table' LIMIT 1" : "FROM (SELECT 1) t LIMIT 1"}`
     );
     res.json({
       sales: sales.rows,

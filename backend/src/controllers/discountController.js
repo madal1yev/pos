@@ -7,7 +7,7 @@ exports.getAll = async (req, res, next) => {
     let params = [];
     if (is_active !== undefined) {
       where = 'd.is_active = $1';
-      params.push(is_active === 'true' ? 1 : 0);
+      params.push(is_active === 'true');
     }
     const result = await db.query(
       `SELECT d.*,
@@ -144,8 +144,8 @@ exports.validatePromoCode = async (req, res, next) => {
       `SELECT pc.*, d.name as discount_name, d.type, d.value, d.min_purchase, d.max_discount, d.start_date, d.end_date
        FROM promo_codes pc
        JOIN discounts d ON pc.discount_id = d.id
-       WHERE pc.code = $1 AND pc.is_active = $2 AND d.is_active = $3`,
-      [code.toUpperCase(), 1, 1]
+       WHERE pc.code = $1 AND pc.is_active = TRUE AND d.is_active = TRUE`,
+      [code.toUpperCase()]
     );
 
     if (result.rows.length === 0) {

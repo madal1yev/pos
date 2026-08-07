@@ -95,7 +95,14 @@ if (DATABASE_URL) {
       const stmt = sqlite.prepare(mapped);
       const info = stmt.run(...mappedParams);
       if (hasReturning(sql)) {
-        const rows = sqlite.prepare(mapped).all(...mappedParams);
+        // SQLite has no RETURNING for UPDATE; rewrite into a SELECT so we
+        // don't re-execute the write. Preserve only the WHERE clause params.
+        let selectSql = sql
+          .replace(/UPDATE\s+(\w+)\s+SET[\s\S]*?\bWHERE\s+/i, 'SELECT * FROM $1 WHERE ')
+          .replace(/\s+RETURNING\s+[\s\S]*$/i, '');
+        const selParams = (selectSql.match(/\$\d+/g) || []).map((m) => params[parseInt(m.slice(1)) - 1]);
+        const { sql: remapped, params: remappedParams } = mapParams(selectSql, selParams);
+        const rows = sqlite.prepare(remapped).all(...remappedParams);
         return { rows, rowCount: info.changes };
       }
       return { rows: [], rowCount: info.changes };

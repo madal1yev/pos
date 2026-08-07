@@ -32,7 +32,10 @@ api.interceptors.request.use((config) => {
 let isRedirecting = false;
 
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    if (isRedirecting) isRedirecting = false;
+    return response;
+  },
   (error) => {
     if (error.code === 'ERR_NETWORK' || error.code === 'ECONNABORTED') {
       console.error('Network error:', error.message);

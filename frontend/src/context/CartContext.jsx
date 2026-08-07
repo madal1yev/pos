@@ -75,21 +75,24 @@ export const useCartStore = create((set, get) => ({
       get().removeItem(productId);
       return;
     }
-    const next = get().items.map((i) =>
-      i.product_id === productId
-        ? { ...i, quantity, subtotal: quantity * i.price - (i.discount || 0) + (i.tax || 0) }
-        : i
-    );
+    const next = get().items.map((i) => {
+      if (i.product_id !== productId) return i;
+      const maxQty = Math.max(1, i.stock_quantity || 1);
+      const qty = Math.min(quantity, maxQty);
+      const linePrice = qty * i.price - (i.discount || 0);
+      return { ...i, quantity: qty, subtotal: Math.max(0, linePrice) + (i.tax || 0) };
+    });
     set({ items: next });
     saveCart(next);
   },
 
   updateDiscount: (productId, discount) => {
-    const next = get().items.map((i) =>
-      i.product_id === productId
-        ? { ...i, discount, subtotal: i.quantity * i.price - discount + (i.tax || 0) }
-        : i
-    );
+    const next = get().items.map((i) => {
+      if (i.product_id !== productId) return i;
+      const maxDiscount = i.quantity * i.price;
+      const d = Math.max(0, Math.min(discount, maxDiscount));
+      return { ...i, discount: d, subtotal: Math.max(0, maxDiscount - d) + (i.tax || 0) };
+    });
     set({ items: next });
     saveCart(next);
   },
