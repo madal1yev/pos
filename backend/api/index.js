@@ -49,7 +49,8 @@ module.exports = async (req, res) => {
         `CREATE TABLE IF NOT EXISTS discounts (id SERIAL PRIMARY KEY, name VARCHAR(200) NOT NULL, type VARCHAR(20) NOT NULL DEFAULT 'percentage', value DECIMAL(12,2) NOT NULL, min_purchase DECIMAL(12,2) DEFAULT 0, max_discount DECIMAL(12,2), start_date TIMESTAMP, end_date TIMESTAMP, is_active BOOLEAN DEFAULT true, created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW())`,
         `CREATE TABLE IF NOT EXISTS promo_codes (id SERIAL PRIMARY KEY, code VARCHAR(50) UNIQUE NOT NULL, discount_id INTEGER REFERENCES discounts(id) ON DELETE CASCADE, max_uses INTEGER DEFAULT 0, current_uses INTEGER DEFAULT 0, is_active BOOLEAN DEFAULT true, created_at TIMESTAMP DEFAULT NOW())`,
         `CREATE TABLE IF NOT EXISTS product_variants (id SERIAL PRIMARY KEY, product_id INTEGER REFERENCES products(id) ON DELETE CASCADE, name VARCHAR(100) NOT NULL, sku VARCHAR(50), price DECIMAL(12,2), stock_quantity INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT NOW())`,
-        `CREATE TABLE IF NOT EXISTS combo_items (id SERIAL PRIMARY KEY, product_id INTEGER REFERENCES products(id) ON DELETE CASCADE, combo_id INTEGER REFERENCES products(id) ON DELETE CASCADE, quantity INTEGER DEFAULT 1, created_at TIMESTAMP DEFAULT NOW())`
+        `CREATE TABLE IF NOT EXISTS combo_items (id SERIAL PRIMARY KEY, product_id INTEGER REFERENCES products(id) ON DELETE CASCADE, combo_id INTEGER REFERENCES products(id) ON DELETE CASCADE, quantity INTEGER DEFAULT 1, created_at TIMESTAMP DEFAULT NOW())`,
+        `CREATE TABLE IF NOT EXISTS app_meta (key TEXT PRIMARY KEY, value TEXT)`
       ];
       
       for (const sql of tables) {
@@ -98,6 +99,14 @@ module.exports = async (req, res) => {
       // Seed data
       try { await db.query(`INSERT INTO roles (name) VALUES ('admin'), ('cashier') ON CONFLICT (name) DO NOTHING`); } catch (e) { console.log('Seed roles:', e.message); }
       
+      // Eski/tartibli DB ni aniqlash: settings jadvalida avvaldan yozuv bor bo'lsa —
+      // bu ishlatilgan baza, demo ma'lumotlarni QAYTA seed qilmaslik kerak.
+      let established = false;
+      try {
+        const s = await db.query(`SELECT id FROM settings LIMIT 1`);
+        established = s.rows.length > 0;
+      } catch (e) { established = false; }
+      
       try {
         const r = await db.query(`SELECT id FROM settings LIMIT 1`);
         if (r.rows.length === 0) {
@@ -105,31 +114,55 @@ module.exports = async (req, res) => {
         }
       } catch (e) { console.log('Seed settings:', e.message); }
       
-      // Seed categories
+      // Demo ma'lumotlar FAQAT butunlay yangi bazada bir marta seed qilinadi.
+      // Admin kategoriya/mahsulotlarni o'chirgandan keyin ular QAYTA chiqmaydi.
+      let seeded = false;
       try {
-        const r = await db.query(`SELECT id FROM categories LIMIT 1`);
-        if (r.rows.length === 0) {
-          await db.query(`INSERT INTO categories (name, description) VALUES
-            ('Sut mahsulotlari', 'Sut, qatiq, pishloq va boshqa sut mahsulotlari'),
-            ('Non mahsulotlari', 'Non, bulochka, keks va boshqa non mahsulotlari'),
-            ('Go''sht mahsulotlari', 'Qo''y, mol, tovuq go''shtlari va yarim tayyor mahsulotlar'),
-            ('Mevalar', 'Yangi mevalar va rezavorlar'),
-            ('Sabzavotlar', 'Yangi sabzavotlar va ko''katlar'),
-            ('Ichimliklar', 'Suv, sharbat, gazak va boshqa ichimliklar'),
-            ('Gazaklar', 'Chipslar, pechenye, konfet va boshqa gazaklar'),
-            ('Don va quruq mahsulotlar', 'Guruch, makaron, un va boshqa quruq mahsulotlar'),
-            ('Ziravorlar', 'Tuz, qalampir, sos va boshqa ziravorlar'),
-            ('Muzlatilgan mahsulotlar', 'Muzlatilgan go''sht, baliq va tayyor ovqatlar')`);
-        }
-      } catch (e) { console.log('Seed categories:', e.message); }
+        const meta = await db.query(`SELECT value FROM app_meta WHERE key = 'demo_seeded'`);
+        seeded = meta.rows.length > 0 && meta.rows[0].value === '1';
+      } catch (e) { /* table may be missing, treat as false */ }
+
+      if (!seeded && !established) {
+        // Seed categories
+        try {
+          const r = await db.query(`SELECT id FROM categories LIMIT 1`);
+          if (r.rows.length === 0) {
+            await db.query(`INSERT INTO categories (name, description) VALUES
+              ('Sut mahsulotlari', 'Sut, qatiq, pishloq va boshqa sut mahsulotlari'),
+              ('Non mahsulotlari', 'Non, bulochka, keks va boshqa non mahsulotlari'),
+              ('Go''sht mahsulotlari', 'Qo''y, mol, tovuq go''shtlari va yarim tayyor mahsulotlar'),
+              ('Mevalar', 'Yangi mevalar va rezavorlar'),
+              ('Sabzavotlar', 'Yangi sabzavotlar va ko''katlar'),
+              ('Ichimliklar', 'Suv, sharbat, gazak va boshqa ichimliklar'),
+              ('Gazaklar', 'Chipslar, pechenye, konfet va boshqa gazaklar'),
+              ('Don va quruq mahsulotlar', 'Guruch, makaron, un va boshqa quruq mahsulotlar'),
+              ('Ziravorlar', 'Tuz, qalampir, sos va boshqa ziravorlar'),
+              ('Muzlatilgan mahsulotlar', 'Muzlatilgan go''sht, baliq va tayyor ovqatlar')`);
+          }
+        } catch (e) { console.log('Seed categories:', e.message); }
+        
+        // Seed demo products (only if none)
+        try {
+          const r = await db.query(`SELECT id FROM products LIMIT 1`);
+          if (r.rows.length === 0) {
+            await db.query(`INSERT INTO products (category_id, name, product_code, barcode, selling_price, stock_quantity, minimum_stock, unit, status) VALUES
+              (1, 'Sut 1L', 'PRD-0001', '4780001001001', 12000, 50, 10, 'pcs', 'active'),
+              (2, 'Non (qora)', 'PRD-0002', '4780002001001', 5000, 100, 20, 'pcs', 'active'),
+              (6, 'Suv 1.5L', 'PRD-0003', '4780006001001', 4000, 120, 30, 'bottle', 'active')`);
+          }
+        } catch (e) { console.log('Seed products:', e.message); }
+        
+        try { await db.query(`INSERT INTO app_meta (key, value) VALUES ('demo_seeded', '1') ON CONFLICT (key) DO UPDATE SET value = '1'`); } catch (e) { console.log('Set seed flag:', e.message); }
+      } else if (!seeded) {
+        // Eski ishlatilgan baza — demo ma'lumot kiritilmaydi, lekin flag belgilanadi
+        try { await db.query(`INSERT INTO app_meta (key, value) VALUES ('demo_seeded', '1') ON CONFLICT (key) DO UPDATE SET value = '1'`); } catch (e) { console.log('Set seed flag:', e.message); }
+      }
       
+      // Admin user (faqat bo'lmasa)
       try {
         const r = await db.query(`SELECT id FROM users WHERE email = 'admin@pos.uz' LIMIT 1`);
         if (r.rows.length === 0) {
           await db.query(`INSERT INTO users (name, email, password, role_id) VALUES ('Admin', 'admin@pos.uz', '$2a$10$NKDqWOftqDtCgIQa0Ez7zeglEYaBWT4YwvnlnPFP/3jggE7PwF8Da', 1)`);
-        } else {
-          // Hash yangilash (eski notogri hash bilan qolgan bolsa)
-          await db.query(`UPDATE users SET password = '$2a$10$NKDqWOftqDtCgIQa0Ez7zeglEYaBWT4YwvnlnPFP/3jggE7PwF8Da' WHERE email = 'admin@pos.uz' AND password != '$2a$10$NKDqWOftqDtCgIQa0Ez7zeglEYaBWT4YwvnlnPFP/3jggE7PwF8Da'`);
         }
       } catch (e) { console.log('Seed admin:', e.message); }
       
