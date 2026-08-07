@@ -21,6 +21,7 @@ const CORE_TABLES = [
   'discounts',
   'promo_codes',
   'inventory_logs',
+  'app_meta',
 ];
 
 // Export full database as JSON
