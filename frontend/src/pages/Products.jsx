@@ -103,6 +103,29 @@ function BarcodeScannerModal({ onClose, onScan }) {
   );
 }
 
+// iOS kamera suratlari HEIC formatda keladi — brauzerlarda ko'rsatib bo'lmaydi, JPEG ga o'tkazamiz
+const convertHeicToJpeg = (file) => new Promise((resolve) => {
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  img.onload = () => {
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      canvas.toBlob((blob) => {
+        URL.revokeObjectURL(url);
+        if (blob) {
+          resolve(new File([blob], file.name.replace(/\.(heic|heif)$/i, '.jpg'), { type: 'image/jpeg' }));
+        } else resolve(null);
+      }, 'image/jpeg', 0.9);
+    } catch { URL.revokeObjectURL(url); resolve(null); }
+  };
+  img.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
+  img.src = url;
+});
+
 function ProductModal({ product, categories, onClose, onSave }) {
   const [form, setForm] = useState({
     name: product?.name || '', category_id: product?.category_id || '',
@@ -121,6 +144,22 @@ function ProductModal({ product, categories, onClose, onSave }) {
     setForm(f => ({ ...f, barcode: code }));
   };
 
+  const uploadImageFile = async (file) => {
+    if (!file) return;
+    try {
+      let uploadFile = file;
+      if (/heic|heif/i.test(file.type)) {
+        const converted = await convertHeicToJpeg(file);
+        if (converted) uploadFile = converted;
+      }
+      const fd = new FormData();
+      fd.append('image', uploadFile);
+      const { data } = await api.post('/upload/image', fd);
+      setForm(f => ({ ...f, image_url: data.url }));
+      toast.success('Rasm yuklandi');
+    } catch { toast.error('Rasm yuklanmadi'); }
+  };
+
   useEffect(() => {
     if (form.barcode && barcodeSvgRef.current) {
       try { JsBarcode(barcodeSvgRef.current, form.barcode, { format: 'CODE128', width: 1.5, height: 35, displayValue: true, fontSize: 11, margin: 4 }); } catch {}
@@ -131,7 +170,7 @@ function ProductModal({ product, categories, onClose, onSave }) {
     e.preventDefault();
     setSaving(true);
     try {
-      const payload = { ...form, category_id: form.category_id ? parseInt(form.category_id) : null, brand: form.brand || null, purchase_price: parseFloat(form.purchase_price) || 0, selling_price: parseFloat(form.selling_price) || 0, stock_quantity: parseInt(form.stock_quantity) || 0, minimum_stock: parseInt(form.minimum_stock) || 0 };
+      const payload = { ...form, category_id: form.category_id ? parseInt(form.category_id) : null, brand: form.brand || undefined, purchase_price: parseFloat(form.purchase_price) || 0, selling_price: parseFloat(form.selling_price) || 0, stock_quantity: parseInt(form.stock_quantity) || 0, minimum_stock: parseInt(form.minimum_stock) || 0 };
       if (product) { await productsAPI.update(product.id, payload); toast.success("Mahsulot yangilandi"); }
       else { await productsAPI.create(payload); toast.success("Mahsulot qo'shildi"); }
       emitDataChanged();
@@ -231,24 +270,20 @@ function ProductModal({ product, categories, onClose, onSave }) {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                 <span className="flex items-center gap-1.5"><HiOutlinePhoto className="w-4 h-4" /> Mahsulot rasmi</span>
               </label>
-              <div className="flex gap-3 items-start">
+              <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-start">
                 <div className="flex-1">
                   <input type="url" value={form.image_url} onChange={(e) => setForm({ ...form, image_url: e.target.value })} className="input-field w-full dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="URL manzilini kiriting" />
                 </div>
-                <label className="cursor-pointer px-3 py-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-lg text-sm font-medium hover:bg-indigo-100 dark:hover:bg-indigo-900/30 transition-colors border border-indigo-200 dark:border-indigo-800 flex items-center gap-1.5 whitespace-nowrap flex-shrink-0">
-                  <HiOutlineCloudArrowUp className="w-4 h-4" /> Yuklash
-                  <input type="file" accept="image/*" onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    const fd = new FormData();
-                    fd.append('image', file);
-                    try {
-                      const { data } = await api.post('/upload/image', fd);
-                      setForm(f => ({ ...f, image_url: data.url }));
-                      toast.success('Rasm yuklandi');
-                    } catch { toast.error('Rasm yuklanmadi'); }
-                  }} className="hidden" />
-                </label>
+                <div className="flex gap-2 flex-shrink-0">
+                  <label className="cursor-pointer min-h-11 inline-flex items-center justify-center px-4 py-2 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-lg text-sm font-medium hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-colors border border-emerald-200 dark:border-emerald-800 gap-1.5 whitespace-nowrap">
+                    <HiOutlineCamera className="w-4 h-4" /> Kamera
+                    <input type="file" accept="image/*" capture="environment" onChange={(e) => { uploadImageFile(e.target.files?.[0]); e.target.value = ''; }} className="hidden" />
+                  </label>
+                  <label className="cursor-pointer min-h-11 inline-flex items-center justify-center px-4 py-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-lg text-sm font-medium hover:bg-indigo-100 dark:hover:bg-indigo-900/30 transition-colors border border-indigo-200 dark:border-indigo-800 gap-1.5 whitespace-nowrap">
+                    <HiOutlineCloudArrowUp className="w-4 h-4" /> Yuklash
+                    <input type="file" accept="image/*" onChange={(e) => { uploadImageFile(e.target.files?.[0]); e.target.value = ''; }} className="hidden" />
+                  </label>
+                </div>
               </div>
               {form.image_url && (
                 <div className="mt-3 relative inline-block">
@@ -258,7 +293,7 @@ function ProductModal({ product, categories, onClose, onSave }) {
               )}
             </div>
           </div>
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-gray-700">
+          <div className="sticky bottom-0 z-10 flex justify-end gap-3 pt-4 px-6 -mx-6 pb-4 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 safe-area-bottom">
             <button type="button" onClick={onClose} className="btn-secondary">Bekor qilish</button>
             <button type="submit" disabled={saving} className="bg-indigo-600 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-indigo-700 transition-all disabled:opacity-50 shadow-md shadow-indigo-500/20 active:scale-[0.98]">
               {saving ? 'Saqlanmoqda...' : product ? 'Saqlash' : "Qo'shish"}
@@ -696,7 +731,63 @@ export default function Products() {
             <p className="text-gray-400">Mahsulot topilmadi</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          {/* Mobile card list — no horizontal scroll, actions always visible */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:hidden">
+            {products.map((product) => (
+              <div key={product.id} className={`bg-white dark:bg-gray-800 rounded-2xl border shadow-sm overflow-hidden transition-all ${selectedProducts.has(product.id) ? 'ring-2 ring-indigo-500 border-transparent dark:ring-indigo-400' : 'border-gray-100 dark:border-gray-700'}`}>
+                <div className="p-3 sm:p-4">
+                  <div className="flex items-start gap-3">
+                    <input type="checkbox" checked={selectedProducts.has(product.id)} onChange={() => toggleSelect(product.id)} className="w-5 h-5 rounded border-gray-300 text-indigo-600 mt-1 flex-shrink-0" />
+                    <ProductImage src={product.image_url} name={product.name} size="w-12 h-12" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="font-semibold text-gray-900 dark:text-white truncate text-sm">{product.name}</p>
+                        {getStockStatus(product)}
+                      </div>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        {product.brand && <span className="text-[11px] text-gray-400 truncate">{product.brand}</span>}
+                        <span className="text-[11px] font-mono text-gray-400 flex-shrink-0">{product.product_code}</span>
+                      </div>
+                      {product.category_name && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 mt-1.5">
+                          {product.category_name}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 mt-3 text-center">
+                    <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl py-2">
+                      <p className="text-[10px] uppercase tracking-wide text-gray-400">Xarid</p>
+                      <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mt-0.5">{product.purchase_price > 0 ? formatCurrency(product.purchase_price) : '-'}</p>
+                    </div>
+                    <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-xl py-2">
+                      <p className="text-[10px] uppercase tracking-wide text-indigo-400">Sotish</p>
+                      <p className="text-sm font-bold text-indigo-700 dark:text-indigo-300 mt-0.5">{formatCurrency(product.selling_price)}</p>
+                    </div>
+                    <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl py-2">
+                      <p className="text-[10px] uppercase tracking-wide text-gray-400">Miqdor</p>
+                      <p className={`text-sm font-semibold mt-0.5 ${product.stock_quantity < (product.minimum_stock || 0) && product.minimum_stock > 0 ? 'text-amber-600 dark:text-amber-400' : product.stock_quantity === 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-white'}`}>
+                        {product.stock_quantity} <span className="text-[10px] text-gray-400 font-normal">{UNIT_LABELS[product.unit] || product.unit}</span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex border-t border-gray-100 dark:border-gray-700 divide-x divide-gray-100 dark:divide-gray-700">
+                  <button onClick={() => setLabelProduct(product)} className="flex-1 py-3 flex items-center justify-center gap-1.5 text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors" title="Yorliq">
+                    <HiOutlineQrCode className="w-4 h-4" /> Yorliq
+                  </button>
+                  <button onClick={() => { setEditProduct(product); setShowModal(true); }} className="flex-1 py-3 flex items-center justify-center gap-1.5 text-sm font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors" title="Tahrirlash">
+                    <HiOutlinePencil className="w-4 h-4" /> Tahrirlash
+                  </button>
+                  <button onClick={() => setDeleteProduct(product)} className="flex-1 py-3 flex items-center justify-center gap-1.5 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors" title="O'chirish">
+                    <HiOutlineTrash className="w-4 h-4" /> O'chirish
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="hidden lg:block overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-800">
@@ -767,6 +858,7 @@ export default function Products() {
               </tbody>
             </table>
           </div>
+          </>
         )}
 
         {pagination.totalPages > 1 && (

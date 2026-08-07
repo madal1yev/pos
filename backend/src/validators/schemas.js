@@ -16,16 +16,16 @@ const registerSchema = z.object({
 const productSchema = z.object({
   name: z.string().min(1, 'Product name is required'),
   category_id: z.number().int().nullable().optional(),
-  brand: z.string().optional(),
+  brand: z.string().nullable().optional(),
   purchase_price: z.number().min(0).optional(),
   selling_price: z.number().min(0, 'Selling price must be positive'),
   stock_quantity: z.number().int().min(0).optional(),
   minimum_stock: z.number().int().min(0).optional(),
-  unit: z.string().optional(),
-  barcode: z.string().optional(),
-  description: z.string().optional(),
+  unit: z.string().nullable().optional(),
+  barcode: z.string().nullable().optional(),
+  description: z.string().nullable().optional(),
   status: z.enum(['active', 'inactive']).optional(),
-  image_url: z.string().optional(),
+  image_url: z.string().nullable().optional(),
 });
 
 const categorySchema = z.object({
