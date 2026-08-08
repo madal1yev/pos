@@ -8,6 +8,7 @@ import JsBarcode from 'jsbarcode';
 import QRCode from 'qrcode';
 import { Html5Qrcode } from 'html5-qrcode';
 import toast from 'react-hot-toast';
+import CameraModal from '../components/CameraModal';
 
 const UNIT_LABELS = {
   pcs: 'Dona', kg: 'Kilogramm', g: 'Gram', l: 'Litr', ml: 'Millilitr',
@@ -137,6 +138,7 @@ function ProductModal({ product, categories, onClose, onSave }) {
   });
   const [saving, setSaving] = useState(false);
   const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
+  const [showCameraModal, setShowCameraModal] = useState(false);
   const barcodeSvgRef = useRef(null);
 
   const generateBarcode = () => {
@@ -275,15 +277,18 @@ function ProductModal({ product, categories, onClose, onSave }) {
                   <input type="url" value={form.image_url} onChange={(e) => setForm({ ...form, image_url: e.target.value })} className="input-field w-full dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="URL manzilini kiriting" />
                 </div>
                 <div className="flex gap-2 flex-shrink-0">
-                  <label className="cursor-pointer min-h-11 inline-flex items-center justify-center px-4 py-2 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-lg text-sm font-medium hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-colors border border-emerald-200 dark:border-emerald-800 gap-1.5 whitespace-nowrap">
-                    <HiOutlineCamera className="w-4 h-4" /> Kamera
-                    <input type="file" accept="image/*" capture="environment" onChange={(e) => { uploadImageFile(e.target.files?.[0]); e.target.value = ''; }} className="hidden" />
-                  </label>
-                  <label className="cursor-pointer min-h-11 inline-flex items-center justify-center px-4 py-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-lg text-sm font-medium hover:bg-indigo-100 dark:hover:bg-indigo-900/30 transition-colors border border-indigo-200 dark:border-indigo-800 gap-1.5 whitespace-nowrap">
-                    <HiOutlineCloudArrowUp className="w-4 h-4" /> Yuklash
-                    <input type="file" accept="image/*" onChange={(e) => { uploadImageFile(e.target.files?.[0]); e.target.value = ''; }} className="hidden" />
-                  </label>
-                </div>
+                   <button
+                     type="button"
+                     onClick={() => setShowCameraModal(true)}
+                     className="cursor-pointer min-h-11 inline-flex items-center justify-center px-4 py-2 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-lg text-sm font-medium hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-colors border border-emerald-200 dark:border-emerald-800 gap-1.5 whitespace-nowrap"
+                   >
+                     <HiOutlineCamera className="w-4 h-4" /> Kamera
+                   </button>
+                   <label className="cursor-pointer min-h-11 inline-flex items-center justify-center px-4 py-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-lg text-sm font-medium hover:bg-indigo-100 dark:hover:bg-indigo-900/30 transition-colors border border-indigo-200 dark:border-indigo-800 gap-1.5 whitespace-nowrap">
+                     <HiOutlineCloudArrowUp className="w-4 h-4" /> Yuklash
+                     <input type="file" accept="image/*" onChange={(e) => { uploadImageFile(e.target.files?.[0]); e.target.value = ''; }} className="hidden" />
+                   </label>
+                 </div>
               </div>
               {form.image_url && (
                 <div className="mt-3 relative inline-block">
@@ -300,11 +305,12 @@ function ProductModal({ product, categories, onClose, onSave }) {
             </button>
           </div>
         </form>
-        {showBarcodeScanner && <BarcodeScannerModal onClose={() => setShowBarcodeScanner(false)} onScan={(code) => { setForm(f => ({ ...f, barcode: code })); toast.success('Shtrix-kod aniqlandi: ' + code); }} />}
-      </div>
-    </div>
-  );
-}
+         {showBarcodeScanner && <BarcodeScannerModal onClose={() => setShowBarcodeScanner(false)} onScan={(code) => { setForm(f => ({ ...f, barcode: code })); toast.success('Shtrix-kod aniqlandi: ' + code); }} />}
+         {showCameraModal && <CameraModal onClose={() => setShowCameraModal(false)} onCapture={(dataUrl) => { setForm(f => ({ ...f, image_url: dataUrl })); toast.success('Rasm tasvirlandi'); }} />}
+       </div>
+     </div>
+   );
+ }
 
 function LabelPrintModal({ product, onClose }) {
   return (

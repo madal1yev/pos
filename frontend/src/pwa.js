@@ -15,10 +15,10 @@ const updateSW = registerSW({
   },
   onRegisteredSW(swUrl, registration) {
     if (registration) {
-      // Har safar yangi versiyani tekshirish
+      // Har 5 daqiqada yangi versiyani tekshirish
       setInterval(() => {
         registration.update();
-      }, 60000);
+      }, 5 * 60 * 1000);
     }
   },
   onRegistrError(error) {

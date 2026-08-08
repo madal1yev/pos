@@ -11,7 +11,7 @@ exports.getAll = async (req, res, next) => {
     if (search) {
       paramCount++;
       const likeOp = db.isSqlite ? 'LIKE' : 'ILIKE';
-      where.push(`(name ${likeOp} $${paramCount} OR phone ${likeOp} $${paramCount} OR email ${likeOp} $${paramCount})`);
+      where.push(`(name ${likeOp} $${paramCount} OR phone ${likeOp} $${paramCount})`);
       params.push(`%${search}%`);
     }
 
@@ -25,7 +25,8 @@ exports.getAll = async (req, res, next) => {
     const offsetP = paramCount;
 
     const result = await db.query(
-      `SELECT * FROM suppliers WHERE ${where.join(' AND ')} ORDER BY name ASC LIMIT $${limitP} OFFSET $${offsetP}`,
+      `SELECT id, name, phone, car_number, transport_type, status, delivered_orders, notes, address, contact_person, email, created_at, updated_at
+       FROM suppliers WHERE ${where.join(' AND ')} ORDER BY name ASC LIMIT $${limitP} OFFSET $${offsetP}`,
       [...params, parseInt(limit), offset]
     );
 
@@ -42,19 +43,24 @@ exports.getAll = async (req, res, next) => {
 
 exports.getById = async (req, res, next) => {
   try {
-    const result = await db.query('SELECT * FROM suppliers WHERE id = $1', [req.params.id]);
-    if (result.rows.length === 0) return res.status(404).json({ error: 'Supplier not found' });
+    const result = await db.query(
+      `SELECT id, name, phone, car_number, transport_type, status, delivered_orders, notes, address, contact_person, email, created_at, updated_at
+       FROM suppliers WHERE id = $1`,
+      [req.params.id]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Kuryer topilmadi' });
     res.json({ supplier: result.rows[0] });
   } catch (error) { next(error); }
 };
 
 exports.create = async (req, res, next) => {
   try {
-    const { name, phone, email, address, contact_person, tax_id, notes } = req.body;
+    const { name, phone, car_number, transport_type, status, notes } = req.body;
+    if (!name) return res.status(400).json({ error: 'Kuryer nomi majburiy' });
     const result = await db.query(
-      `INSERT INTO suppliers (name, phone, email, address, contact_person, tax_id, notes)
-       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-      [name, phone || null, email || null, address || null, contact_person || null, tax_id || null, notes || null]
+      `INSERT INTO suppliers (name, phone, car_number, transport_type, status, notes)
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+      [name, phone || null, car_number || null, transport_type || 'car', status || 'active', notes || null]
     );
     res.status(201).json({ supplier: result.rows[0] });
   } catch (error) { next(error); }
@@ -62,17 +68,21 @@ exports.create = async (req, res, next) => {
 
 exports.update = async (req, res, next) => {
   try {
-    const { name, phone, email, address, contact_person, tax_id, notes } = req.body;
+    const { name, phone, car_number, transport_type, status, notes } = req.body;
     const nowExpr = db.isSqlite ? "datetime('now')" : 'NOW()';
     const result = await db.query(
-      `UPDATE suppliers SET name = COALESCE($1, name), phone = COALESCE($2, phone),
-       email = COALESCE($3, email), address = COALESCE($4, address),
-       contact_person = COALESCE($5, contact_person), tax_id = COALESCE($6, tax_id),
-       notes = COALESCE($7, notes), updated_at = ${nowExpr}
-       WHERE id = $8 RETURNING *`,
-      [name, phone, email, address, contact_person, tax_id, notes, req.params.id]
+      `UPDATE suppliers SET
+        name = COALESCE($1, name),
+        phone = COALESCE($2, phone),
+        car_number = COALESCE($3, car_number),
+        transport_type = COALESCE($4, transport_type),
+        status = COALESCE($5, status),
+        notes = COALESCE($6, notes),
+        updated_at = ${nowExpr}
+       WHERE id = $7 RETURNING *`,
+      [name, phone, car_number, transport_type, status, notes, req.params.id]
     );
-    if (result.rows.length === 0) return res.status(404).json({ error: 'Supplier not found' });
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Kuryer topilmadi' });
     res.json({ supplier: result.rows[0] });
   } catch (error) { next(error); }
 };
@@ -80,8 +90,20 @@ exports.update = async (req, res, next) => {
 exports.remove = async (req, res, next) => {
   try {
     const existing = await db.query('SELECT id FROM suppliers WHERE id = $1', [req.params.id]);
-    if (existing.rows.length === 0) return res.status(404).json({ error: 'Supplier not found' });
+    if (existing.rows.length === 0) return res.status(404).json({ error: 'Kuryer topilmadi' });
     await db.query('DELETE FROM suppliers WHERE id = $1', [req.params.id]);
-    res.json({ message: 'Supplier deleted successfully' });
+    res.json({ message: 'Kuryer o\'chirildi' });
+  } catch (error) { next(error); }
+};
+
+exports.incrementDelivered = async (req, res, next) => {
+  try {
+    const nowExpr = db.isSqlite ? "datetime('now')" : 'NOW()';
+    const result = await db.query(
+      `UPDATE suppliers SET delivered_orders = COALESCE(delivered_orders, 0) + 1, updated_at = ${nowExpr} WHERE id = $1 RETURNING *`,
+      [req.params.id]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Kuryer topilmadi' });
+    res.json({ supplier: result.rows[0] });
   } catch (error) { next(error); }
 };

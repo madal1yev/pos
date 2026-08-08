@@ -181,7 +181,7 @@ exports.create = async (req, res, next) => {
 
       const discount = item.discount || 0;
       const lineSubtotal = (item.price * item.quantity) - discount;
-      const tax = item.tax || 0 || Math.round(lineSubtotal * taxRate);
+      const tax = item.tax ?? Math.round(lineSubtotal * taxRate);
       const subtotal = lineSubtotal + tax;
       totalAmount += subtotal;
       totalTax += tax;
@@ -208,53 +208,76 @@ exports.create = async (req, res, next) => {
         totalAmount = Math.max(0, totalAmount - finalDiscount);
         appliedPromoId = promo.id;
 
-        // Increment promo usage
         await db.query(`UPDATE promo_codes SET current_uses = current_uses + 1 WHERE id = $1`, [promo.id]);
       }
     }
 
     const changeAmount = Math.max(0, (received_amount || 0) - totalAmount);
 
-    const saleResult = await db.query(
-      `INSERT INTO sales (user_id, customer_name, total_amount, payment_method, received_amount, change_amount, invoice_number, notes, delivery_address, shift_id, sale_type, promo_code)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'sale', $11) RETURNING *`,
-      [req.user.id, customer_name || null, totalAmount, payment_method,
-        received_amount || totalAmount, changeAmount, invoiceNumber, notes || null,
-        delivery_address || null, activeShiftId || null, promo_code || null]
-    );
-
-    const sale = saleResult.rows[0];
-
-    for (const item of items) {
-      const discount = item.discount || 0;
-      const lineSubtotal = (item.price * item.quantity) - discount;
-      const tax = item.tax || 0 || Math.round(lineSubtotal * taxRate);
-      const subtotal = lineSubtotal + tax;
-
-      await db.query(
-        `INSERT INTO sale_items (sale_id, product_id, quantity, price, discount, tax, subtotal)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-        [sale.id, item.product_id, item.quantity, item.price, discount, tax, subtotal]
-      );
-
-      const product = await db.query('SELECT stock_quantity FROM products WHERE id = $1', [item.product_id]);
-      const newStock = product.rows[0].stock_quantity - item.quantity;
-
-      const nowExpr = db.isSqlite ? "datetime('now')" : 'NOW()';
-      await db.query(
-        `UPDATE products SET stock_quantity = $1, updated_at = ${nowExpr} WHERE id = $2`,
-        [newStock, item.product_id]
-      );
-
-      await db.query(
-        `INSERT INTO inventory_logs (product_id, change_type, quantity, previous_stock, new_stock, note, created_by)
-         VALUES ($1, 'sale', $2, $3, $4, $5, $6)`,
-        [item.product_id, -item.quantity, product.rows[0].stock_quantity, newStock,
-          `Sale #${invoiceNumber}`, req.user.id]
-      );
+    // Begin transaction for sale creation
+    if (db.isSqlite) {
+      await db.query('BEGIN TRANSACTION');
+    } else {
+      await db.query('BEGIN');
     }
 
-    res.status(201).json({ sale, message: 'Sale completed successfully' });
+    try {
+      const saleResult = await db.query(
+        `INSERT INTO sales (user_id, customer_name, total_amount, payment_method, received_amount, change_amount, invoice_number, notes, delivery_address, shift_id, sale_type, promo_code)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'sale', $11) RETURNING *`,
+        [req.user.id, customer_name || null, totalAmount, payment_method,
+          received_amount || totalAmount, changeAmount, invoiceNumber, notes || null,
+          delivery_address || null, activeShiftId || null, promo_code || null]
+      );
+
+      const sale = saleResult.rows[0];
+
+      for (const item of items) {
+        const discount = item.discount || 0;
+        const lineSubtotal = (item.price * item.quantity) - discount;
+        const tax = item.tax ?? Math.round(lineSubtotal * taxRate);
+        const subtotal = lineSubtotal + tax;
+
+        await db.query(
+          `INSERT INTO sale_items (sale_id, product_id, quantity, price, discount, tax, subtotal)
+           VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+          [sale.id, item.product_id, item.quantity, item.price, discount, tax, subtotal]
+        );
+
+        const product = await db.query('SELECT stock_quantity FROM products WHERE id = $1', [item.product_id]);
+        const newStock = product.rows[0].stock_quantity - item.quantity;
+        const nowExpr = db.isSqlite ? "datetime('now')" : 'NOW()';
+
+        await db.query(
+          `UPDATE products SET stock_quantity = $1, updated_at = ${nowExpr} WHERE id = $2`,
+          [newStock, item.product_id]
+        );
+
+        await db.query(
+          `INSERT INTO inventory_logs (product_id, change_type, quantity, previous_stock, new_stock, note, created_by)
+           VALUES ($1, 'sale', $2, $3, $4, $5, $6)`,
+          [item.product_id, -item.quantity, product.rows[0].stock_quantity, newStock,
+            `Sale #${invoiceNumber}`, req.user.id]
+        );
+      }
+
+      // Commit transaction
+      if (db.isSqlite) {
+        await db.query('COMMIT');
+      } else {
+        await db.query('COMMIT');
+      }
+
+      res.status(201).json({ sale, message: 'Sale completed successfully' });
+    } catch (innerError) {
+      // Rollback on any error
+      if (db.isSqlite) {
+        await db.query('ROLLBACK');
+      } else {
+        await db.query('ROLLBACK');
+      }
+      throw innerError;
+    }
   } catch (error) {
     next(error);
   }
@@ -328,34 +351,12 @@ exports.remove = async (req, res, next) => {
       return res.status(400).json({ error: 'Bu savdo allaqachon bekor qilingan' });
     }
 
-    // Restore stock for each item
-    const items = await db.query(
-      `SELECT si.*, p.stock_quantity as current_stock FROM sale_items si
-       LEFT JOIN products p ON si.product_id = p.id
-       WHERE si.sale_id = $1`,
-      [id]
-    );
-
-    const nowExpr = db.isSqlite ? "datetime('now')" : 'NOW()';
-    for (const item of items.rows) {
-      const newStock = (item.current_stock || 0) + item.quantity;
-      await db.query(
-        `UPDATE products SET stock_quantity = $1, updated_at = ${nowExpr} WHERE id = $2`,
-        [newStock, item.product_id]
-      );
-      await db.query(
-        `INSERT INTO inventory_logs (product_id, change_type, quantity, previous_stock, new_stock, note, created_by)
-         VALUES ($1, 'delete', $2, $3, $4, $5, $6)`,
-        [item.product_id, item.quantity, item.current_stock || 0, newStock,
-          `Savdo o'chirildi: ${saleData.invoice_number}`, req.user?.id || 1]
-      );
-    }
-
-    // Delete sale items then sale
+    // Faqat chekni o'chiramiz — mahsulotlar qaytarilmaydi
+    // Mahsulot qaytarish alohida "Qaytarish" funksiyasi orqali amalga oshiriladi
     await db.query('DELETE FROM sale_items WHERE sale_id = $1', [id]);
     await db.query('DELETE FROM sales WHERE id = $1', [id]);
 
-    res.json({ message: "Savdo muvaffaqiyatli o'chirildi va mahsulotlar omborga qaytarildi" });
+    res.json({ message: "Chek muvaffaqiyatli o'chirildi" });
   } catch (error) {
     next(error);
   }
@@ -368,7 +369,6 @@ exports.bulkDelete = async (req, res, next) => {
       return res.status(400).json({ error: "O'chirish uchun sotuvlar tanlanmadi" });
     }
 
-    const nowExpr = db.isSqlite ? "datetime('now')" : 'NOW()';
     let deleted = 0;
     const errors = [];
 
@@ -380,31 +380,7 @@ exports.bulkDelete = async (req, res, next) => {
           continue;
         }
 
-        const saleData = sale.rows[0];
-
-        // Restore stock for each item
-        const items = await db.query(
-          `SELECT si.*, p.stock_quantity as current_stock FROM sale_items si
-           LEFT JOIN products p ON si.product_id = p.id
-           WHERE si.sale_id = $1`,
-          [id]
-        );
-
-        for (const item of items.rows) {
-          const newStock = (item.current_stock || 0) + item.quantity;
-          await db.query(
-            `UPDATE products SET stock_quantity = $1, updated_at = ${nowExpr} WHERE id = $2`,
-            [newStock, item.product_id]
-          );
-          await db.query(
-            `INSERT INTO inventory_logs (product_id, change_type, quantity, previous_stock, new_stock, note, created_by)
-             VALUES ($1, 'delete', $2, $3, $4, $5, $6)`,
-            [item.product_id, item.quantity, item.current_stock || 0, newStock,
-              `Savdo o'chirildi: ${saleData.invoice_number}`, req.user?.id || 1]
-          );
-        }
-
-        // Delete sale items then sale
+        // Faqat chekni o'chiramiz — mahsulotlar qaytarilmaydi
         await db.query('DELETE FROM sale_items WHERE sale_id = $1', [id]);
         await db.query('DELETE FROM sales WHERE id = $1', [id]);
         deleted++;
@@ -414,7 +390,7 @@ exports.bulkDelete = async (req, res, next) => {
     }
 
     res.json({
-      message: `${deleted} ta savdo o'chirildi va mahsulotlar omborga qaytarildi`,
+      message: `${deleted} ta chek o'chirildi`,
       deleted,
       errors: errors.length > 0 ? errors : undefined,
     });

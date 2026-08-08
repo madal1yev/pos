@@ -59,6 +59,8 @@ const refundRoutes = require('./routes/refunds');
 const discountRoutes = require('./routes/discounts');
 const auditRoutes = require('./routes/audit');
 const inventoryRoutes = require('./routes/inventory');
+const returnRoutes = require('./routes/returns');
+const { auth } = require('./middleware/auth');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -88,7 +90,11 @@ if (process.env.FRONTEND_URL) {
 app.use(cors({
   origin: (origin, callback) => {
     if (!origin) return callback(null, true);
-    callback(null, true);
+    const isAllowed = allowedOrigins.some(allowed =>
+      allowed instanceof RegExp ? allowed.test(origin) : allowed === origin
+    );
+    if (isAllowed) return callback(null, true);
+    callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
@@ -98,10 +104,18 @@ app.use(cors({
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 1 * 60 * 1000,
-  max: process.env.NODE_ENV === 'production' ? 5000 : 1000,
+  max: process.env.NODE_ENV === 'production' ? 300 : 1000,
   message: { error: 'Too many requests, please try again later.' },
 });
 app.use('/api/', limiter);
+
+// Stricter rate limit for auth routes
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  message: { error: 'Too many login attempts, please try again later.' },
+});
+app.use('/api/auth/login', authLimiter);
 
 // Body parsing
 app.use(express.json({ limit: '10mb' }));
@@ -129,10 +143,11 @@ app.use('/api/refunds', refundRoutes);
 app.use('/api/discounts', discountRoutes);
 app.use('/api/audit-logs', auditRoutes);
 app.use('/api/inventory', inventoryRoutes);
+app.use('/api/returns', returnRoutes);
 app.use('/api/backup', require('./routes/backup'));
 
 // Data overview endpoint — barcha buyurtmalar va mahsulotlarni ko'rish
-app.get('/api/data/overview', async (req, res) => {
+app.get('/api/data/overview', auth, async (req, res) => {
   try {
     const db = require('./config/db');
     const sales = await db.query(
@@ -243,9 +258,10 @@ if (!process.env.VERCEL) {
 
 // Error handler
 app.use((err, req, res, next) => {
-  console.error('Unhandled error:', err);
+  console.error('Unhandled error:', err.message);
+  const isDev = process.env.NODE_ENV !== 'production';
   res.status(err.status || 500).json({
-    error: err.message || 'Internal server error',
+    error: isDev ? err.message : 'Internal server error',
   });
 });
 

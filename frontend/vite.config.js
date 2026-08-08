@@ -73,18 +73,16 @@ export default defineConfig({
       devOptions: { enabled: false }
     })
   ],
-  server: {
+   server: {
     port: 5173,
     proxy: {
       '/api': {
-        target: 'https://pos-backend-xi-three.vercel.app',
+        target: 'http://localhost:5000',
         changeOrigin: true,
-        secure: true,
       },
       '/uploads': {
-        target: 'https://pos-backend-xi-three.vercel.app',
+        target: 'http://localhost:5000',
         changeOrigin: true,
-        secure: true,
       },
     },
   },

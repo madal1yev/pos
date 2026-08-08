@@ -181,6 +181,12 @@ export const discountsAPI = {
   validatePromo: (data) => api.post('/discounts/validate-promo', data),
 };
 
+// Returns (Mahsulot qaytarish)
+export const returnsAPI = {
+  getSaleForReturn: (saleId) => api.get(`/returns/sale/${saleId}`),
+  create: (data) => api.post('/returns', data),
+};
+
 // Inventory / Stock Ledger
 export const inventoryAPI = {
   getLedger: (productId, params) => api.get(`/inventory/ledger/${productId}`, { params }),

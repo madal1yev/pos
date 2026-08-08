@@ -1,8 +1,10 @@
 const jwt = require('jsonwebtoken');
 const db = require('../config/db');
 
-// JWT_SECRET - .env dan yoki fallback
-const JWT_SECRET = process.env.JWT_SECRET || 'pos-system-2026-fallback-secret-key';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error('JWT_SECRET environment variable is required');
+}
 
 const ROLE_HIERARCHY = {
   admin: 100,

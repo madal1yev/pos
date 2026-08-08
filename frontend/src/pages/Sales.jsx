@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { salesAPI } from '../services/api';
+import { salesAPI, returnsAPI } from '../services/api';
 import { t, formatCurrency, formatTashkentDate, formatTashkentShort } from '../utils/uzbek';
-import { HiOutlineMagnifyingGlass, HiOutlineEye, HiOutlineXMark, HiOutlinePrinter, HiOutlineCalendarDays, HiOutlineArrowPath, HiOutlineClipboardDocumentList, HiOutlineNoSymbol, HiOutlineTrash, HiOutlineCheckCircle } from 'react-icons/hi2';
+import { HiOutlineMagnifyingGlass, HiOutlineEye, HiOutlineXMark, HiOutlinePrinter, HiOutlineCalendarDays, HiOutlineArrowPath, HiOutlineClipboardDocumentList, HiOutlineNoSymbol, HiOutlineTrash, HiOutlineCheckCircle, HiOutlineArrowUturnLeft } from 'react-icons/hi2';
 import { emitDataChanged } from '../utils/events';
 import toast from 'react-hot-toast';
 
@@ -161,6 +161,164 @@ function InvoiceModal({ saleId, onClose }) {
   );
 }
 
+function ReturnModal({ saleId, onClose }) {
+  const [saleData, setSaleData] = useState(null);
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [returning, setReturning] = useState(false);
+  const [reason, setReason] = useState('');
+  const [returnQty, setReturnQty] = useState({});
+  const [returnError, setReturnError] = useState(null);
+
+  useEffect(() => { loadSaleData(); }, [saleId]);
+
+  const loadSaleData = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const { data } = await returnsAPI.getSaleForReturn(saleId);
+      setSaleData(data.sale);
+      setItems(data.items || []);
+      // Default: barcha qaytariladigan mahsulotlarni tanlab qo'yish
+      const qty = {};
+      (data.items || []).forEach(item => {
+        qty[item.id] = item.available_to_return > 0 ? item.available_to_return : 0;
+      });
+      setReturnQty(qty);
+    } catch (err) {
+      setError(err.response?.data?.error || 'Ma\'lumotluk yuklanmadi');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleReturn = async () => {
+    const selectedItems = items.filter(item => (returnQty[item.id] || 0) > 0 && item.available_to_return > 0);
+    if (selectedItems.length === 0) {
+      toast.error("Hech narsa tanlanmagan");
+      return;
+    }
+
+    setReturning(true);
+    try {
+      const payloadItems = selectedItems.map(item => ({
+        product_id: item.product_id,
+        quantity: returnQty[item.id],
+        price: parseFloat(item.price) || 0,
+      }));
+
+      setReturnError(null);
+      const { data } = await returnsAPI.create({ sale_id: parseInt(saleId), items: payloadItems, reason });
+      toast.success('Mahsulot qaytarildi');
+      emitDataChanged();
+      onClose();
+    } catch (err) {
+      const msg = err.response?.data?.error || err.message || 'Qaytarishda xatolik';
+      setReturnError(msg);
+    } finally {
+      setReturning(false);
+    }
+  };
+
+  if (loading) return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-2xl">
+        <div className="animate-spin h-8 w-8 border-4 border-indigo-500 border-t-transparent rounded-full mx-auto" />
+      </div>
+    </div>
+  );
+
+  if (error) return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md p-6 text-center">
+        <div className="mx-auto w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center mb-4">
+          <HiOutlineXMark className="w-8 h-8 text-red-600" />
+        </div>
+        <h3 className="text-lg font-bold text-gray-900 dark:text-white">Xatolik</h3>
+        <p className="text-sm text-gray-500 mt-2">{error}</p>
+        <div className="flex justify-center gap-3 mt-6">
+          <button onClick={onClose} className="btn-secondary">Yopish</button>
+          <button onClick={loadSaleData} className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-indigo-700">Qayta urinish</button>
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm modal-overlay" onClick={onClose} />
+      <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto modal-content">
+        <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-6 py-4 flex items-center justify-between z-10">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+              <HiOutlineArrowUturnLeft className="w-5 h-5" />
+              Mahsulot qaytarish
+            </h2>
+            <p className="text-xs text-gray-400">Chek: {saleData?.invoice_number}</p>
+          </div>
+          <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
+            <HiOutlineXMark className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="p-6 space-y-3">
+          <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-3">
+            <p className="text-sm text-amber-800 dark:text-amber-300">
+              Qaytariladigan mahsulotlarni tanlang. Tanlangan mahsulotlar omborga qaytariladi.
+            </p>
+          </div>
+
+          {items.map(item => {
+            const canReturn = item.available_to_return > 0;
+            return (
+              <div key={item.id} className={`border rounded-xl p-3 transition-all ${!canReturn ? 'opacity-50 border-gray-200 dark:border-gray-700' : 'border-gray-200 dark:border-gray-700'}`}>
+                <div className="flex items-center gap-3">
+                  <input type="checkbox" checked={canReturn && (returnQty[item.id] || 0) > 0} onChange={() => setReturnQty(prev => ({ ...prev, [item.id]: prev[item.id] > 0 ? 0 : 1 }))} disabled={!canReturn} className="w-4 h-4 rounded border-gray-300 text-indigo-600" />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-gray-900 dark:text-white text-sm truncate">{item.product_name}</p>
+                    <p className="text-xs text-gray-500">
+                      Sotilgan: {item.quantity} | Qaytarilgan: {item.refunded_qty} | Maksimal: {item.available_to_return}
+                    </p>
+                  </div>
+                  <span className="text-sm font-bold text-gray-900 dark:text-white">{formatCurrency(item.price)}</span>
+                </div>
+                {canReturn && (returnQty[item.id] || 0) > 0 && (
+                  <div className="mt-3 flex items-center gap-2 pl-7">
+                    <label className="text-xs text-gray-500">Miqdor:</label>
+                    <input type="number" min="1" max={item.available_to_return} value={returnQty[item.id] || 1} onChange={(e) => setReturnQty(prev => ({ ...prev, [item.id]: Math.min(parseInt(e.target.value) || 1, item.available_to_return) }))} className="input-field w-20 text-center dark:bg-gray-700 dark:border-gray-600 dark:text-white py-1" />
+                    <span className="text-xs text-gray-400">{item.unit || 'pcs'}</span>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Qaytarish sababi</label>
+            <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={2} className="input-field dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Masalan: Mijoz qaytardi, yaroqlsiz mahsulot..." />
+          </div>
+
+          {returnError && (
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-3">
+              <p className="text-sm text-red-600 dark:text-red-400">{returnError}</p>
+            </div>
+          )}
+        </div>
+
+        <div className="sticky bottom-0 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 px-6 py-4 flex justify-end gap-3">
+          <button onClick={onClose} className="btn-secondary">Bekor qilish</button>
+          <button onClick={handleReturn} disabled={returning} className="bg-amber-600 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-amber-700 transition-all disabled:opacity-50">
+            {returning ? 'Qaytarilmoqda...' : 'Qaytarish'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Sales() {
   const [sales, setSales] = useState([]);
   const [pagination, setPagination] = useState({ total: 0, page: 1, totalPages: 1 });
@@ -170,6 +328,7 @@ export default function Sales() {
   const [dateTo, setDateTo] = useState('');
   const [loading, setLoading] = useState(true);
   const [viewInvoice, setViewInvoice] = useState(null);
+  const [returning, setReturning] = useState(null);
   const [cancelling, setCancelling] = useState(null);
   const [deleting, setDeleting] = useState(null);
   const [selectedIds, setSelectedIds] = useState([]);
@@ -210,11 +369,11 @@ export default function Sales() {
   };
 
   const handleDeleteSale = async (saleId) => {
-    if (!window.confirm("Sotuv tarixini o'chirishni tasdiqlaysizmi? Mahsulotlar omborga qaytariladi. Bu amalni bekor qilib bo'lmaydi.")) return;
+    if (!window.confirm("Chekni o'chirishni tasdiqlaysizmi? Bu faqat chekni o'chiradi, mahsulotlar qaytarilmaydi.")) return;
     setDeleting(saleId);
     try {
       await salesAPI.delete(saleId);
-      toast.success("Sotuv o'chirildi va mahsulotlar omborga qaytarildi");
+      toast.success("Chek o'chirildi");
       loadSales(pagination.page);
     } catch (err) {
       const msg = err.response?.data?.error || err.message || 'Xatolik';
@@ -258,7 +417,7 @@ export default function Sales() {
 
   const handleBulkDelete = async () => {
     if (selectedIds.length === 0) return;
-    if (!window.confirm(`${selectedIds.length} ta sotuvni o'chirishni tasdiqlaysizmi? Mahsulotlar omborga qaytariladi. Bu amalni bekor qilib bo'lmaydi.`)) return;
+    if (!window.confirm(`${selectedIds.length} ta chekni o'chirishni tasdiqlaysizmi? Bu faqat cheklarni o'chiradi, mahsulotlar qaytarilmaydi.`)) return;
     setBulkDeleting(true);
     let deleted = 0;
     const errors = [];
@@ -272,7 +431,7 @@ export default function Sales() {
         }
       }
       if (deleted > 0) {
-        toast.success(`${deleted} ta savdo o'chirildi va mahsulotlar omborga qaytarildi`);
+        toast.success(`${deleted} ta chek o'chirildi`);
         setSelectedIds([]);
         setAllPagesSelected(false);
         loadSales(pagination.page);
@@ -427,13 +586,18 @@ export default function Sales() {
                     <td className="py-3.5 px-4 text-right text-gray-500 text-xs">{formatTashkentShort(sale.created_at)}</td>
                     <td className="py-3.5 px-4 text-right">
                       <div className="flex items-center justify-end gap-1" onClick={e => e.stopPropagation()}>
-                        <button onClick={() => setViewInvoice(sale.id)} className="p-1.5 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 transition-colors" title="Ko'rish">
-                          <HiOutlineEye className="w-4 h-4" />
-                        </button>
-                        <button onClick={() => handleDeleteSale(sale.id)} disabled={deleting === sale.id} className="p-1.5 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 transition-colors disabled:opacity-50" title="O'chirish">
-                          <HiOutlineTrash className="w-4 h-4" />
-                        </button>
-                      </div>
+                         <button onClick={() => setViewInvoice(sale.id)} className="p-1.5 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 transition-colors" title="Ko'rish">
+                           <HiOutlineEye className="w-4 h-4" />
+                         </button>
+                         {sale.sale_type !== 'fully_refunded' && sale.sale_type !== 'voided' && (
+                           <button onClick={() => setReturning(sale.id)} className="p-1.5 rounded-lg hover:bg-amber-100 dark:hover:bg-amber-900/30 text-amber-600 dark:text-amber-400 transition-colors" title="Mahsulot qaytarish">
+                             <HiOutlineArrowUturnLeft className="w-4 h-4" />
+                           </button>
+                         )}
+                         <button onClick={() => handleDeleteSale(sale.id)} disabled={deleting === sale.id} className="p-1.5 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 transition-colors disabled:opacity-50" title="O'chirish">
+                           <HiOutlineTrash className="w-4 h-4" />
+                         </button>
+                       </div>
                     </td>
                   </tr>
                 ))}
@@ -457,6 +621,7 @@ export default function Sales() {
       )}
 
       {viewInvoice && <InvoiceModal saleId={viewInvoice} onClose={() => setViewInvoice(null)} />}
+      {returning && <ReturnModal saleId={returning} onClose={() => setReturning(null)} />}
     </div>
   );
 }

@@ -124,6 +124,9 @@ if (DATABASE_URL) {
   function autoMigrate() {
     const migrations = [
       { table: 'categories', column: 'status', sql: "ALTER TABLE categories ADD COLUMN status TEXT DEFAULT 'active'" },
+      { table: 'suppliers', column: 'transport_type', sql: "ALTER TABLE suppliers ADD COLUMN transport_type TEXT DEFAULT 'car'" },
+      { table: 'suppliers', column: 'status', sql: "ALTER TABLE suppliers ADD COLUMN status TEXT DEFAULT 'active'" },
+      { table: 'suppliers', column: 'delivered_orders', sql: "ALTER TABLE suppliers ADD COLUMN delivered_orders INTEGER DEFAULT 0" },
       { table: 'sales', column: 'delivery_address', sql: "ALTER TABLE sales ADD COLUMN delivery_address TEXT" },
       { table: 'sales', column: 'shift_id', sql: "ALTER TABLE sales ADD COLUMN shift_id INTEGER" },
       { table: 'sales', column: 'sale_type', sql: "ALTER TABLE sales ADD COLUMN sale_type TEXT DEFAULT 'sale'" },

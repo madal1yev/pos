@@ -70,6 +70,9 @@ module.exports = async (req, res) => {
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS pin VARCHAR(10)",
         "ALTER TABLE products ADD COLUMN IF NOT EXISTS has_variants BOOLEAN DEFAULT false",
         "ALTER TABLE products ADD COLUMN IF NOT EXISTS is_combo BOOLEAN DEFAULT false",
+        "ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS transport_type VARCHAR(20) DEFAULT 'car'",
+        "ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'active'",
+        "ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS delivered_orders INTEGER DEFAULT 0",
       ];
       for (const sql of alterStatements) {
         try { await db.query(sql); } catch (e) { /* ignore if exists */ }
