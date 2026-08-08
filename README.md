@@ -31,6 +31,7 @@ Professional POS system for restaurants, cafes, and retail stores. Built with Re
 - **Customer Management**: Track purchases, debt tracking
 - **Courier/Delivery Management**: Transport type, delivery tracking
 - **PWA Support**: Installable on mobile/desktop, offline-ready
+- **Barcode & QR**: Camera scanning, barcode generation
 
 ## Tech Stack
 
@@ -40,7 +41,7 @@ Professional POS system for restaurants, cafes, and retail stores. Built with Re
 | Backend | Node.js, Express.js |
 | Database | SQLite (local) / PostgreSQL (production) |
 | Auth | JWT, bcrypt |
-| Telegram | Bot integration for orders & admin |
+
 
 ## Quick Start
 
@@ -97,8 +98,7 @@ npm start
 | `DATABASE_URL` | PostgreSQL connection string | Production |
 | `FRONTEND_URL` | Frontend URL for CORS | Production |
 | `NODE_ENV` | development/production | No |
-| `TELEGRAM_BOT_TOKEN` | Customer bot token | No |
-| `TELEGRAM_ADMIN_BOT_TOKEN` | Admin bot token | No |
+
 
 ## Project Structure
 
