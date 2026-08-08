@@ -74,6 +74,15 @@ module.exports = async (req, res) => {
         "ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'active'",
         "ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS delivered_orders INTEGER DEFAULT 0",
       ];
+      
+      // Token blacklist table
+      try {
+        await db.query(`CREATE TABLE IF NOT EXISTS token_blacklist (
+          token TEXT PRIMARY KEY,
+          expires_at TIMESTAMP NOT NULL,
+          created_at TIMESTAMP DEFAULT NOW()
+        )`);
+      } catch (e) { /* already exists */ }
       for (const sql of alterStatements) {
         try { await db.query(sql); } catch (e) { /* ignore if exists */ }
       }

@@ -34,6 +34,20 @@ const auth = async (req, res, next) => {
     }
 
     req.user = result.rows[0];
+
+    // Check if token is blacklisted
+    const headerToken = req.headers.authorization?.replace('Bearer ', '');
+    if (headerToken) {
+      try {
+        const blacklisted = await db.query('SELECT token FROM token_blacklist WHERE token = $1', [headerToken]);
+        if (blacklisted.rows.length > 0) {
+          return res.status(401).json({ error: 'Token is invalid. Please login again.' });
+        }
+      } catch (e) {
+        // token_blacklist table might not exist yet, skip check
+      }
+    }
+
     next();
   } catch (error) {
     if (error.name === 'JsonWebTokenError') {

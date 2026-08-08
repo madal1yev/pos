@@ -30,9 +30,18 @@ if (!isVercel) {
   });
 
   router.use(auth);
-  router.post('/image', upload.single('image'), (req, res) => {
-    if (!req.file) return res.status(400).json({ error: 'Rasm yuklanmadi' });
-    res.json({ url: `/uploads/${req.file.filename}`, filename: req.file.filename });
+  router.post('/image', (req, res) => {
+    upload.single('image')(req, res, (err) => {
+      if (err instanceof multer.MulterError) {
+        if (err.code === 'LIMIT_FILE_SIZE') {
+          return res.status(400).json({ error: 'Rasm hajmi 5MB dan katta!' });
+        }
+        return res.status(400).json({ error: 'Rasm yuklashda xato: ' + err.message });
+      }
+      if (err) return res.status(400).json({ error: 'Rasm yuklashda xato' });
+      if (!req.file) return res.status(400).json({ error: 'Rasm tanlanmadi' });
+      res.json({ url: `/uploads/${req.file.filename}`, filename: req.file.filename });
+    });
   });
 } else {
   const upload = multer({
@@ -42,19 +51,29 @@ if (!isVercel) {
       const allowed = /jpeg|jpg|png|gif|svg|webp/;
       const extOk = allowed.test(path.extname(file.originalname).toLowerCase());
       const mimeOk = allowed.test(file.mimetype.split('/')[1]);
-      cb(null, extOk && mimeOk);
+      if (extOk && mimeOk) return cb(null, true);
+      cb(new Error('Faqat rasm fayllari: JPEG, PNG, GIF, SVG, WebP'));
     },
   });
 
   router.use(auth);
-  router.post('/image', upload.single('image'), async (req, res) => {
-    if (!req.file) return res.status(400).json({ error: 'Rasm yuklanmadi' });
-    try {
-      const base64 = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
-      res.json({ url: base64, filename: req.file.originalname, isBase64: true });
-    } catch (err) {
-      res.status(500).json({ error: 'Rasm saqlashda xato' });
-    }
+  router.post('/image', (req, res) => {
+    upload.single('image')(req, res, (err) => {
+      if (err instanceof multer.MulterError) {
+        if (err.code === 'LIMIT_FILE_SIZE') {
+          return res.status(400).json({ error: 'Rasm hajmi 5MB dan katta!' });
+        }
+        return res.status(400).json({ error: 'Rasm yuklashda xato: ' + err.message });
+      }
+      if (err) return res.status(400).json({ error: 'Rasm yuklashda xato' });
+      if (!req.file) return res.status(400).json({ error: 'Rasm tanlanmadi' });
+      try {
+        const base64 = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
+        res.json({ url: base64, filename: req.file.originalname, isBase64: true });
+      } catch (catchErr) {
+        res.status(500).json({ error: 'Rasm saqlashda xato' });
+      }
+    });
   });
 }
 

@@ -107,7 +107,22 @@ exports.getMe = async (req, res, next) => {
 };
 
 exports.logout = async (req, res) => {
-  res.json({ message: 'Logged out successfully' });
+  try {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (token) {
+      const jwt = require('jsonwebtoken');
+      const decoded = jwt.decode(token);
+      if (decoded?.exp) {
+        await db.query(
+          'INSERT INTO token_blacklist (token, expires_at) VALUES ($1, $2) ON CONFLICT (token) DO NOTHING',
+          [token, new Date(decoded.exp * 1000).toISOString()]
+        );
+      }
+    }
+    res.json({ message: 'Logged out successfully' });
+  } catch (error) {
+    res.json({ message: 'Logged out successfully' });
+  }
 };
 
 exports.updateProfile = async (req, res, next) => {

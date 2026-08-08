@@ -24,21 +24,26 @@ exports.get = async (req, res, next) => {
             [today]
           )
         ),
-        safeQuery('monthlySales', () =>
-          isSqlite
+        safeQuery('monthlySales', () => {
+          const now = new Date();
+          const month = now.getMonth() + 1;
+          const year = now.getFullYear();
+          return isSqlite
             ? db.query(
                 `SELECT COUNT(*) as count, COALESCE(SUM(total_amount), 0) as revenue
                  FROM sales 
-                 WHERE CAST(strftime('%m', created_at) AS INTEGER) = CAST(strftime('%m', 'now') AS INTEGER)
-                   AND CAST(strftime('%Y', created_at) AS INTEGER) = CAST(strftime('%Y', 'now') AS INTEGER)`
+                 WHERE CAST(strftime('%m', created_at) AS INTEGER) = ?
+                   AND CAST(strftime('%Y', created_at) AS INTEGER) = ?`,
+                [month, year]
               )
             : db.query(
                 `SELECT COUNT(*) as count, COALESCE(SUM(total_amount), 0) as revenue
                  FROM sales 
-                 WHERE EXTRACT(MONTH FROM created_at) = EXTRACT(MONTH FROM NOW())
-                   AND EXTRACT(YEAR FROM created_at) = EXTRACT(YEAR FROM NOW())`
-              )
-        ),
+                 WHERE EXTRACT(MONTH FROM created_at) = $1
+                   AND EXTRACT(YEAR FROM created_at) = $2`,
+                [month, year]
+              );
+        }),
         safeQuery('productStats', () =>
           db.query(
             `SELECT 

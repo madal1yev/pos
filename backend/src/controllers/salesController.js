@@ -372,22 +372,22 @@ exports.bulkDelete = async (req, res, next) => {
     let deleted = 0;
     const errors = [];
 
-    for (const id of ids) {
-      try {
-        const sale = await db.query('SELECT * FROM sales WHERE id = $1', [id]);
-        if (sale.rows.length === 0) {
-          errors.push({ id, error: 'Savdo topilmadi' });
-          continue;
-        }
+    // Parallel processing for better performance
+    const results = await Promise.allSettled(ids.map(async (id) => {
+      const sale = await db.query('SELECT * FROM sales WHERE id = $1', [id]);
+      if (sale.rows.length === 0) throw new Error('Savdo topilmadi');
+      await db.query('DELETE FROM sale_items WHERE sale_id = $1', [id]);
+      await db.query('DELETE FROM sales WHERE id = $1', [id]);
+      return id;
+    }));
 
-        // Faqat chekni o'chiramiz — mahsulotlar qaytarilmaydi
-        await db.query('DELETE FROM sale_items WHERE sale_id = $1', [id]);
-        await db.query('DELETE FROM sales WHERE id = $1', [id]);
+    results.forEach((result, index) => {
+      if (result.status === 'fulfilled') {
         deleted++;
-      } catch (err) {
-        errors.push({ id, error: err.message });
+      } else {
+        errors.push({ id: ids[index], error: result.reason?.message || 'Xatolik' });
       }
-    }
+    });
 
     res.json({
       message: `${deleted} ta chek o'chirildi`,

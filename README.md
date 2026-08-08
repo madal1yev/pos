@@ -1,233 +1,125 @@
-# POS System — Point of Sale & Inventory Management
+# foodsPOS - Point of Sale & Inventory Management System
 
-A full-stack POS system built with React, Tailwind CSS, Node.js, Express, and PostgreSQL.
+Professional POS system for restaurants, cafes, and retail stores. Built with React, Node.js, Express, and SQLite/PostgreSQL.
 
 ## Features
 
-- **Authentication**: JWT-based login with role-based access (Admin/Cashier)
-- **Dashboard**: Sales charts, revenue stats, low-stock alerts, recent transactions
-- **Product Management**: CRUD with auto-generated product codes, images, categories
-- **Barcode & QR Code**: Code128 barcode + QR generation, camera scanning (html5-qrcode)
-- **POS Selling**: Cart management, barcode scanner support, checkout flow
-- **Inventory**: Auto stock reduction on sales, low-stock warnings
-- **Sales History**: Searchable list with invoice details and printable receipts
-- **Reports**: Daily/monthly sales, top products, inventory report
-- **Settings**: Store info, currency, tax, receipt customization
-- **Dark Mode**: Full dark mode support
+### Core POS
+- **Fast Checkout**: Barcode scanning, cart management, quick product search
+- **Multiple Payment Methods**: Cash, card, other
+- **Discounts & Taxes**: Per-item or global discounts, configurable tax rate
+- **Print Receipts**: Professional receipt printing with store branding
+
+### Inventory Management
+- **Product Management**: CRUD with images, categories, barcodes
+- **Stock Tracking**: Automatic stock reduction on sales, low-stock alerts
+- **Product Returns**: Dedicated return flow with stock restoration
+- **Categories**: Hierarchical category management
+
+### Sales & Reports
+- **Sales History**: Filterable by date, payment method, customer
+- **Dashboard**: Revenue charts, top products, inventory value
+- **Reports**: Daily/monthly sales, profit analysis
+- **Export**: CSV export for products
+
+### User Management
+- **Role-based Access**: Admin and Cashier roles
+- **Shift Management**: Open/close shifts with cash tracking
+- **Secure Auth**: JWT with token blacklist on logout
+
+### Customer & Delivery
+- **Customer Management**: Track purchases, debt tracking
+- **Courier/Delivery Management**: Transport type, delivery tracking
+- **PWA Support**: Installable on mobile/desktop, offline-ready
 
 ## Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
-| Frontend | React 18, Tailwind CSS 3, React Router 6, Zustand, Recharts, Axios |
-| Backend | Node.js, Express.js, PostgreSQL (pg), JWT, bcrypt, Zod |
-| Barcode | html5-qrcode, JsBarcode, qrcode |
-| Styling | Tailwind CSS with custom component classes |
+| Frontend | React 18, Vite, Tailwind CSS, PWA |
+| Backend | Node.js, Express.js |
+| Database | SQLite (local) / PostgreSQL (production) |
+| Auth | JWT, bcrypt |
+| Telegram | Bot integration for orders & admin |
 
-## Prerequisites
+## Quick Start
 
+### Prerequisites
 - Node.js >= 18
-- PostgreSQL >= 14
-- npm or yarn
 
-## Setup Instructions
-
-### 1. Clone & Install
+### Installation
 
 ```bash
-# Backend
+# Clone repository
+git clone https://github.com/madal1yev/pos.git
+cd pos
+
+# Backend setup
 cd backend
 npm install
+cp .env.example .env
+# Edit .env with your settings
+npm run dev
 
-# Frontend
+# Frontend setup (new terminal)
 cd ../frontend
 npm install
-```
-
-### 2. Setup PostgreSQL
-
-```bash
-# Create database
-psql -U postgres -c "CREATE DATABASE pos_system;"
-```
-
-### 3. Configure Environment
-
-Edit `backend/.env`:
-```env
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/pos_system
-JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
-JWT_EXPIRES_IN=7d
-PORT=5000
-NODE_ENV=development
-FRONTEND_URL=http://localhost:3000
-```
-
-### 4. Run Migrations
-
-```bash
-cd backend
-npm run migrate    # Create tables
-npm run seed       # Seed sample data
-```
-
-### 5. Start Development Servers
-
-**Terminal 1 — Backend:**
-```bash
-cd backend
 npm run dev
-# Runs on http://localhost:5000
 ```
 
-**Terminal 2 — Frontend:**
+### Default Login
+- **Email**: admin@pos.uz
+- **Password**: admin123
+
+## Deployment
+
+### Vercel (Recommended)
+1. Connect GitHub repo to Vercel
+2. Set environment variables:
+   - `JWT_SECRET` - random secret key
+   - `DATABASE_URL` - PostgreSQL connection string
+   - `FRONTEND_URL` - your frontend URL
+   - `NODE_ENV` - production
+
+### Local Production Build
 ```bash
 cd frontend
-npm run dev
-# Runs on http://localhost:3000
+npm run build
+cd ../backend
+npm start
 ```
 
-### 6. Login
+## Environment Variables
 
-Open `http://localhost:3000` and login with:
-- **Email:** admin@pos.uz
-- **Password:** admin123
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `JWT_SECRET` | JWT signing secret | Yes |
+| `DATABASE_URL` | PostgreSQL connection string | Production |
+| `FRONTEND_URL` | Frontend URL for CORS | Production |
+| `NODE_ENV` | development/production | No |
+| `TELEGRAM_BOT_TOKEN` | Customer bot token | No |
+| `TELEGRAM_ADMIN_BOT_TOKEN` | Admin bot token | No |
 
 ## Project Structure
 
 ```
-pos-system/
-├── api/                          # Vercel serverless proxy
+pos/
 ├── backend/
-│   ├── api/index.js              # Vercel serverless entry
-│   ├── migrations/               # DB migrations & seed data
-│   ├── scripts/                  # Utility & check scripts
 │   ├── src/
-│   │   ├── config/db.js          # Database (PostgreSQL / SQLite)
-│   │   ├── controllers/          # Route handlers
-│   │   ├── middleware/auth.js     # JWT authentication
-│   │   ├── routes/               # API routes
-│   │   ├── validators/schemas.js # Zod validation schemas
-│   │   ├── utils/helpers.js      # Code generators
-│   │   └── server.js             # Express app entry
-│   ├── tests/                    # Test scripts
-│   ├── .env                      # Environment variables
-│   └── package.json
+│   │   ├── controllers/    # Business logic
+│   │   ├── routes/         # API routes
+│   │   ├── middleware/     # Auth, validation
+│   │   └── config/         # Database config
+│   └── api/index.js        # Vercel entry point
 ├── frontend/
-│   ├── src/
-│   │   ├── components/layout/    # Sidebar, Header, Layout
-│   │   ├── context/              # Auth & Cart state (Zustand)
-│   │   ├── pages/                # All page components
-│   │   ├── services/api.js       # Axios API client
-│   │   ├── hooks/                # Custom hooks
-│   │   ├── App.jsx               # Router setup
-│   │   └── main.jsx              # Entry point
-│   ├── tailwind.config.js
-│   ├── vite.config.js
-│   └── package.json
-├── scripts/                      # Windows / PM2 / check scripts
-├── render.yaml                   # Render deploy config
-├── vercel.json                   # Vercel config
+│   └── src/
+│       ├── pages/          # React pages
+│       ├── components/     # Reusable components
+│       ├── services/       # API client
+│       └── context/        # React context
 └── README.md
 ```
 
-## API Endpoints
-
-### Auth
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | /api/auth/login | Login |
-| POST | /api/auth/register | Register |
-| GET | /api/auth/me | Get current user |
-
-### Products
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | /api/products | List products (search, filter, paginate) |
-| GET | /api/products/:id | Get product |
-| GET | /api/products/barcode/:barcode | Find by barcode |
-| POST | /api/products | Create product |
-| PUT | /api/products/:id | Update product |
-| DELETE | /api/products/:id | Delete product |
-
-### Categories
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | /api/categories | List categories |
-| POST | /api/categories | Create category |
-| PUT | /api/categories/:id | Update category |
-| DELETE | /api/categories/:id | Delete category |
-
-### Sales
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | /api/sales | List sales |
-| GET | /api/sales/:id | Get sale with items |
-| GET | /api/sales/:id/invoice | Get printable invoice |
-| POST | /api/sales | Create sale (checkout) |
-
-### Reports
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | /api/reports/daily | Daily sales report |
-| GET | /api/reports/monthly | Monthly sales report |
-| GET | /api/reports/top-products | Top selling products |
-| GET | /api/reports/inventory | Inventory report |
-| GET | /api/reports/revenue | Revenue by period |
-
-### Settings
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | /api/settings | Get store settings |
-| PUT | /api/settings | Update settings |
-
-### Dashboard
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | /api/dashboard | Dashboard summary |
-
-## Database Schema
-
-- **roles** — admin, cashier
-- **users** — name, email, password (bcrypt), role_id
-- **categories** — name, description
-- **products** — name, product_code (auto), barcode, qr_code, prices, stock, category
-- **sales** — user_id, total_amount, payment_method, invoice_number
-- **sale_items** — sale_id, product_id, quantity, price, discount, tax, subtotal
-- **inventory_logs** — product_id, change_type, quantities, audit trail
-- **settings** — store_name, currency, tax, receipt config
-
-## Barcode Scanner Support
-
-The POS page supports two scanning methods:
-
-1. **Camera Scanning**: Click "Scan" to open phone camera with html5-qrcode
-2. **USB/Bluetooth Scanner**: Type barcode via keyboard input, auto-detected on Enter
-
-Scanned barcodes automatically lookup the product and add to cart.
-
-## Vercel Deployment
-
-Bu loyiha Vercel'ga deploy qilingan. Frontend quyidagi linkda:
-
-**🔗 https://frontend-smoky-three-96.vercel.app/**
-
-### Vercel'ga push qilish
-
-Loyiha birinchi marta ulanyotgan bo'lsa:
-```bash
-cd frontend
-npx vercel link --project frontend-smoky-three-96
-```
-
-Har safar o'zgarishlarni deploy qilish uchun:
-```bash
-cd frontend
-npx vercel --prod
-```
-
-> **Muhim:** Faqat yuqoridagi linkdagi loyihaga (frontend-smoky-three-96) deploy qiling. Boshqa Vercel loyihalariga adashib push qilmang!
-
 ## License
 
-MIT
+MIT License

@@ -234,6 +234,11 @@ if (DATABASE_URL) {
         combo_id INTEGER REFERENCES products(id) ON DELETE CASCADE,
         quantity INTEGER DEFAULT 1,
         created_at TEXT DEFAULT (datetime('now'))
+      )`,
+      `CREATE TABLE IF NOT EXISTS token_blacklist (
+        token TEXT PRIMARY KEY,
+        expires_at TEXT NOT NULL,
+        created_at TEXT DEFAULT (datetime('now'))
       )`
     ];
 

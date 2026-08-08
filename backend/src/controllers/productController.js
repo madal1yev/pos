@@ -195,10 +195,12 @@ exports.remove = async (req, res, next) => {
   try {
     const product = await db.query('SELECT * FROM products WHERE id = $1', [req.params.id]);
     if (product.rows.length === 0) {
-      return res.status(404).json({ error: 'Product not found' });
+      return res.status(404).json({ error: 'Mahsulot topilmadi' });
     }
-    await db.query('DELETE FROM products WHERE id = $1', [req.params.id]);
-    res.json({ message: 'Product deleted successfully' });
+    // Soft delete - status inactive qilish
+    const nowExpr = db.isSqlite ? "datetime('now')" : 'NOW()';
+    await db.query(`UPDATE products SET status = 'inactive', updated_at = ${nowExpr} WHERE id = $1`, [req.params.id]);
+    res.json({ message: 'Mahsulot o\'chirildi' });
   } catch (error) {
     next(error);
   }

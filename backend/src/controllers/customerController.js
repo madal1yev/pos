@@ -80,8 +80,17 @@ exports.update = async (req, res, next) => {
 exports.remove = async (req, res, next) => {
   try {
     const existing = await db.query('SELECT id FROM customers WHERE id = $1', [req.params.id]);
-    if (existing.rows.length === 0) return res.status(404).json({ error: 'Customer not found' });
+    if (existing.rows.length === 0) return res.status(404).json({ error: 'Mijoz topilmadi' });
+
+    // Check if customer has sales
+    const salesCheck = await db.query('SELECT COUNT(*) as count FROM sales WHERE customer_name = (SELECT name FROM customers WHERE id = $1)', [req.params.id]);
+    if (parseInt(salesCheck.rows[0]?.count) > 0) {
+      // Soft delete - deactivate
+      await db.query("UPDATE customers SET is_active = false WHERE id = $1", [req.params.id]);
+      return res.json({ message: 'Mijoz o\'chirildi (sotuv tarixi mavjud)' });
+    }
+
     await db.query('DELETE FROM customers WHERE id = $1', [req.params.id]);
-    res.json({ message: 'Customer deleted successfully' });
+    res.json({ message: 'Mijoz o\'chirildi' });
   } catch (error) { next(error); }
 };

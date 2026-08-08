@@ -23,9 +23,9 @@ exports.update = async (req, res, next) => {
       const insertResult = await db.query(
         `INSERT INTO settings (store_name, store_address, store_phone, store_email, currency, currency_symbol, tax_percentage, receipt_header, receipt_footer, low_stock_threshold, logo_url)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
-        [store_name || 'My Store', store_address, store_phone, store_email,
-          currency || 'USD', currency_symbol || '$', tax_percentage || 0,
-          receipt_header, receipt_footer, low_stock_threshold || 10, logo_url]
+         [store_name || 'My Store', store_address, store_phone, store_email,
+           currency || 'UZS', currency_symbol || "so'm", tax_percentage || 0,
+           receipt_header, receipt_footer, low_stock_threshold || 10, logo_url]
       );
       return res.json({ settings: insertResult.rows[0] });
     }
