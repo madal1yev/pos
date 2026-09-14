@@ -715,7 +715,7 @@ export default function POS() {
               </button>
             </div>
           </div>
-          <div className="flex-1 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3 gap-3 auto-rows-fr">
+          <div className="flex-1 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3 gap-3 auto-rows-max content-start">
             {topProducts.length > 0 && (
               <div className="col-span-full mb-1">
                 <p className="text-[10px] uppercase tracking-wider text-amber-600 dark:text-amber-500 font-semibold mb-1.5 flex items-center gap-1">🔥 Bugungi hot-sotuvlar</p>
@@ -740,7 +740,7 @@ export default function POS() {
               </div>
             )}
           {products.map((product, i) => (
-              <button key={product.id} onClick={() => setQuantityProduct(product)} className="flex flex-col items-center justify-between gap-2 p-4 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-150 text-center hover:shadow-md border border-gray-100 dark:border-gray-700/50 h-full min-h-[160px] sm:min-h-[180px]" style={{ animationDelay: `${i * 0.02}s` }}>
+              <button key={product.id} onClick={() => setQuantityProduct(product)} className="flex flex-col items-center justify-between gap-2 p-4 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-150 text-center hover:shadow-md border border-gray-100 dark:border-gray-700/50 min-h-[160px] sm:min-h-[180px] overflow-hidden" style={{ animationDelay: `${i * 0.02}s` }}>
                 <div className="flex flex-col items-center gap-2 flex-1 justify-center">
                   <POSImage src={product.image_url} name={product.name} size="w-16 h-16 sm:w-20 sm:h-20" />
                   <div className="w-full min-w-0">

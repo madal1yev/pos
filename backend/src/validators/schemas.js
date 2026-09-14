@@ -1,18 +1,12 @@
 const { z } = require('zod');
 
 const loginSchema = z.object({
-  email: z.string().email('Invalid email address'),
+  account_id: z.string().min(1, 'Akkaunt ID kiritilishi shart'),
   password: z.string().min(1, 'Password is required'),
   remember: z.boolean().optional(),
 });
 
-const registerSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters'),
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
-  store_name: z.string().min(1, "Do'kon nomi majburiy"),
-  role_id: z.number().int().optional(),
-});
+// Ommaviy ro'yxatdan o'tish va do'kon ochish O'CHIRILGAN — schema kerak emas.
 
 const productSchema = z.object({
   name: z.string().min(1, 'Product name is required'),
@@ -70,7 +64,6 @@ const settingsSchema = z.object({
 
 module.exports = {
   loginSchema,
-  registerSchema,
   productSchema,
   categorySchema,
   saleSchema,

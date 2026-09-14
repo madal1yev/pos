@@ -9,3 +9,7 @@ uploads/
 node_modules/
 
 .vercel
+
+# Lokal akkaunt fayllari — ichida parollar bo'ladi, GitHub ga chiqmasin
+users-import.json
+users-list.csv

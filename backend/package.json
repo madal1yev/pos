@@ -8,7 +8,9 @@
     "dev": "nodemon src/server.js",
     "migrate": "node migrations/run.js",
     "migrate:pg": "node migrations/pg-migrate.js",
-    "seed": "node migrations/seed.js"
+    "seed": "node migrations/seed.js",
+    "list-users": "node scripts/list-users.js",
+    "import-users": "node scripts/import-users.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

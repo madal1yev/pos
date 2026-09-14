@@ -10,10 +10,10 @@ export const useAuthStore = create((set, get) => ({
   isAuthenticated: () => !!get().token,
   isAdmin: () => get().user?.role === 'admin',
 
-  login: async (email, password, remember = false) => {
+  login: async (accountId, password, remember = false) => {
     set({ loading: true, error: null });
     try {
-      const { data } = await authAPI.login({ email, password, remember });
+      const { data } = await authAPI.login({ account_id: accountId, password, remember });
       localStorage.setItem('pos_token', data.token);
       localStorage.setItem('pos_user', JSON.stringify(data.user));
       set({ user: data.user, token: data.token, loading: false });
@@ -25,7 +25,9 @@ export const useAuthStore = create((set, get) => ({
         : typeof errData === 'string' ? errData
         : 'Login failed';
       set({ error: message, loading: false });
-      throw new Error(message);
+      const e = new Error(message);
+      e.response = error.response;
+      throw e;
     }
   },
 

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useAuthStore } from '../context/AuthContext';
 import { authAPI } from '../services/api';
 import { t } from '../utils/uzbek';
-import { HiOutlineUser, HiOutlineShieldCheck, HiOutlineCalendarDays, HiOutlineEnvelope, HiOutlinePencil, HiOutlineLockClosed, HiOutlineCheck, HiOutlineXMark } from 'react-icons/hi2';
+import { HiOutlineUser, HiOutlineShieldCheck, HiOutlineCalendarDays, HiOutlineEnvelope, HiOutlinePencil, HiOutlineLockClosed, HiOutlineCheck, HiOutlineXMark, HiOutlineIdentification } from 'react-icons/hi2';
 import toast from 'react-hot-toast';
 
 export default function Profile() {
@@ -99,6 +99,15 @@ export default function Profile() {
         </div>
 
         <div className="space-y-4">
+          {/* Akkaunt ID */}
+          <div className="flex items-center gap-4 p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl border border-indigo-100 dark:border-indigo-800">
+            <HiOutlineIdentification className="w-5 h-5 text-indigo-500" />
+            <div className="flex-1">
+              <p className="text-xs text-indigo-500 dark:text-indigo-300">Akkaunt ID (login uchun)</p>
+              <p className="text-sm font-bold text-indigo-700 dark:text-indigo-200 font-mono tracking-wider">{user?.account_id || '—'}</p>
+            </div>
+          </div>
+
           {/* Name */}
           <div className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
             <HiOutlineUser className="w-5 h-5 text-gray-400" />

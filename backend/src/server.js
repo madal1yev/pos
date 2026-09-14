@@ -287,6 +287,19 @@ if (!process.env.VERCEL) {
     console.log(`║  Telefon:  http://${LOCAL_IP}:${PORT}           ║`);
     console.log('║  Admin:    admin@pos.uz / admin123          ║');
     console.log('╚══════════════════════════════════════════════╝');
+    // Soatlik Telegram hisoboti — backend bilan birga ishlaydi,
+    // POS-agent alohida yoqilmagan bo'lsa ham hisobot keladi.
+    try {
+      require('./utils/hourlyReport').startHourlyReports();
+    } catch (e) {
+      console.log('⚠️ Soatlik hisobot ishga tushmadi:', e.message);
+    }
+    // Akkauntlar boti — hisobot/akkountlar/tahlil buyruqlari.
+    try {
+      require('./utils/accountsBot').startAccountsBot();
+    } catch (e) {
+      console.log('⚠️ Akkaunt-boti ishga tushmadi:', e.message);
+    }
   });
 
   server.on('error', (err) => {

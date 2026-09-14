@@ -738,8 +738,9 @@ export default function Products() {
           </div>
         ) : (
           <>
-          {/* Mobile card list — no horizontal scroll, actions always visible */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:hidden">
+          {/* Kartochka ko'rinishi — telefon va noutbuk (kichik ekran) uchun.
+              xl (1280px+) da jadvalga o'tadi — tor ekranlarda ustma-ust tushishining oldi olinadi */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 xl:hidden">
             {products.map((product) => (
               <div key={product.id} className={`bg-white dark:bg-gray-800 rounded-2xl border shadow-sm overflow-hidden transition-all ${selectedProducts.has(product.id) ? 'ring-2 ring-indigo-500 border-transparent dark:ring-indigo-400' : 'border-gray-100 dark:border-gray-700'}`}>
                 <div className="p-3 sm:p-4">
@@ -747,9 +748,9 @@ export default function Products() {
                     <input type="checkbox" checked={selectedProducts.has(product.id)} onChange={() => toggleSelect(product.id)} className="w-5 h-5 rounded border-gray-300 text-indigo-600 mt-1 flex-shrink-0" />
                     <ProductImage src={product.image_url} name={product.name} size="w-12 h-12" />
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2">
-                        <p className="font-semibold text-gray-900 dark:text-white truncate text-sm">{product.name}</p>
-                        {getStockStatus(product)}
+                      <div className="flex items-start justify-between gap-2 min-w-0">
+                        <p className="font-semibold text-gray-900 dark:text-white truncate text-sm min-w-0">{product.name}</p>
+                        <span className="flex-shrink-0">{getStockStatus(product)}</span>
                       </div>
                       <div className="flex items-center gap-2 mt-0.5">
                         {product.brand && <span className="text-[11px] text-gray-400 truncate">{product.brand}</span>}
@@ -763,17 +764,17 @@ export default function Products() {
                     </div>
                   </div>
                   <div className="grid grid-cols-3 gap-2 mt-3 text-center">
-                    <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl py-2">
+                    <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl py-2 px-1 min-w-0">
                       <p className="text-[10px] uppercase tracking-wide text-gray-400">Xarid</p>
-                      <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mt-0.5">{product.purchase_price > 0 ? formatCurrency(product.purchase_price) : '-'}</p>
+                      <p className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mt-0.5 truncate" title={product.purchase_price > 0 ? formatCurrency(product.purchase_price) : '-'}>{product.purchase_price > 0 ? formatCurrency(product.purchase_price) : '-'}</p>
                     </div>
-                    <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-xl py-2">
+                    <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-xl py-2 px-1 min-w-0">
                       <p className="text-[10px] uppercase tracking-wide text-indigo-400">Sotish</p>
-                      <p className="text-sm font-bold text-indigo-700 dark:text-indigo-300 mt-0.5">{formatCurrency(product.selling_price)}</p>
+                      <p className="text-xs sm:text-sm font-bold text-indigo-700 dark:text-indigo-300 mt-0.5 truncate" title={formatCurrency(product.selling_price)}>{formatCurrency(product.selling_price)}</p>
                     </div>
-                    <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl py-2">
+                    <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl py-2 px-1 min-w-0">
                       <p className="text-[10px] uppercase tracking-wide text-gray-400">Miqdor</p>
-                      <p className={`text-sm font-semibold mt-0.5 ${product.stock_quantity < (product.minimum_stock || 0) && product.minimum_stock > 0 ? 'text-amber-600 dark:text-amber-400' : product.stock_quantity === 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-white'}`}>
+                      <p className={`text-xs sm:text-sm font-semibold mt-0.5 truncate ${product.stock_quantity < (product.minimum_stock || 0) && product.minimum_stock > 0 ? 'text-amber-600 dark:text-amber-400' : product.stock_quantity === 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-white'}`}>
                         {product.stock_quantity} <span className="text-[10px] text-gray-400 font-normal">{UNIT_LABELS[product.unit] || product.unit}</span>
                       </p>
                     </div>
@@ -793,7 +794,7 @@ export default function Products() {
               </div>
             ))}
           </div>
-          <div className="hidden lg:block overflow-x-auto">
+          <div className="hidden xl:block overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-800">

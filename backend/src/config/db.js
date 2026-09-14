@@ -50,6 +50,7 @@ if (DATABASE_URL) {
       { table: 'sales', column: 'promo_code', sql: "ALTER TABLE sales ADD COLUMN IF NOT EXISTS promo_code TEXT" },
       { table: 'settings', column: 'smtp_host', sql: "ALTER TABLE settings ADD COLUMN IF NOT EXISTS smtp_host TEXT" },
       { table: 'users', column: 'pin', sql: "ALTER TABLE users ADD COLUMN IF NOT EXISTS pin VARCHAR(10)" },
+      { table: 'users', column: 'account_id', sql: "ALTER TABLE users ADD COLUMN IF NOT EXISTS account_id VARCHAR(20)" },
       { table: 'products', column: 'has_variants', sql: "ALTER TABLE products ADD COLUMN IF NOT EXISTS has_variants INTEGER DEFAULT 0" },
       { table: 'products', column: 'is_combo', sql: "ALTER TABLE products ADD COLUMN IF NOT EXISTS is_combo INTEGER DEFAULT 0" },
       { table: 'roles', column: 'permissions', sql: "ALTER TABLE roles ADD COLUMN IF NOT EXISTS permissions TEXT" },
@@ -113,10 +114,31 @@ if (DATABASE_URL) {
     }
   }
 
+  // Har bir foydalanuvchiga unikal login Akkaunt ID berish (M-XXXXXX formatida).
+  async function pgBackfillAccountIds() {
+    try {
+      const missing = await pool.query("SELECT id FROM users WHERE account_id IS NULL OR account_id = ''");
+      for (const row of missing.rows) {
+        let id;
+        let taken = true;
+        while (taken) {
+          id = 'M-' + Math.floor(100000 + Math.random() * 900000);
+          const dup = await pool.query('SELECT id FROM users WHERE account_id = $1', [id]);
+          taken = dup.rows.length > 0;
+        }
+        await pool.query('UPDATE users SET account_id = $1 WHERE id = $2', [id, row.id]);
+        console.log(`✅ Akkaunt ID berildi: user #${row.id} → ${id}`);
+      }
+    } catch (e) {
+      console.log('⚠️ PG Account ID backfill error:', e.message.slice(0, 100));
+    }
+  }
+
   // Run auto-migration on startup
   (async () => {
     await pgCreateTables();
     await pgAutoMigrate();
+    await pgBackfillAccountIds();
     await pgBackfillDefaultStore();
   })().catch(e => console.log('⚠️ PG auto-migration error:', e.message));
 
@@ -214,6 +236,7 @@ if (DATABASE_URL) {
       { table: 'settings', column: 'smtp_host', sql: "ALTER TABLE settings ADD COLUMN smtp_host TEXT" },
       { table: 'settings', column: 'smtp_port', sql: "ALTER TABLE settings ADD COLUMN smtp_port INTEGER DEFAULT 587" },
       { table: 'users', column: 'pin', sql: "ALTER TABLE users ADD COLUMN pin VARCHAR(10)" },
+      { table: 'users', column: 'account_id', sql: "ALTER TABLE users ADD COLUMN account_id VARCHAR(20)" },
       { table: 'products', column: 'has_variants', sql: "ALTER TABLE products ADD COLUMN has_variants INTEGER DEFAULT 0" },
       { table: 'products', column: 'is_combo', sql: "ALTER TABLE products ADD COLUMN is_combo INTEGER DEFAULT 0" },
       { table: 'roles', column: 'permissions', sql: "ALTER TABLE roles ADD COLUMN permissions TEXT" },
@@ -422,7 +445,26 @@ if (DATABASE_URL) {
     }
   }
 
+  // Har bir foydalanuvchiga unikal login Akkaunt ID berish (M-XXXXXX formatida).
+  // Faqat account_id hali bo'sh bo'lganlarga generatsiya qilinadi.
+  function backfillAccountIds() {
+    try {
+      const rows = sqlite.prepare('SELECT id FROM users WHERE account_id IS NULL OR account_id = \'\'').all();
+      for (const row of rows) {
+        let id;
+        do {
+          id = 'M-' + Math.floor(100000 + Math.random() * 900000);
+        } while (sqlite.prepare('SELECT id FROM users WHERE account_id = ?').get(id));
+        sqlite.prepare('UPDATE users SET account_id = ? WHERE id = ?').run(id, row.id);
+        console.log(`✅ Akkaunt ID berildi: user #${row.id} → ${id}`);
+      }
+    } catch (e) {
+      console.log('⚠️ Account ID backfill error:', e.message);
+    }
+  }
+
   autoMigrate();
+  backfillAccountIds();
   backfillDefaultStore();
 
   const db = {

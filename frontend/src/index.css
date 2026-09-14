@@ -255,6 +255,16 @@
   }
 }
 
+/* Noutbuk (1024–1280px): zichroq card'lar, katta matn siqiladi */
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .card {
+    @apply p-5;
+  }
+  h1 {
+    @apply text-xl;
+  }
+}
+
 /* Smooth scroll */
 .scrollbar-none::-webkit-scrollbar,
 .hide-scrollbar::-webkit-scrollbar {
