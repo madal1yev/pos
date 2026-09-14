@@ -1,0 +1,72 @@
+- generic [ref=f2e3]:
+  - complementary [ref=f2e4]:
+    - generic [ref=f2e5]:
+      - generic [ref=f2e10]:
+        - heading "Oziq-ovqat Do'koni" [level=1] [ref=f2e11]
+        - paragraph [ref=f2e12]: POS System
+      - navigation [ref=f2e13]:
+        - generic [ref=f2e14]:
+          - generic [ref=f2e15]: Asosiy
+          - generic [ref=f2e16]:
+            - link "Dashboard" [ref=f2e17] [cursor=pointer]:
+              - /url: /
+            - link "Kassa" [ref=f2e22] [cursor=pointer]:
+              - /url: /pos
+        - generic [ref=f2e27]:
+          - generic [ref=f2e28]: Mahsulotlar
+          - generic [ref=f2e29]:
+            - link "Mahsulotlar" [ref=f2e30] [cursor=pointer]:
+              - /url: /products
+            - link "Kategoriyalar" [ref=f2e36] [cursor=pointer]:
+              - /url: /categories
+        - generic [ref=f2e41]:
+          - generic [ref=f2e42]: Savdo
+          - generic [ref=f2e43]:
+            - link "Sotuvlar" [ref=f2e44] [cursor=pointer]:
+              - /url: /sales
+            - link "Hisobotlar" [ref=f2e49] [cursor=pointer]:
+              - /url: /reports
+            - link "Qarzdorlar" [ref=f2e54] [cursor=pointer]:
+              - /url: /customers
+        - generic [ref=f2e59]:
+          - generic [ref=f2e60]: Boshqaruv
+          - generic [ref=f2e61]:
+            - link "Yetkazib beruvchilar" [ref=f2e62] [cursor=pointer]:
+              - /url: /suppliers
+            - link "Chegirmalar" [ref=f2e67] [cursor=pointer]:
+              - /url: /discounts
+            - link "Sozlamalar" [ref=f2e72] [cursor=pointer]:
+              - /url: /settings
+      - generic [ref=f2e78]:
+        - link "A Admin Admin" [ref=f2e79] [cursor=pointer]:
+          - /url: /profile
+          - generic [ref=f2e80]: A
+          - generic [ref=f2e82]:
+            - paragraph [ref=f2e83]: Admin
+            - paragraph [ref=f2e84]: Admin
+        - generic [ref=f2e85]:
+          - generic [ref=f2e86]:
+            - button [ref=f2e87] [cursor=pointer]
+            - generic [ref=f2e91]: Kun
+          - button "Chiqish" [ref=f2e92] [cursor=pointer]
+  - generic [ref=f2e95]:
+    - banner [ref=f2e96]:
+      - generic [ref=f2e97]:
+        - button "Sidebarni ochish/yopish" [ref=f2e99] [cursor=pointer]
+        - generic [ref=f2e102]:
+          - button "uz" [ref=f2e104] [cursor=pointer]
+          - button [ref=f2e108] [cursor=pointer]
+    - main [ref=f2e111]:
+      - generic [ref=f2e112]:
+        - generic [ref=f2e113]:
+          - generic [ref=f2e114]:
+            - heading "Mahsulotlar" [level=1] [ref=f2e115]
+            - paragraph [ref=f2e116]: 0 ta mahsulot
+          - generic [ref=f2e117]:
+            - generic [ref=f2e118] [cursor=pointer]: Import CSV
+            - button "Export CSV" [ref=f2e121] [cursor=pointer]
+            - button "Mahsulot qo'shish" [ref=f2e124] [cursor=pointer]
+        - generic [ref=f2e128]:
+          - textbox "Mahsulot qidirish (nom, kod, shtrix-kod, tavsif)..." [ref=f2e132]
+          - combobox [ref=f2e133]:
+            - option "Barcha kategoriyalar" [selected]

@@ -1,0 +1,31 @@
+- generic [ref=e3]:
+  - generic [ref=e4]:
+    - generic [ref=e7]:
+      - generic [ref=e8]: 🏪
+      - generic [ref=e10]: Oziq-ovqat Do'koni
+    - generic [ref=e15]:
+      - paragraph [ref=e16]: Xavfsiz va ishonchli tizim
+      - paragraph [ref=e17]: Ma'lumotlaringiz himoyalangan
+  - generic [ref=e19]:
+    - generic [ref=e20]:
+      - generic [ref=e21]: 🏪
+      - heading "Oziq-ovqat Do'koni" [level=1] [ref=e23]
+      - paragraph [ref=e24]: POS tizimiga kiring
+    - generic [ref=e25]:
+      - generic [ref=e26]:
+        - button "Tizimga kirish" [ref=e27] [cursor=pointer]
+        - button "Ro'yxatdan o'tish" [ref=e28] [cursor=pointer]
+      - generic [ref=e29]:
+        - generic [ref=e30]:
+          - generic [ref=e31]: Elektron pochta
+          - textbox "admin@pos.uz" [active] [ref=e35]
+        - generic [ref=e36]:
+          - generic [ref=e37]: Parol
+          - generic [ref=e38]:
+            - textbox "••••••••" [ref=e41]
+            - button [ref=e42] [cursor=pointer]
+        - generic [ref=e46] [cursor=pointer]:
+          - checkbox "Eslab qolish" [ref=e47]
+          - generic [ref=e48]: Eslab qolish
+        - button "Tizimga kirish" [ref=e49] [cursor=pointer]
+      - paragraph [ref=e50]: "Demo: admin@pos.uz / password"

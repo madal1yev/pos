@@ -23,7 +23,15 @@ export const useSettingsStore = create((set, get) => ({
   loadSettings: async () => {
     if (get().loading) return;
     set({ loading: true });
+    const token = localStorage.getItem('pos_token');
     try {
+      if (!token) {
+        const cached = localStorage.getItem('pos_settings');
+        if (cached) {
+          try { set({ settings: JSON.parse(cached), loaded: true }); } catch {}
+        }
+        return;
+      }
       const { data } = await settingsAPI.get();
       if (data.settings) {
         const s = { ...defaults };

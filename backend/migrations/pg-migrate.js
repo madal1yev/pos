@@ -167,7 +167,7 @@ SELECT 'Oziq-ovqat Do''koni', 'Toshkent shahri, Bunyodkor ko''chasi 15', '+998 9
 WHERE NOT EXISTS (SELECT 1 FROM settings LIMIT 1);
 
 INSERT INTO users (name, email, password, role_id)
-SELECT 'Admin', 'admin@pos.uz', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 1
+SELECT 'Admin', 'admin@pos.uz', '$2a$10$1NAJ1QUWmnJY8EVZ.F7hY.AYgAZPn.aaVdw1mBwq2txuQEbzurAUO', 1
 WHERE NOT EXISTS (SELECT 1 FROM users WHERE email = 'admin@pos.uz');
 
 UPDATE users SET email = 'admin@pos.uz' WHERE email = 'admin@pos.com' AND NOT EXISTS (SELECT 1 FROM users WHERE email = 'admin@pos.uz');

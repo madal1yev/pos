@@ -1,0 +1,36 @@
+{
+  "name": "maxpos-reklama",
+  "version": "1.0.0",
+  "description": "MaxPOS Reklama Video - Remotion Project",
+  "type": "module",
+  "scripts": {
+    "dev": "remotion studio",
+    "build": "remotion render src/Root.tsx Root out/video.mp4 --codec=h264 --crf=18",
+    "build:fast": "remotion render src/Root.tsx Root out/video.mp4 --codec=h264 --crf=23",
+    "build:pro": "remotion render src/Root.tsx Root out/video.mp4 --codec=prores --profiles=422",
+    "preview": "remotion preview src/Root.tsx",
+    "check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "remotion": "^4.0.157",
+    "@remotion/cli": "^4.0.157",
+    "@remotion/player": "^4.0.157",
+    "@remotion/shapes": "^4.0.157",
+    "@remotion/transitions": "^4.0.157",
+    "@remotion/tailwind": "^4.0.157",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@remotion/eslint-config": "^4.0.157",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "typescript": "^5.3.3",
+    "eslint": "^8.56.0",
+    "prettier": "^3.2.5"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

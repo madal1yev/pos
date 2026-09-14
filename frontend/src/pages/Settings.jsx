@@ -24,7 +24,7 @@ export default function Settings() {
   const updateGlobalSettings = useSettingsStore((s) => s.updateSettings);
   const isAdmin = useAuthStore((s) => s.isAdmin());
 
-  useEffect(() => { (async () => { try { const { data } = await settingsAPI.get(); if (data.settings) setSettings(s => ({ ...s, ...Object.fromEntries(Object.entries(data.settings).map(([k,v]) => [k, v ?? ''])) })); } catch (err) { toast.error(getErrorMessage(err, 'Sozlamalar yuklanmadi')); } finally { setLoading(false); } })(); }, []);
+  useEffect(() => { (async () => { try { const { data } = await settingsAPI.get(); if (data.settings) setSettings(s => ({ ...s, ...Object.fromEntries(Object.entries(data.settings).map(([k,v]) => [k, v ?? ''])) })); } catch {} finally { setLoading(false); } })(); }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault(); setSaving(true);

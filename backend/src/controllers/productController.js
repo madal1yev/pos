@@ -6,9 +6,9 @@ exports.getAll = async (req, res, next) => {
     const { search, category_id, status, page = 1, limit = 20, sort = 'created_at', order = 'DESC' } = req.query;
     const offset = (parseInt(page) - 1) * parseInt(limit);
 
-    let where = ['1=1'];
-    let params = [];
-    let paramCount = 0;
+    let where = ['p.store_id = $1'];
+    let params = [req.user.store_id];
+    let paramCount = 1;
 
     if (search) {
       paramCount++;
@@ -70,10 +70,10 @@ exports.getAll = async (req, res, next) => {
 exports.getById = async (req, res, next) => {
   try {
     const result = await db.query(
-      `SELECT p.*, c.name as category_name 
-       FROM products p LEFT JOIN categories c ON p.category_id = c.id 
-       WHERE p.id = $1`,
-      [req.params.id]
+      `SELECT p.*, c.name as category_name
+       FROM products p LEFT JOIN categories c ON p.category_id = c.id
+       WHERE p.id = $1 AND p.store_id = $2`,
+      [req.params.id, req.user.store_id]
     );
 
     if (result.rows.length === 0) {
@@ -89,10 +89,10 @@ exports.getById = async (req, res, next) => {
 exports.getByBarcode = async (req, res, next) => {
   try {
     const result = await db.query(
-      `SELECT p.*, c.name as category_name 
-       FROM products p LEFT JOIN categories c ON p.category_id = c.id 
-       WHERE p.barcode = $1 AND p.status = 'active'`,
-      [req.params.barcode]
+      `SELECT p.*, c.name as category_name
+       FROM products p LEFT JOIN categories c ON p.category_id = c.id
+       WHERE p.barcode = $1 AND p.status = 'active' AND p.store_id = $2`,
+      [req.params.barcode, req.user.store_id]
     );
 
     if (result.rows.length === 0) {
@@ -118,20 +118,20 @@ exports.create = async (req, res, next) => {
 
      const result = await db.query(
        `INSERT INTO products (name, product_code, category_id, brand, purchase_price, selling_price,
-         stock_quantity, minimum_stock, unit, barcode, description, image_url, status)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+         stock_quantity, minimum_stock, unit, barcode, description, image_url, status, store_id)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
         RETURNING *`,
        [name, productCode, category_id || null, brand || null,
          purchase_price || 0, selling_price,
          stock_quantity || 0, minimum_stock || 0, unit || 'pcs',
-         autoBarcode, description || null, autoImage, 'active']
+         autoBarcode, description || null, autoImage, 'active', req.user.store_id]
      );
 
      if (stock_quantity > 0) {
        await db.query(
-         `INSERT INTO inventory_logs (product_id, change_type, quantity, new_stock, note, created_by)
-          VALUES ($1, 'initial', $2, $2, 'Initial stock', $3)`,
-         [result.rows[0].id, stock_quantity || 0, req.user?.id || null]
+         `INSERT INTO inventory_logs (product_id, change_type, quantity, new_stock, note, created_by, store_id)
+          VALUES ($1, 'initial', $2, $2, 'Initial stock', $3, $4)`,
+         [result.rows[0].id, stock_quantity || 0, req.user?.id || null, req.user.store_id]
        );
      }
 
@@ -148,7 +148,7 @@ exports.update = async (req, res, next) => {
       stock_quantity, minimum_stock, unit, barcode, description, status, image_url
     } = req.body;
 
-    const current = await db.query('SELECT * FROM products WHERE id = $1', [req.params.id]);
+    const current = await db.query('SELECT * FROM products WHERE id = $1 AND store_id = $2', [req.params.id, req.user.store_id]);
     if (current.rows.length === 0) {
       return res.status(404).json({ error: 'Product not found' });
     }
@@ -156,7 +156,7 @@ exports.update = async (req, res, next) => {
     const nowExpr = db.isSqlite ? "datetime('now')" : 'NOW()';
 
     const result = await db.query(
-      `UPDATE products SET 
+      `UPDATE products SET
         name = COALESCE($1, name), category_id = COALESCE($2, category_id),
         brand = COALESCE($3, brand),
         purchase_price = COALESCE($4, purchase_price),
@@ -174,11 +174,11 @@ exports.update = async (req, res, next) => {
     const stockDiff = (stock_quantity || 0) - current.rows[0].stock_quantity;
      if (stockDiff !== 0) {
        await db.query(
-         `INSERT INTO inventory_logs (product_id, change_type, quantity, previous_stock, new_stock, note, created_by)
-          VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+         `INSERT INTO inventory_logs (product_id, change_type, quantity, previous_stock, new_stock, note, created_by, store_id)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
          [req.params.id, stockDiff > 0 ? 'adjustment_in' : 'adjustment_out',
            Math.abs(stockDiff), current.rows[0].stock_quantity, result.rows[0].stock_quantity,
-           'Manual stock adjustment', req.user?.id || null]
+           'Manual stock adjustment', req.user?.id || null, req.user.store_id]
        );
      }
 
@@ -193,7 +193,7 @@ exports.update = async (req, res, next) => {
 
 exports.remove = async (req, res, next) => {
   try {
-    const product = await db.query('SELECT * FROM products WHERE id = $1', [req.params.id]);
+    const product = await db.query('SELECT * FROM products WHERE id = $1 AND store_id = $2', [req.params.id, req.user.store_id]);
     if (product.rows.length === 0) {
       return res.status(404).json({ error: 'Mahsulot topilmadi' });
     }

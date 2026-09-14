@@ -1,4 +1,4 @@
-# foodsPOS - Point of Sale & Inventory Management System
+# MaxPOS - Point of Sale & Inventory Management System
 
 Professional POS system for restaurants, cafes, and retail stores. Built with React, Node.js, Express, and SQLite/PostgreSQL.
 

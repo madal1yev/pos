@@ -1,7 +1,7 @@
 {
-  "name": "pos-system-backend",
+  "name": "maxpos-backend",
   "version": "1.0.0",
-  "description": "POS System Backend API",
+  "description": "MaxPOS Backend API",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",

@@ -10,9 +10,9 @@ router.get('/', async (req, res, next) => {
   try {
     const { page = 1, limit = 50, action, entity_type } = req.query;
     const offset = (parseInt(page) - 1) * parseInt(limit);
-    let where = ['1=1'];
-    let params = [];
-    let paramCount = 0;
+    let where = ['store_id = $1'];
+    let params = [req.user.store_id];
+    let paramCount = 1;
 
     if (action) {
       paramCount++;

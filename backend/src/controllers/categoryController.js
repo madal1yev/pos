@@ -3,10 +3,12 @@ const db = require('../config/db');
 exports.getAll = async (req, res, next) => {
   try {
     const { rows } = await db.query(
-      `SELECT c.*, 
+      `SELECT c.*,
               (SELECT COUNT(*) FROM products p WHERE p.category_id = c.id AND p.status = 'active') as product_count
        FROM categories c
-       ORDER BY c.sort_order, c.name`
+       WHERE c.store_id = $1
+       ORDER BY c.sort_order, c.name`,
+      [req.user.store_id]
     );
     const tree = buildCategoryTree(rows);
     res.json({ categories: rows, tree });
@@ -18,10 +20,12 @@ exports.getAll = async (req, res, next) => {
 exports.getWithProducts = async (req, res, next) => {
   try {
     const { rows: categories } = await db.query(
-      `SELECT c.*, 
+      `SELECT c.*,
               (SELECT COUNT(*) FROM products p WHERE p.category_id = c.id AND p.status = 'active') as product_count
-       FROM categories c 
-       ORDER BY c.sort_order, c.name`
+       FROM categories c
+       WHERE c.store_id = $1
+       ORDER BY c.sort_order, c.name`,
+      [req.user.store_id]
     );
     const tree = buildCategoryTree(categories);
     res.json({ categories, tree });
@@ -42,16 +46,16 @@ function buildCategoryTree(categories, parentId = null) {
 exports.create = async (req, res, next) => {
   try {
     const { name, description, parent_id, sort_order } = req.body;
-    
-    // Unique nom tekshiruvi
-    const existing = await db.query('SELECT id FROM categories WHERE LOWER(name) = LOWER($1)', [name.trim()]);
+
+    // Unique nom tekshiruvi (shu do'kon ichida)
+    const existing = await db.query('SELECT id FROM categories WHERE LOWER(name) = LOWER($1) AND store_id = $2', [name.trim(), req.user.store_id]);
     if (existing.rows.length > 0) {
       return res.status(409).json({ error: 'Bunday nomli kategoriya allaqachon mavjud' });
     }
-    
+
     const result = await db.query(
-      'INSERT INTO categories (name, description, parent_id, sort_order) VALUES ($1, $2, $3, $4) RETURNING *',
-      [name.trim(), description || null, parent_id || null, sort_order || 0]
+      'INSERT INTO categories (name, description, parent_id, sort_order, store_id) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+      [name.trim(), description || null, parent_id || null, sort_order || 0, req.user.store_id]
     );
     res.status(201).json({ category: result.rows[0] });
   } catch (error) {
@@ -62,26 +66,31 @@ exports.create = async (req, res, next) => {
 exports.update = async (req, res, next) => {
   try {
     const { name, description, parent_id, sort_order } = req.body;
-    
-    // Unique nom tekshiruvi (o'zidan boshqa)
+
+    const current = await db.query('SELECT id FROM categories WHERE id = $1 AND store_id = $2', [req.params.id, req.user.store_id]);
+    if (current.rows.length === 0) {
+      return res.status(404).json({ error: 'Category not found' });
+    }
+
+    // Unique nom tekshiruvi (o'zidan boshqa, shu do'kon ichida)
     if (name) {
       const existing = await db.query(
-        'SELECT id FROM categories WHERE LOWER(name) = LOWER($1) AND id != $2',
-        [name.trim(), req.params.id]
+        'SELECT id FROM categories WHERE LOWER(name) = LOWER($1) AND id != $2 AND store_id = $3',
+        [name.trim(), req.params.id, req.user.store_id]
       );
       if (existing.rows.length > 0) {
         return res.status(409).json({ error: 'Bunday nomli kategoriya allaqachon mavjud' });
       }
     }
-    
+
     const nowExpr = db.isSqlite ? "datetime('now')" : 'NOW()';
     const result = await db.query(
-      `UPDATE categories SET 
-        name = COALESCE($1, name), 
+      `UPDATE categories SET
+        name = COALESCE($1, name),
         description = COALESCE($2, description),
-        parent_id = COALESCE($3, parent_id), 
+        parent_id = COALESCE($3, parent_id),
         sort_order = COALESCE($4, sort_order),
-        updated_at = ${nowExpr} 
+        updated_at = ${nowExpr}
        WHERE id = $5 RETURNING *`,
       [name ? name.trim() : null, description, parent_id || null, sort_order || 0, req.params.id]
     );
@@ -96,6 +105,10 @@ exports.update = async (req, res, next) => {
 
 exports.remove = async (req, res, next) => {
   try {
+    const existing = await db.query('SELECT id FROM categories WHERE id = $1 AND store_id = $2', [req.params.id, req.user.store_id]);
+    if (existing.rows.length === 0) {
+      return res.status(404).json({ error: 'Category not found' });
+    }
     const { rows: products } = await db.query(
       'SELECT id FROM products WHERE category_id = $1 LIMIT 1',
       [req.params.id]
@@ -123,11 +136,11 @@ exports.bulkStatus = async (req, res, next) => {
     const uniqueIds = [...new Set(ids.map(Number).filter(id => Number.isInteger(id) && id > 0))];
     let updated = 0;
     for (const id of uniqueIds) {
-      await db.query(
-        `UPDATE categories SET status = $1, updated_at = ${nowExpr} WHERE id = $2`,
-        [status, id]
+      const result = await db.query(
+        `UPDATE categories SET status = $1, updated_at = ${nowExpr} WHERE id = $2 AND store_id = $3`,
+        [status, id, req.user.store_id]
       );
-      updated++;
+      updated += result.rowCount || 0;
     }
     res.json({ success: true, updated });
   } catch (error) {
@@ -146,6 +159,11 @@ exports.bulkDelete = async (req, res, next) => {
     const errors = [];
     for (const id of uniqueIds) {
       try {
+        const owned = await db.query('SELECT id FROM categories WHERE id = $1 AND store_id = $2', [id, req.user.store_id]);
+        if (owned.rows.length === 0) {
+          errors.push({ id, error: 'Not found' });
+          continue;
+        }
         const { rows: products } = await db.query('SELECT id FROM products WHERE category_id = $1 LIMIT 1', [id]);
         if (products.length > 0) {
           errors.push({ id, error: 'Has existing products' });
@@ -171,13 +189,15 @@ exports.reorder = async (req, res, next) => {
       return res.status(400).json({ error: 'Orders array is required' });
     }
     const nowExpr = db.isSqlite ? "datetime('now')" : 'NOW()';
+    let updated = 0;
     for (const item of orders) {
-      await db.query(
-        `UPDATE categories SET sort_order = $1, updated_at = ${nowExpr} WHERE id = $2`,
-        [item.sort_order, item.id]
+      const result = await db.query(
+        `UPDATE categories SET sort_order = $1, updated_at = ${nowExpr} WHERE id = $2 AND store_id = $3`,
+        [item.sort_order, item.id, req.user.store_id]
       );
+      updated += result.rowCount || 0;
     }
-    res.json({ success: true, updated: orders.length });
+    res.json({ success: true, updated });
   } catch (error) {
     next(error);
   }
@@ -186,7 +206,8 @@ exports.reorder = async (req, res, next) => {
 exports.exportCsv = async (req, res, next) => {
   try {
     const { rows } = await db.query(
-      'SELECT c.id, c.name, c.description, c.status, c.sort_order, (SELECT COUNT(*) FROM products p WHERE p.category_id = c.id) as product_count FROM categories c ORDER BY c.sort_order, c.name'
+      'SELECT c.id, c.name, c.description, c.status, c.sort_order, (SELECT COUNT(*) FROM products p WHERE p.category_id = c.id) as product_count FROM categories c WHERE c.store_id = $1 ORDER BY c.sort_order, c.name',
+      [req.user.store_id]
     );
     const header = 'id,name,description,status,sort_order,product_count\n';
     const csvRows = rows.map(c =>
@@ -227,7 +248,7 @@ exports.importCsv = async (req, res, next) => {
         const vals = cols.map(c => c.replace(/^"|"$/g, '').trim());
         const name = vals[nameIdx];
         if (!name) { errors.push({ row: i + 1, error: 'Missing name' }); continue; }
-        const existing = await db.query('SELECT id FROM categories WHERE LOWER(name) = LOWER($1)', [name]);
+        const existing = await db.query('SELECT id FROM categories WHERE LOWER(name) = LOWER($1) AND store_id = $2', [name, req.user.store_id]);
         if (existing.rows.length > 0) {
           await db.query(
             'UPDATE categories SET description = $1, status = $2, sort_order = $3 WHERE id = $4',
@@ -236,8 +257,8 @@ exports.importCsv = async (req, res, next) => {
           updated++;
         } else {
           await db.query(
-            'INSERT INTO categories (name, description, status, sort_order) VALUES ($1, $2, $3, $4)',
-            [name, descIdx >= 0 ? vals[descIdx] : null, statusIdx >= 0 ? vals[statusIdx] : 'active', sortIdx >= 0 ? parseInt(vals[sortIdx]) || 0 : 0]
+            'INSERT INTO categories (name, description, status, sort_order, store_id) VALUES ($1, $2, $3, $4, $5)',
+            [name, descIdx >= 0 ? vals[descIdx] : null, statusIdx >= 0 ? vals[statusIdx] : 'active', sortIdx >= 0 ? parseInt(vals[sortIdx]) || 0 : 0, req.user.store_id]
           );
           imported++;
         }

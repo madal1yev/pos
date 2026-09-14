@@ -350,6 +350,7 @@ function CheckoutModal({ total, subtotal, taxAmount, taxRate, finalTotal, onClos
 
   const handleComplete = async () => {
     if (paymentMethod === 'cash' && parseFloat(receivedAmount) < finalTotal) { toast.error("Qabul qilingan summa kam"); return; }
+    if (paymentMethod === 'debt' && !customerName.trim()) { toast.error("Qarz uchun mijoz nomi shart"); return; }
     setProcessing(true);
     await onComplete({
       payment_method: paymentMethod,
@@ -408,8 +409,8 @@ function CheckoutModal({ total, subtotal, taxAmount, taxRate, finalTotal, onClos
           )}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('paymentMethod')}</label>
-            <div className="grid grid-cols-3 gap-2">
-              {[['cash', t('cash'), '💵'], ['card', t('card'), '💳'], ['other', t('other'), '📱']].map(([m, l, e]) => (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {[['cash', t('cash'), '💵'], ['card', t('card'), '💳'], ['debt', t('debt') || 'Qarz', '📋'], ['other', t('other'), '📱']].map(([m, l, e]) => (
                 <button key={m} onClick={() => setPaymentMethod(m)} className={`py-3 px-3 rounded-xl text-sm font-medium border-2 transition-all ${paymentMethod === m ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 shadow-md shadow-indigo-500/10' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-indigo-300'}`}>
                   <span className="text-lg block mb-0.5">{e}</span>
                   <span>{l}</span>
@@ -478,7 +479,7 @@ function ReceiptModal({ sale, onClose }) {
   const changeAmount = Number(sale.change_amount || Math.max(0, receivedAmount - totalAmount));
   const taxAmount = receiptItems.reduce((sum, item) => sum + Number(item.tax || 0), 0);
   const discountAmount = receiptItems.reduce((sum, item) => sum + Number(item.discount || 0), 0);
-  const paymentLabel = sale.payment_method === 'cash' ? t('cash') : sale.payment_method === 'card' ? t('card') : t('other');
+  const paymentLabel = sale.payment_method === 'cash' ? t('cash') : sale.payment_method === 'card' ? t('card') : sale.payment_method === 'debt' ? t('debt') : t('other');
 
   const formatQty = (qty) => {
     const num = Number(qty || 0);
@@ -731,6 +732,13 @@ export default function POS() {
                 </div>
               </div>
             )}
+          {products.length === 0 && (
+              <div className="col-span-full flex flex-col items-center justify-center py-12 text-center">
+                <HiOutlineShoppingCart className="w-12 h-12 text-gray-300 dark:text-gray-600 mb-3" />
+                <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">Mahsulotlar yo'q</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">"Mahsulotlar" sahifasidan mahsulot qo'shing</p>
+              </div>
+            )}
           {products.map((product, i) => (
               <button key={product.id} onClick={() => setQuantityProduct(product)} className="flex flex-col items-center justify-between gap-2 p-4 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-150 text-center hover:shadow-md border border-gray-100 dark:border-gray-700/50 h-full min-h-[160px] sm:min-h-[180px]" style={{ animationDelay: `${i * 0.02}s` }}>
                 <div className="flex flex-col items-center gap-2 flex-1 justify-center">
@@ -776,8 +784,8 @@ export default function POS() {
                   <button onClick={clearCart} className="text-xs text-red-500 hover:text-red-600 font-medium px-2 py-1 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
                     {t('clear')}
                   </button>
-                </>
-              )}
+            </>
+          )}
             </div>
           </div>
           <div className="flex-1 overflow-y-auto space-y-1.5 pr-1">

@@ -1,4 +1,4 @@
-' POS Tizimi - Silent Auto-Start Script
+' MaxPOS - Silent Auto-Start Script
 ' Kompyuter yoqilganda backendni avtomatik ishga tushiradi
 
 Set fso = CreateObject("Scripting.FileSystemObject")

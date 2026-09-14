@@ -1,0 +1,71 @@
+1
+00:00:00,200 --> 00:00:02,800
+MaxPOS — Smart POS for modern business
+
+2
+00:00:03,100 --> 00:00:07,600
+Daftar hisobi — o'tmishda
+
+3
+00:00:08,100 --> 00:00:09,600
+Skanerlang.
+
+4
+00:00:09,800 --> 00:00:11,300
+Savatga qo'shing.
+
+5
+00:00:11,600 --> 00:00:13,100
+To'lov — bir zumda.
+
+6
+00:00:13,300 --> 00:00:14,800
+Chek — avtomatik.
+
+7
+00:00:15,100 --> 00:00:16,600
+Mahsulotlar.
+
+8
+00:00:16,800 --> 00:00:18,300
+Qarzdorlar va smenalar.
+
+9
+00:00:18,600 --> 00:00:20,000
+Promo-kod va chegirma.
+
+10
+00:00:20,300 --> 00:00:21,800
+Sozlama va zaxira.
+
+11
+00:00:22,100 --> 00:00:24,000
+Daromad — real vaqtda.
+
+12
+00:00:24,400 --> 00:00:26,300
+Hisobot — bir tugmada.
+
+13
+00:00:26,600 --> 00:00:28,800
+Har bir so'm — nazoratda.
+
+14
+00:00:29,100 --> 00:00:30,400
+FAST — 1 skaner, 1 soniya
+
+15
+00:00:30,600 --> 00:00:31,900
+SIMPLE — bitta tizim
+
+16
+00:00:32,100 --> 00:00:33,400
+SMART — avto-qaytim
+
+17
+00:00:33,600 --> 00:00:34,900
+MODERN — PWA · 3 til
+
+18
+00:00:35,100 --> 00:00:39,800
+MaxPOS. Biznesingizni zamonaviy boshqaring.

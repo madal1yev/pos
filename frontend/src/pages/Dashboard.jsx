@@ -6,7 +6,8 @@ import { playNewOrderSound } from '../utils/sounds';
 import {
   HiOutlineBanknotes, HiOutlineShoppingCart, HiOutlineCube, HiOutlineExclamationTriangle,
   HiOutlineArrowTrendingUp, HiOutlineUsers, HiOutlineClock, HiOutlineCalculator,
-  HiOutlineArrowRight, HiOutlineFire, HiOutlineChartBar
+  HiOutlineArrowRight, HiOutlineFire, HiOutlineChartBar, HiOutlineCalendarDays,
+  HiOutlineCalendar
 } from 'react-icons/hi2';
 
 function StatCard({ icon: Icon, label, value, subvalue, gradient, index, onClick }) {
@@ -46,6 +47,7 @@ function QuickAction({ icon: Icon, label, description, gradient, onClick }) {
 export default function Dashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [period, setPeriod] = useState('today');
   const navigate = useNavigate();
   const prevSalesCount = useRef(null);
 
@@ -82,13 +84,27 @@ export default function Dashboard() {
 
   const todayRevenue = parseFloat(data?.today?.sales?.revenue) || 0;
   const todayCount = parseInt(data?.today?.sales?.count) || 0;
+  const weekRevenue = parseFloat(data?.week?.revenue) || 0;
+  const weekCount = parseInt(data?.week?.count) || 0;
   const monthRevenue = parseFloat(data?.month?.revenue) || 0;
   const monthCount = parseInt(data?.month?.count) || 0;
+  const yearRevenue = parseFloat(data?.year?.revenue) || 0;
+  const yearCount = parseInt(data?.year?.count) || 0;
   const totalProducts = parseInt(data?.products?.total) || 0;
   const inventoryValue = parseFloat(data?.products?.total_inventory_value) || 0;
   const lowStock = parseInt(data?.products?.low_stock) || 0;
   const outOfStock = parseInt(data?.products?.out_of_stock) || 0;
   const allTimeRevenue = parseFloat(data?.allTime?.revenue) || 0;
+  const totalDebtors = parseInt(data?.debt?.total_debtors) || 0;
+  const totalDebt = parseFloat(data?.debt?.total_debt) || 0;
+
+  const periodData = {
+    today: { revenue: todayRevenue, count: todayCount, label: 'Bugungi' },
+    week: { revenue: weekRevenue, count: weekCount, label: 'Haftalik' },
+    month: { revenue: monthRevenue, count: monthCount, label: 'Oylik' },
+    year: { revenue: yearRevenue, count: yearCount, label: 'Yillik' },
+  };
+  const current = periodData[period];
 
   if (loading) {
     return (
@@ -117,7 +133,7 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="animate-fade-in-down flex items-center justify-between">
+      <div className="animate-fade-in-down flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t("dashboardTitle")}</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
@@ -130,21 +146,30 @@ export default function Dashboard() {
         </button>
       </div>
 
+      <div className="flex items-center gap-2 p-1 bg-gray-100 dark:bg-gray-800 rounded-xl w-fit">
+        {[['today', 'Bugun', HiOutlineCalendarDays], ['week', 'Hafta', HiOutlineFire], ['month', 'Oy', HiOutlineCalendar], ['year', 'Yil', HiOutlineChartBar]].map(([key, label, Icon]) => (
+          <button key={key} onClick={() => setPeriod(key)} className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${period === key ? 'bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}`}>
+            <Icon className="w-4 h-4" />
+            {label}
+          </button>
+        ))}
+      </div>
+
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           index={0}
           icon={HiOutlineBanknotes}
-          label="Bugungi daromad"
-          value={formatCurrency(todayRevenue)}
-          subvalue={`${todayCount} ta sotuv`}
+          label={`${current.label} daromad`}
+          value={formatCurrency(current.revenue)}
+          subvalue={`${current.count} ta sotuv`}
           gradient="bg-gradient-to-br from-indigo-500 to-indigo-600"
         />
         <StatCard
           index={1}
           icon={HiOutlineShoppingCart}
           label="Sotuvlar soni"
-          value={todayCount}
-          subvalue={todayCount > 0 ? `Bugun ${todayCount} ta` : ''}
+          value={current.count}
+          subvalue={current.label}
           gradient="bg-gradient-to-br from-blue-500 to-blue-600"
         />
         <StatCard
@@ -166,7 +191,7 @@ export default function Dashboard() {
         />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="card animate-fade-in-up stagger-2 bg-gradient-to-br from-indigo-500 to-indigo-600 text-white">
           <div className="flex items-center gap-3 mb-3">
             <HiOutlineArrowTrendingUp className="w-5 h-5 opacity-80" />
@@ -179,27 +204,37 @@ export default function Dashboard() {
         <div className="card animate-fade-in-up stagger-3 bg-gradient-to-br from-blue-500 to-blue-600 text-white">
           <div className="flex items-center gap-3 mb-3">
             <HiOutlineFire className="w-5 h-5 opacity-80" />
-            <p className="text-sm font-medium opacity-90">Umumiy daromad</p>
+            <p className="text-sm font-medium opacity-90">Haftalik daromad</p>
           </div>
-          <p className="text-3xl font-bold">{formatCurrency(allTimeRevenue)}</p>
-          <p className="text-sm opacity-75 mt-1">Barcha vaqt</p>
+          <p className="text-3xl font-bold">{formatCurrency(weekRevenue)}</p>
+          <p className="text-sm opacity-75 mt-1">{weekCount} ta sotuv</p>
         </div>
 
         <div className="card animate-fade-in-up stagger-4 bg-gradient-to-br from-violet-500 to-purple-600 text-white">
           <div className="flex items-center gap-3 mb-3">
-            <HiOutlineUsers className="w-5 h-5 opacity-80" />
-            <p className="text-sm font-medium opacity-90">Jami sotuvlar</p>
+            <HiOutlineFire className="w-5 h-5 opacity-80" />
+            <p className="text-sm font-medium opacity-90">Yillik daromad</p>
           </div>
-          <p className="text-3xl font-bold">{parseInt(data?.allTime?.count) || 0}</p>
-          <p className="text-sm opacity-75 mt-1">Barcha vaqt</p>
+          <p className="text-3xl font-bold">{formatCurrency(yearRevenue)}</p>
+          <p className="text-sm opacity-75 mt-1">{yearCount} ta sotuv</p>
+        </div>
+
+        <div className="card animate-fade-in-up stagger-5 bg-gradient-to-br from-amber-500 to-orange-500 text-white">
+          <div className="flex items-center gap-3 mb-3">
+            <HiOutlineUsers className="w-5 h-5 opacity-80" />
+            <p className="text-sm font-medium opacity-90">Qarzdorlar</p>
+          </div>
+          <p className="text-3xl font-bold">{totalDebtors}</p>
+          <p className="text-sm opacity-75 mt-1">Jami: {formatCurrency(totalDebt)}</p>
         </div>
       </div>
 
-      <div className="animate-fade-in-up stagger-5">
+      <div className="animate-fade-in-up stagger-6">
         <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Tezkor harakatlar</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <QuickAction icon={HiOutlineCalculator} label="Kassa" description="Sotuv amalga oshirish" gradient="bg-gradient-to-br from-indigo-500 to-indigo-600" onClick={() => navigate('/pos')} />
           <QuickAction icon={HiOutlineCube} label="Mahsulotlar" description="Tovarlarni boshqarish" gradient="bg-gradient-to-br from-blue-500 to-blue-600" onClick={() => navigate('/products')} />
+          <QuickAction icon={HiOutlineUsers} label="Qarzdorlar" description="Qarzni boshqarish" gradient="bg-gradient-to-br from-amber-500 to-orange-500" onClick={() => navigate('/customers')} />
           <QuickAction icon={HiOutlineChartBar} label="Hisobotlar" description="Barcha tahlillar" gradient="bg-gradient-to-br from-violet-500 to-purple-600" onClick={() => navigate('/reports')} />
         </div>
       </div>
@@ -230,8 +265,9 @@ export default function Dashboard() {
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium ${
                         sale.payment_method === 'cash' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' :
                         sale.payment_method === 'card' ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
+                        sale.payment_method === 'debt' ? 'bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' :
                         'bg-violet-50 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400'
-                      }`}>{sale.payment_method === 'cash' ? t("cash") : sale.payment_method === 'card' ? t("card") : t("other")}</span>
+                      }`}>{sale.payment_method === 'cash' ? t("cash") : sale.payment_method === 'card' ? t("card") : sale.payment_method === 'debt' ? t("debt") : t("other")}</span>
                     </td>
                     <td className="py-3 text-right font-semibold text-gray-900 dark:text-white">{formatCurrency(sale.total_amount)}</td>
                     <td className="py-3 text-right text-gray-500 text-xs">{formatTashkentTime(sale.created_at)}</td>

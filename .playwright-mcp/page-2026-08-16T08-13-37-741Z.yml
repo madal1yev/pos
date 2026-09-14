@@ -1,0 +1,70 @@
+- generic [ref=f1e3]:
+  - complementary [ref=f1e4]:
+    - generic [ref=f1e5]:
+      - generic [ref=f1e10]:
+        - heading "Oziq-ovqat Dokon" [level=1] [ref=f1e11]
+        - paragraph [ref=f1e12]: POS System
+      - navigation [ref=f1e13]:
+        - generic [ref=f1e14]:
+          - generic [ref=f1e15]: Asosiy
+          - generic [ref=f1e16]:
+            - link "Dashboard" [ref=f1e17] [cursor=pointer]:
+              - /url: /
+            - link "Kassa" [ref=f1e22] [cursor=pointer]:
+              - /url: /pos
+        - generic [ref=f1e27]:
+          - generic [ref=f1e28]: Mahsulotlar
+          - generic [ref=f1e29]:
+            - link "Mahsulotlar" [ref=f1e30] [cursor=pointer]:
+              - /url: /products
+            - link "Kategoriyalar" [ref=f1e35] [cursor=pointer]:
+              - /url: /categories
+        - generic [ref=f1e40]:
+          - generic [ref=f1e41]: Savdo
+          - generic [ref=f1e42]:
+            - link "Sotuvlar" [ref=f1e43] [cursor=pointer]:
+              - /url: /sales
+            - link "Hisobotlar" [ref=f1e48] [cursor=pointer]:
+              - /url: /reports
+            - link "Qarzdorlar" [ref=f1e53] [cursor=pointer]:
+              - /url: /customers
+        - generic [ref=f1e58]:
+          - generic [ref=f1e59]: Boshqaruv
+          - generic [ref=f1e60]:
+            - link "Yetkazib beruvchilar" [ref=f1e61] [cursor=pointer]:
+              - /url: /suppliers
+            - link "Chegirmalar" [ref=f1e66] [cursor=pointer]:
+              - /url: /discounts
+            - link "Sozlamalar" [ref=f1e71] [cursor=pointer]:
+              - /url: /settings
+      - generic [ref=f1e77]:
+        - link "A Admin Admin" [ref=f1e78] [cursor=pointer]:
+          - /url: /profile
+          - generic [ref=f1e79]: A
+          - generic [ref=f1e81]:
+            - paragraph [ref=f1e82]: Admin
+            - paragraph [ref=f1e83]: Admin
+        - generic [ref=f1e84]:
+          - generic [ref=f1e85]:
+            - button [ref=f1e86] [cursor=pointer]
+            - generic [ref=f1e90]: Kun
+          - button "Chiqish" [ref=f1e91] [cursor=pointer]
+  - generic [ref=f1e94]:
+    - banner [ref=f1e95]:
+      - generic [ref=f1e96]:
+        - button "Sidebarni ochish/yopish" [ref=f1e98] [cursor=pointer]
+        - generic [ref=f1e101]:
+          - button "uz" [ref=f1e103] [cursor=pointer]
+          - button [ref=f1e107] [cursor=pointer]
+    - main [ref=f1e110]:
+      - generic [ref=f1e111]:
+        - generic [ref=f1e114]:
+          - textbox "Qidirish yoki skanerlash..." [ref=f1e118]
+          - generic [ref=f1e119]:
+            - button "Kalk" [ref=f1e120] [cursor=pointer]
+            - button "Skanerlash" [ref=f1e123] [cursor=pointer]
+        - generic [ref=f1e129]:
+          - heading "Savat" [level=2] [ref=f1e136]
+          - generic [ref=f1e138]:
+            - paragraph [ref=f1e142]: Savat bo'sh
+            - paragraph [ref=f1e143]: Mahsulot qidirib yoki skanerlang

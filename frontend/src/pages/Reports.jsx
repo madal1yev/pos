@@ -112,7 +112,7 @@ export default function Reports() {
           case 'inventory': r = await reportsAPI.inventory({}); setData(r.data); break;
         }
       }
-    } catch { toast.error('Hisobot yuklanmadi'); } finally { setLoading(false); }
+    } catch {} finally { setLoading(false); }
   };
 
   const months = ['Yanvar','Fevral','Mart','Aprel','May','Iyun','Iyul','Avgust','Sentabr','Oktabr','Noyabr','Dekabr'];

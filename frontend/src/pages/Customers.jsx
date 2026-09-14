@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { customersAPI } from '../services/api';
 import { formatCurrency } from '../utils/uzbek';
-import { HiOutlinePlus, HiOutlineMagnifyingGlass, HiOutlinePencil, HiOutlineTrash, HiOutlineXMark } from 'react-icons/hi2';
+import { HiOutlinePlus, HiOutlineMagnifyingGlass, HiOutlinePencil, HiOutlineTrash, HiOutlineXMark, HiOutlineCheckCircle, HiOutlineXCircle } from 'react-icons/hi2';
 import toast from 'react-hot-toast';
 import { emitDataChanged } from '../utils/events';
 
@@ -92,7 +92,7 @@ export default function Customers() {
   const loadCustomers = async () => {
     setLoading(true);
     try { const { data } = await customersAPI.getAll({ search }); setCustomers(data?.customers || []); }
-    catch { toast.error("Qarzdorlar yuklanmadi"); } finally { setLoading(false); }
+    catch {} finally { setLoading(false); }
   };
 
   const handleDelete = async () => {
@@ -100,7 +100,18 @@ export default function Customers() {
     catch { toast.error("O'chirishda xato"); }
   };
 
-  const totalDebt = customers.reduce((sum, c) => sum + (parseFloat(c.debt) || 0), 0);
+  const handleDebtToggle = async (customer) => {
+    const currentStatus = customer.debt_status || 'no_debt';
+    const newStatus = currentStatus === 'no_debt' ? 'has_debt' : 'no_debt';
+    const newAmount = newStatus === 'has_debt' ? (parseFloat(customer.debt_amount) || parseFloat(customer.debt) || 0) : 0;
+    try {
+      await customersAPI.updateDebt(customer.id, { debt_amount: newAmount, debt_status: newStatus });
+      toast.success(newStatus === 'has_debt' ? 'Qarz belgilandi' : 'Qarz o\'chirildi');
+      loadCustomers();
+    } catch { toast.error('Xatolik yuz berdi'); }
+  };
+
+  const totalDebt = customers.reduce((sum, c) => sum + (parseFloat(c.debt_amount) || parseFloat(c.debt) || 0), 0);
 
   return (
     <div className="space-y-6">
@@ -160,6 +171,9 @@ export default function Customers() {
                     <td className="py-3 text-right font-semibold text-gray-900 dark:text-white">{formatCurrency(c.total_purchases || 0)}</td>
                     <td className="py-3 text-right">
                       <div className="flex items-center justify-end gap-1">
+                        <button onClick={() => handleDebtToggle(c)} className={`p-1.5 rounded-lg transition-colors ${(c.debt_status === 'has_debt' || parseFloat(c.debt) > 0) ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-600 hover:bg-amber-100 dark:hover:bg-amber-900/30' : 'hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-emerald-600'}`} title={(c.debt_status === 'has_debt' || parseFloat(c.debt) > 0) ? 'Qarzsiz qilish' : 'Qarzga o\'tkazish'}>
+                          {(c.debt_status === 'has_debt' || parseFloat(c.debt) > 0) ? <HiOutlineCheckCircle className="w-4 h-4" /> : <HiOutlineXCircle className="w-4 h-4" />}
+                        </button>
                         <button onClick={() => { setEditCustomer(c); setShowModal(true); }} className="p-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-600 transition-colors"><HiOutlinePencil className="w-4 h-4" /></button>
                         <button onClick={() => setDeleteCustomer(c)} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 transition-colors"><HiOutlineTrash className="w-4 h-4" /></button>
                       </div>

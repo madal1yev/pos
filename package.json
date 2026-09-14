@@ -1,7 +1,7 @@
 {
-  "name": "pos-system",
+  "name": "maxpos",
   "version": "1.0.0",
-  "description": "POS System — Point of Sale & Inventory Management",
+  "description": "MaxPOS — Point of Sale & Inventory Management",
   "private": true,
   "scripts": {
     "start": "cd backend && npm start",

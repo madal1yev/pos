@@ -1,0 +1,111 @@
+{
+  "project": "MaxPOS — Premium SaaS Commercial v4",
+  "duration": 40.0,
+  "fps": 30,
+  "formats": {
+    "9x16": { "w": 1080, "h": 1920, "label": "Reels / TikTok / Shorts" },
+    "16x9": { "w": 1920, "h": 1080, "label": "YouTube / Website" }
+  },
+  "brand": {
+    "name": "MaxPOS",
+    "tagline": "Modern POS System",
+    "cta": "Biznesingizni zamonaviy boshqaring.",
+    "primary": "#4F46E5",
+    "primaryBright": "#6366F1",
+    "bgLight": "#F7F7FB",
+    "bgDark": "#0F172A",
+    "font": "Inter (700/800 headlines, 500/600 body)"
+  },
+  "music": {
+    "style": "modern corporate-tech instrumental, 120 BPM, Am-F-C-G pads + kick/bass/hats/claps",
+    "structure": "0-3s drop intro, 3-8s stripped back, 8s full groove in, 15s energy up, 29s lift, 35s resolve + sting",
+    "mix": "music -12dB under voiceover, duck -4dB on VO beats"
+  },
+  "scenes": [
+    {
+      "id": "S1-hook", "start": 0.0, "end": 3.0,
+      "purpose": "HOOK — stop scroll",
+      "visual": "Dark #0F172A. MaxPOS wordmark scale-in + indigo glow. Behind: POS screen (shots/03_pos.png) cinematic push-in, blurred edges.",
+      "screenAction": "Dashboard/POS slow zoom-in 1.0 -> 1.12, glow ring on product grid",
+      "text": ["MaxPOS", "Smart POS for modern business"],
+      "voiceover": "Do'koningiz hali ham daftarda yuribdimi?",
+      "sfx": ["whoosh 0.0", "bass impact 0.4", "pop 1.2 (wordmark)"],
+      "transitionOut": "smooth push-in -> S2 (0.3s)"
+    },
+    {
+      "id": "S2-problem", "start": 3.0, "end": 8.0,
+      "purpose": "MUAMMO — eski tizim og'rig'i",
+      "visual": "Dark. 3 type beats: 'Cheklar yo'qoladi.' / 'Qarzlar adashadi.' / 'Vaqt qaytmaydi.' Amber warning chips: Navbat / Xato hisob / Yo'qolgan cheklar.",
+      "screenAction": "No UI. Kinetic typography only, stagger 0.4s. 7.6s zoom-out, problem wipes away.",
+      "text": ["Daftar hisobi — o'tmishda", "Navbat · Xato hisob · Yo'qolgan cheklar"],
+      "voiceover": "Navbat. Xato hisob. Yo'qolgan cheklar. Eski daftar endi yetmaydi.",
+      "sfx": ["paper rustle 3.0", "tick x3 (chips)", "big whoosh 7.7"],
+      "transitionOut": "xfade 0.3s, brightness lift to light"
+    },
+    {
+      "id": "S3-solution", "start": 8.0, "end": 15.0,
+      "purpose": "SOLUTION — real savdo oqimi (POS sahifasi)",
+      "beats": [
+        { "t": "8.0-9.75", "shot": "shots/07_pos_search.png", "caption": "Skanerlang.", "chip": "Shtrix · QR kod", "action": "Scanner button glow-tap, laser line sweep, beep, product card pops", "sfx": "scan beep 8.9" },
+        { "t": "9.75-11.5", "shot": "shots/04_cart.png", "caption": "Savatga qo'shing.", "chip": "Promo-kod · Chegirma", "action": "Qty + tap, SALE badge pops, hot-sotuvlar strip visible", "sfx": "pop 10.3" },
+        { "t": "11.5-13.25", "shot": "shots/05b_checkout.png", "caption": "To'lov — bir zumda.", "chip": "Naqd · Karta · Avto-qaytim", "action": "Cash selected, quick-cash 50k tap, Qaytim auto-counts up", "sfx": "cha-ching 12.6" },
+        { "t": "13.25-15.0", "shot": "shots/06_receipt.png", "caption": "Chek — avtomatik.", "chip": "80mm termal", "action": "Receipt slides out like printer, store logo + invoice number sharp", "sfx": "printer 13.8" }
+      ],
+      "voiceover": "MaxPOS. Skanerlang. Savatga qo'shing. To'lovni yakunlang — qaytimni o'zi hisoblaydi, chek bir zumda chiqadi.",
+      "transitionOut": "match-cut slide-left -> S4"
+    },
+    {
+      "id": "S4-manage", "start": 15.0, "end": 22.0,
+      "purpose": "MANAGEMENT — bitta tizimda hamma narsa (faqat real funksiyalar)",
+      "beats": [
+        { "t": "15.0-16.75", "shot": "shots/10_products.png", "caption": "Mahsulotlar.", "chip": "Barcode · QR · CSV import", "action": "Product grid drift, low-stock badge pulses amber" },
+        { "t": "16.75-18.5", "shot": "shots/09_debtors.png", "caption": "Qarzdorlar va smenalar.", "chip": "Qarz hisobi · Z-raport", "action": "Debt total count-up, shift card slides in" },
+        { "t": "18.5-20.25", "shot": "shots/03_pos.png", "caption": "Promo-kod va chegirma.", "chip": "BONUS10 · SALE", "action": "Promo field highlight, discount badge pops" },
+        { "t": "20.25-22.0", "shot": "shots/11_settings.png", "caption": "Sozlama va zaxira.", "chip": "3 til · Backup", "action": "Language pills UZ/RU/EN wipe, backup row glows" }
+      ],
+      "voiceover": "Mahsulotlar. Qarzdorlar. Smenalar. Promo-kodlar. Zaxira nusxa. Hammasi — bitta tizimda.",
+      "sfx": ["short whoosh per beat", "tick per chip", "riser 21.0-22.0"],
+      "transitionOut": "xfade -> S5, bg shifts toward dark for analytics contrast"
+    },
+    {
+      "id": "S5-analytics", "start": 22.0, "end": 29.0,
+      "purpose": "ANALYTICS — raqamlar ishonch beradi",
+      "beats": [
+        { "t": "22.0-24.3", "shot": "shots/02_dashboard.png", "caption": "Daromad — real vaqtda.", "chip": "Bugun · Hafta · Oy · Yil", "action": "Revenue number count-up 0 -> value, period pills swipe" },
+        { "t": "24.3-26.5", "shot": "shots/08b_reports_chart.png", "caption": "Hisobot — bir tugmada.", "chip": "Kunlik · Oylik · TOP", "action": "Bars grow bottom-up staggered, pie slices fade in" },
+        { "t": "26.5-29.0", "shot": "shots/08_reports.png", "caption": "Har bir so'm — nazoratda.", "chip": "To'lov usullari · Ombor", "action": "Slow cinematic zoom, payment badges glow" }
+      ],
+      "voiceover": "Bugungi daromad. Haftalik. Oylik. Har bir so'm — ko'z oldingizda, real vaqtda.",
+      "sfx": ["count-up ticks 22.3-23.5", "soft ding 26.6", "riser 28.0-29.0"],
+      "transitionOut": "whip-pan -> S6"
+    },
+    {
+      "id": "S6-speed", "start": 29.0, "end": 35.0,
+      "purpose": "SPEED + EXPERIENCE — rapid montage, 4 so'z",
+      "beats": [
+        { "t": "29.0-30.5", "word": "FAST", "sub": "1 skaner — 1 soniya", "bg": "POS scan crop, 1.4x speed ramp" },
+        { "t": "30.5-32.0", "word": "SIMPLE", "sub": "Bitta tizim — hamma ish", "bg": "Cart + dashboard split flash" },
+        { "t": "32.0-33.5", "word": "SMART", "sub": "Avto-qaytim · Kam qoldi signali", "bg": "Checkout change + low-stock badge" },
+        { "t": "33.5-35.0", "word": "MODERN", "sub": "PWA · Dark · 3 til", "bg": "Login + settings dark flash" }
+      ],
+      "voiceover": "Tez. Oson. Aqlli. Zamonaviy.",
+      "sfx": ["whoosh per word", "impact per word, pitch rising", "sub-riser 34-35"],
+      "transitionOut": "flash-frame white 2f -> S7"
+    },
+    {
+      "id": "S7-cta", "start": 35.0, "end": 40.0,
+      "purpose": "FINAL CTA — logo + harakatga chaqiruv",
+      "visual": "Indigo gradient (brand #4F46E5 -> #17103F). Center: MaxPOS wordmark scale-in + sparkle. White pill button: 'Bugun boshlang'. Below: 'Kassa · Ombor · Qarzdorlar · Hisobotlar' + 'O'zbek · Русский · English'.",
+      "screenAction": "Logo sparkle 35.8, button pulse x2 (36.5, 37.5), tagline fade-up 38.0",
+      "text": ["MaxPOS", "Biznesingizni zamonaviy boshqaring.", "Modern POS System"],
+      "voiceover": "MaxPOS. Biznesingizni zamonaviy boshqaring. Bugun boshlang!",
+      "sfx": ["sting 35.0", "sparkle 35.8", "click 37.5"],
+      "transitionOut": "fade to indigo hold-frame 0.5s (end card)"
+    }
+  ],
+  "notes": [
+    "Faqat real funksiyalar ishlatilgan: skaner, savat, promo-kod, naqd/karta/qarz/boshqa, avto-qaytim, 80mm chek, dashboard, hisobotlar, qarzdorlar, smenalar/Z-raport, mahsulotlar/barcode-CSV, sozlamalar/backup, 3 til, dark mode, PWA. Hech qanday o'ylab topilgan feature yo'q.",
+    "Kontakt/website loyihada real mavjud emas — shuning uchun CTA da faqat brand + tagline. Telefon/manzil o'ylab yozilmasin.",
+    "Barcha shot fayllar shots/ papkasida real UI dan olingan (01-11). Yangi screenshot kerak bo'lsa: frontend npm run dev -> admin@pos.uz / admin123, 1080p 60fps yozib olish."
+  ]
+}

@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('../config/db');
+const { sendTelegramMessage } = require('../utils/telegram');
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
@@ -13,9 +14,16 @@ const generateToken = (userId, remember) => {
   });
 };
 
+const getClientInfo = (req) => {
+  const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || 'unknown';
+  const userAgent = req.headers['user-agent'] || 'unknown';
+  return { ip, userAgent };
+};
+
 exports.login = async (req, res, next) => {
   try {
     const { email, password, remember } = req.body;
+    const { ip, userAgent } = getClientInfo(req);
 
     const result = await db.query(
       `SELECT u.*, r.name as role_name FROM users u 
@@ -36,8 +44,28 @@ exports.login = async (req, res, next) => {
 
     const validPassword = await bcrypt.compare(password, user.password);
     if (!validPassword) {
+      await db.query(
+        `INSERT INTO login_audit_logs (user_id, email, status, ip_address, user_agent, store_id)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [null, email, 'failed', ip, userAgent, null]
+      );
+
+      sendTelegramMessage(
+        `⚠️ LOGIN FAILED\n📧 Email: ${email}\n🕐 Time: ${new Date().toISOString()}\n❌ Status: Failed login attempt`
+      );
+
       return res.status(401).json({ error: 'Invalid email or password' });
     }
+
+    await db.query(
+      `INSERT INTO login_audit_logs (user_id, email, status, ip_address, user_agent, store_id)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [user.id, email, 'success', ip, userAgent, user.store_id]
+    );
+
+    sendTelegramMessage(
+      `🔐 LOGIN SUCCESS\n👤 User: ${user.name} (${email})\n🕐 Time: ${new Date().toISOString()}\n📱 Device: ${userAgent.slice(0, 80)}\n✅ Status: Successful`
+    );
 
     const token = generateToken(user.id, remember);
 
@@ -58,7 +86,11 @@ exports.login = async (req, res, next) => {
 
 exports.register = async (req, res, next) => {
   try {
-    const { name, email, password, role_id } = req.body;
+    const { name, email, password, store_name } = req.body;
+
+    if (!store_name || !store_name.trim()) {
+      return res.status(400).json({ error: "Do'kon nomi majburiy" });
+    }
 
     const existing = await db.query('SELECT id FROM users WHERE email = $1', [email]);
     if (existing.rows.length > 0) {
@@ -66,15 +98,27 @@ exports.register = async (req, res, next) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const roleId = role_id || 2;
+
+    // Self-registration always creates a brand-new store, and the
+    // registering user becomes that store's admin/owner.
+    const storeResult = await db.query(
+      'INSERT INTO stores (name) VALUES ($1) RETURNING id',
+      [store_name.trim()]
+    );
+    const storeId = storeResult.rows[0].id;
 
     const result = await db.query(
-      `INSERT INTO users (name, email, password, role_id) 
-       VALUES ($1, $2, $3, $4) RETURNING id, name, email, role_id`,
-      [name, email, hashedPassword, roleId]
+      `INSERT INTO users (name, email, password, role_id, store_id)
+       VALUES ($1, $2, $3, 1, $4) RETURNING id, name, email, role_id, store_id`,
+      [name, email, hashedPassword, storeId]
     );
 
     const user = result.rows[0];
+
+    sendTelegramMessage(
+      `🆕 NEW ACCOUNT\n👤 User: ${name} (${email})\n🏪 Store: ${store_name.trim()}\n🕐 Time: ${new Date().toISOString()}`
+    );
+
     const token = generateToken(user.id);
 
     res.status(201).json({
@@ -83,7 +127,7 @@ exports.register = async (req, res, next) => {
         id: user.id,
         name: user.name,
         email: user.email,
-        role: roleId === 1 ? 'admin' : 'cashier',
+        role: 'admin',
       },
     });
   } catch (error) {

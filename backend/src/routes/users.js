@@ -14,7 +14,9 @@ router.get('/', authorize('admin'), async (req, res, next) => {
         r.name as role_name, r.id as role_id
        FROM users u
        LEFT JOIN roles r ON u.role_id = r.id
-       ORDER BY u.created_at DESC`
+       WHERE u.store_id = $1
+       ORDER BY u.created_at DESC`,
+      [req.user.store_id]
     );
     res.json({ users: result.rows });
   } catch (error) {
@@ -26,13 +28,15 @@ router.get('/', authorize('admin'), async (req, res, next) => {
 router.get('/:id', authorize('admin'), async (req, res, next) => {
   try {
     const result = await db.query(
-      `SELECT u.id, u.name, u.email, u.is_active, u.avatar_url, u.pin, u.created_at, u.role_id,
+      `SELECT u.id, u.name, u.email, u.is_active, u.avatar_url, u.pin, u.created_at, u.role_id, u.store_id,
         r.name as role_name
        FROM users u LEFT JOIN roles r ON u.role_id = r.id
        WHERE u.id = $1`,
       [req.params.id]
     );
-    if (result.rows.length === 0) return res.status(404).json({ error: 'User not found' });
+    if (result.rows.length === 0 || result.rows[0].store_id !== req.user.store_id) {
+      return res.status(404).json({ error: 'User not found' });
+    }
     res.json({ user: result.rows[0] });
   } catch (error) {
     next(error);
@@ -49,9 +53,11 @@ router.put('/:id', async (req, res, next) => {
 
     const { name, email, password, role_id, is_active, pin } = req.body;
 
-    // Check if user exists
+    // Check if user exists and belongs to the same store
     const existing = await db.query('SELECT * FROM users WHERE id = $1', [req.params.id]);
-    if (existing.rows.length === 0) return res.status(404).json({ error: 'User not found' });
+    if (existing.rows.length === 0 || existing.rows[0].store_id !== req.user.store_id) {
+      return res.status(404).json({ error: 'User not found' });
+    }
 
     // Check unique email
     if (email && email !== existing.rows[0].email) {
@@ -127,7 +133,7 @@ router.get('/roles/list', authorize('admin'), async (req, res, next) => {
   }
 });
 
-// Create new user (admin only)
+// Create new user — invites a teammate into the ADMIN'S OWN store (admin only)
 router.post('/', authorize('admin'), async (req, res, next) => {
   try {
     const { name, email, password, role_id, pin } = req.body;
@@ -139,8 +145,8 @@ router.post('/', authorize('admin'), async (req, res, next) => {
     }
     const hashed = await bcrypt.hash(password, 10);
     const result = await db.query(
-      `INSERT INTO users (name, email, password, role_id, pin) VALUES ($1, $2, $3, $4, $5) RETURNING id, name, email`,
-      [name, email, hashed, role_id || 2, pin ? String(pin) : null]
+      `INSERT INTO users (name, email, password, role_id, pin, store_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, name, email`,
+      [name, email, hashed, role_id || 2, pin ? String(pin) : null, req.user.store_id]
     );
     res.status(201).json({ user: result.rows[0] });
   } catch (error) {
@@ -153,6 +159,10 @@ router.delete('/:id', authorize('admin'), async (req, res, next) => {
   try {
     if (parseInt(req.params.id) === parseInt(req.user.id)) {
       return res.status(400).json({ error: "O'zingizni o'chira olmaysiz" });
+    }
+    const existing = await db.query('SELECT id, store_id FROM users WHERE id = $1', [req.params.id]);
+    if (existing.rows.length === 0 || existing.rows[0].store_id !== req.user.store_id) {
+      return res.status(404).json({ error: 'User not found' });
     }
     await db.query('DELETE FROM users WHERE id = $1', [req.params.id]);
     res.json({ message: 'Foydalanuvchi ochirildi' });

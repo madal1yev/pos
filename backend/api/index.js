@@ -31,23 +31,24 @@ module.exports = async (req, res) => {
       const db = require('../src/config/db');
       
       const tables = [
+        `CREATE TABLE IF NOT EXISTS stores (id SERIAL PRIMARY KEY, name VARCHAR(200) NOT NULL, created_at TIMESTAMP DEFAULT NOW())`,
         `CREATE TABLE IF NOT EXISTS roles (id SERIAL PRIMARY KEY, name VARCHAR(50) UNIQUE NOT NULL, created_at TIMESTAMP DEFAULT NOW())`,
-        `CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, name VARCHAR(100) NOT NULL, email VARCHAR(100) UNIQUE NOT NULL, password VARCHAR(255) NOT NULL, role_id INTEGER REFERENCES roles(id) ON DELETE SET NULL, avatar_url TEXT, is_active BOOLEAN DEFAULT true, pin VARCHAR(10), created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW())`,
-        `CREATE TABLE IF NOT EXISTS categories (id SERIAL PRIMARY KEY, name VARCHAR(100) NOT NULL, description TEXT, parent_id INTEGER REFERENCES categories(id) ON DELETE SET NULL, sort_order INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW())`,
-        `CREATE TABLE IF NOT EXISTS products (id SERIAL PRIMARY KEY, category_id INTEGER REFERENCES categories(id) ON DELETE SET NULL, name VARCHAR(200) NOT NULL, product_code VARCHAR(50) UNIQUE NOT NULL, barcode VARCHAR(50), qr_code TEXT, brand VARCHAR(100), purchase_price DECIMAL(12,2) DEFAULT 0, selling_price DECIMAL(12,2) NOT NULL DEFAULT 0, stock_quantity INTEGER DEFAULT 0, minimum_stock INTEGER DEFAULT 0, unit VARCHAR(20) DEFAULT 'pcs', image_url TEXT, description TEXT, status VARCHAR(20) DEFAULT 'active', created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW())`,
-        `CREATE TABLE IF NOT EXISTS sales (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id) ON DELETE SET NULL, customer_name VARCHAR(100), total_amount DECIMAL(12,2) NOT NULL DEFAULT 0, payment_method VARCHAR(20) DEFAULT 'cash', received_amount DECIMAL(12,2) DEFAULT 0, change_amount DECIMAL(12,2) DEFAULT 0, invoice_number VARCHAR(50) UNIQUE, notes TEXT, created_at TIMESTAMP DEFAULT NOW())`,
+        `CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, name VARCHAR(100) NOT NULL, email VARCHAR(100) UNIQUE NOT NULL, password VARCHAR(255) NOT NULL, role_id INTEGER REFERENCES roles(id) ON DELETE SET NULL, avatar_url TEXT, is_active BOOLEAN DEFAULT true, pin VARCHAR(10), store_id INTEGER, created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW())`,
+        `CREATE TABLE IF NOT EXISTS categories (id SERIAL PRIMARY KEY, name VARCHAR(100) NOT NULL, description TEXT, parent_id INTEGER REFERENCES categories(id) ON DELETE SET NULL, sort_order INTEGER DEFAULT 0, store_id INTEGER, created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW())`,
+        `CREATE TABLE IF NOT EXISTS products (id SERIAL PRIMARY KEY, category_id INTEGER REFERENCES categories(id) ON DELETE SET NULL, name VARCHAR(200) NOT NULL, product_code VARCHAR(50) UNIQUE NOT NULL, barcode VARCHAR(50), qr_code TEXT, brand VARCHAR(100), purchase_price DECIMAL(12,2) DEFAULT 0, selling_price DECIMAL(12,2) NOT NULL DEFAULT 0, stock_quantity INTEGER DEFAULT 0, minimum_stock INTEGER DEFAULT 0, unit VARCHAR(20) DEFAULT 'pcs', image_url TEXT, description TEXT, status VARCHAR(20) DEFAULT 'active', store_id INTEGER, created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW())`,
+        `CREATE TABLE IF NOT EXISTS sales (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id) ON DELETE SET NULL, customer_name VARCHAR(100), total_amount DECIMAL(12,2) NOT NULL DEFAULT 0, payment_method VARCHAR(20) DEFAULT 'cash', received_amount DECIMAL(12,2) DEFAULT 0, change_amount DECIMAL(12,2) DEFAULT 0, invoice_number VARCHAR(50) UNIQUE, notes TEXT, store_id INTEGER, created_at TIMESTAMP DEFAULT NOW())`,
         `CREATE TABLE IF NOT EXISTS sale_items (id SERIAL PRIMARY KEY, sale_id INTEGER REFERENCES sales(id) ON DELETE CASCADE, product_id INTEGER REFERENCES products(id) ON DELETE SET NULL, quantity INTEGER NOT NULL DEFAULT 1, price DECIMAL(12,2) NOT NULL, discount DECIMAL(12,2) DEFAULT 0, tax DECIMAL(12,2) DEFAULT 0, subtotal DECIMAL(12,2) NOT NULL DEFAULT 0)`,
-        `CREATE TABLE IF NOT EXISTS inventory_logs (id SERIAL PRIMARY KEY, product_id INTEGER REFERENCES products(id) ON DELETE SET NULL, change_type VARCHAR(30) NOT NULL, quantity INTEGER NOT NULL, previous_stock INTEGER DEFAULT 0, new_stock INTEGER DEFAULT 0, note TEXT, created_by INTEGER REFERENCES users(id) ON DELETE SET NULL, created_at TIMESTAMP DEFAULT NOW())`,
-        `CREATE TABLE IF NOT EXISTS customers (id SERIAL PRIMARY KEY, name VARCHAR(200) NOT NULL, phone VARCHAR(30), email VARCHAR(100), address TEXT, type VARCHAR(20) DEFAULT 'regular', tax_id VARCHAR(50), notes TEXT, total_purchases DECIMAL(14,2) DEFAULT 0, total_paid DECIMAL(14,2) DEFAULT 0, debt DECIMAL(14,2) DEFAULT 0, bonus_points INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW())`,
-        `CREATE TABLE IF NOT EXISTS suppliers (id SERIAL PRIMARY KEY, name VARCHAR(200) NOT NULL, phone VARCHAR(30), email VARCHAR(100), address TEXT, contact_person VARCHAR(200), tax_id VARCHAR(50), notes TEXT, total_purchases DECIMAL(14,2) DEFAULT 0, total_paid DECIMAL(14,2) DEFAULT 0, debt DECIMAL(14,2) DEFAULT 0, created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW())`,
-        `CREATE TABLE IF NOT EXISTS settings (id SERIAL PRIMARY KEY, store_name VARCHAR(100) DEFAULT 'My Store', store_address TEXT, store_phone VARCHAR(30), store_email VARCHAR(100), logo_url TEXT, currency VARCHAR(10) DEFAULT 'UZS', currency_symbol VARCHAR(10) DEFAULT 'so''m', tax_percentage DECIMAL(5,2) DEFAULT 0, receipt_header TEXT, receipt_footer TEXT, low_stock_threshold INTEGER DEFAULT 10, smtp_host TEXT, smtp_port INTEGER DEFAULT 587, created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW())`,
+        `CREATE TABLE IF NOT EXISTS inventory_logs (id SERIAL PRIMARY KEY, product_id INTEGER REFERENCES products(id) ON DELETE SET NULL, change_type VARCHAR(30) NOT NULL, quantity INTEGER NOT NULL, previous_stock INTEGER DEFAULT 0, new_stock INTEGER DEFAULT 0, note TEXT, created_by INTEGER REFERENCES users(id) ON DELETE SET NULL, store_id INTEGER, created_at TIMESTAMP DEFAULT NOW())`,
+        `CREATE TABLE IF NOT EXISTS customers (id SERIAL PRIMARY KEY, name VARCHAR(200) NOT NULL, phone VARCHAR(30), email VARCHAR(100), address TEXT, type VARCHAR(20) DEFAULT 'regular', tax_id VARCHAR(50), notes TEXT, total_purchases DECIMAL(14,2) DEFAULT 0, total_paid DECIMAL(14,2) DEFAULT 0, debt DECIMAL(14,2) DEFAULT 0, bonus_points INTEGER DEFAULT 0, store_id INTEGER, created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW())`,
+        `CREATE TABLE IF NOT EXISTS suppliers (id SERIAL PRIMARY KEY, name VARCHAR(200) NOT NULL, phone VARCHAR(30), email VARCHAR(100), address TEXT, contact_person VARCHAR(200), tax_id VARCHAR(50), notes TEXT, total_purchases DECIMAL(14,2) DEFAULT 0, total_paid DECIMAL(14,2) DEFAULT 0, debt DECIMAL(14,2) DEFAULT 0, store_id INTEGER, created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW())`,
+        `CREATE TABLE IF NOT EXISTS settings (id SERIAL PRIMARY KEY, store_name VARCHAR(100) DEFAULT 'My Store', store_address TEXT, store_phone VARCHAR(30), store_email VARCHAR(100), logo_url TEXT, currency VARCHAR(10) DEFAULT 'UZS', currency_symbol VARCHAR(10) DEFAULT 'so''m', tax_percentage DECIMAL(5,2) DEFAULT 0, receipt_header TEXT, receipt_footer TEXT, low_stock_threshold INTEGER DEFAULT 10, smtp_host TEXT, smtp_port INTEGER DEFAULT 587, store_id INTEGER, created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW())`,
         // New tables for enhanced POS
-        `CREATE TABLE IF NOT EXISTS shifts (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id) ON DELETE SET NULL, opened_at TIMESTAMP DEFAULT NOW(), closed_at TIMESTAMP, opening_cash DECIMAL(12,2) DEFAULT 0, closing_cash DECIMAL(12,2), expected_cash DECIMAL(12,2), cash_difference DECIMAL(12,2), total_sales DECIMAL(12,2) DEFAULT 0, total_transactions INTEGER DEFAULT 0, status VARCHAR(20) DEFAULT 'open', notes TEXT, opened_by_name TEXT)`,
-        `CREATE TABLE IF NOT EXISTS audit_logs (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id) ON DELETE SET NULL, username VARCHAR(100), action VARCHAR(50) NOT NULL, entity_type VARCHAR(50), entity_id INTEGER, old_value TEXT, new_value TEXT, ip_address VARCHAR(50), created_at TIMESTAMP DEFAULT NOW())`,
-        `CREATE TABLE IF NOT EXISTS refunds (id SERIAL PRIMARY KEY, sale_id INTEGER REFERENCES sales(id) ON DELETE CASCADE, user_id INTEGER REFERENCES users(id) ON DELETE SET NULL, refund_amount DECIMAL(12,2) NOT NULL, reason TEXT, status VARCHAR(20) DEFAULT 'completed', created_at TIMESTAMP DEFAULT NOW())`,
+        `CREATE TABLE IF NOT EXISTS shifts (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id) ON DELETE SET NULL, opened_at TIMESTAMP DEFAULT NOW(), closed_at TIMESTAMP, opening_cash DECIMAL(12,2) DEFAULT 0, closing_cash DECIMAL(12,2), expected_cash DECIMAL(12,2), cash_difference DECIMAL(12,2), total_sales DECIMAL(12,2) DEFAULT 0, total_transactions INTEGER DEFAULT 0, status VARCHAR(20) DEFAULT 'open', notes TEXT, opened_by_name TEXT, store_id INTEGER)`,
+        `CREATE TABLE IF NOT EXISTS audit_logs (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id) ON DELETE SET NULL, username VARCHAR(100), action VARCHAR(50) NOT NULL, entity_type VARCHAR(50), entity_id INTEGER, old_value TEXT, new_value TEXT, ip_address VARCHAR(50), store_id INTEGER, created_at TIMESTAMP DEFAULT NOW())`,
+        `CREATE TABLE IF NOT EXISTS refunds (id SERIAL PRIMARY KEY, sale_id INTEGER REFERENCES sales(id) ON DELETE CASCADE, user_id INTEGER REFERENCES users(id) ON DELETE SET NULL, refund_amount DECIMAL(12,2) NOT NULL, reason TEXT, status VARCHAR(20) DEFAULT 'completed', store_id INTEGER, created_at TIMESTAMP DEFAULT NOW())`,
         `CREATE TABLE IF NOT EXISTS refund_items (id SERIAL PRIMARY KEY, refund_id INTEGER REFERENCES refunds(id) ON DELETE CASCADE, product_id INTEGER REFERENCES products(id) ON DELETE SET NULL, quantity INTEGER NOT NULL, price DECIMAL(12,2) NOT NULL, subtotal DECIMAL(12,2) NOT NULL)`,
-        `CREATE TABLE IF NOT EXISTS discounts (id SERIAL PRIMARY KEY, name VARCHAR(200) NOT NULL, type VARCHAR(20) NOT NULL DEFAULT 'percentage', value DECIMAL(12,2) NOT NULL, min_purchase DECIMAL(12,2) DEFAULT 0, max_discount DECIMAL(12,2), start_date TIMESTAMP, end_date TIMESTAMP, is_active BOOLEAN DEFAULT true, created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW())`,
-        `CREATE TABLE IF NOT EXISTS promo_codes (id SERIAL PRIMARY KEY, code VARCHAR(50) UNIQUE NOT NULL, discount_id INTEGER REFERENCES discounts(id) ON DELETE CASCADE, max_uses INTEGER DEFAULT 0, current_uses INTEGER DEFAULT 0, is_active BOOLEAN DEFAULT true, created_at TIMESTAMP DEFAULT NOW())`,
+        `CREATE TABLE IF NOT EXISTS discounts (id SERIAL PRIMARY KEY, name VARCHAR(200) NOT NULL, type VARCHAR(20) NOT NULL DEFAULT 'percentage', value DECIMAL(12,2) NOT NULL, min_purchase DECIMAL(12,2) DEFAULT 0, max_discount DECIMAL(12,2), start_date TIMESTAMP, end_date TIMESTAMP, is_active BOOLEAN DEFAULT true, store_id INTEGER, created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW())`,
+        `CREATE TABLE IF NOT EXISTS promo_codes (id SERIAL PRIMARY KEY, code VARCHAR(50) UNIQUE NOT NULL, discount_id INTEGER REFERENCES discounts(id) ON DELETE CASCADE, max_uses INTEGER DEFAULT 0, current_uses INTEGER DEFAULT 0, is_active BOOLEAN DEFAULT true, store_id INTEGER, created_at TIMESTAMP DEFAULT NOW())`,
         `CREATE TABLE IF NOT EXISTS product_variants (id SERIAL PRIMARY KEY, product_id INTEGER REFERENCES products(id) ON DELETE CASCADE, name VARCHAR(100) NOT NULL, sku VARCHAR(50), price DECIMAL(12,2), stock_quantity INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT NOW())`,
         `CREATE TABLE IF NOT EXISTS combo_items (id SERIAL PRIMARY KEY, product_id INTEGER REFERENCES products(id) ON DELETE CASCADE, combo_id INTEGER REFERENCES products(id) ON DELETE CASCADE, quantity INTEGER DEFAULT 1, created_at TIMESTAMP DEFAULT NOW())`,
         `CREATE TABLE IF NOT EXISTS app_meta (key TEXT PRIMARY KEY, value TEXT)`
@@ -73,6 +74,20 @@ module.exports = async (req, res) => {
         "ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS transport_type VARCHAR(20) DEFAULT 'car'",
         "ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'active'",
         "ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS delivered_orders INTEGER DEFAULT 0",
+        // Multi-tenant store_id (covers tables that existed before this column was added)
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS store_id INTEGER",
+        "ALTER TABLE products ADD COLUMN IF NOT EXISTS store_id INTEGER",
+        "ALTER TABLE categories ADD COLUMN IF NOT EXISTS store_id INTEGER",
+        "ALTER TABLE sales ADD COLUMN IF NOT EXISTS store_id INTEGER",
+        "ALTER TABLE customers ADD COLUMN IF NOT EXISTS store_id INTEGER",
+        "ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS store_id INTEGER",
+        "ALTER TABLE settings ADD COLUMN IF NOT EXISTS store_id INTEGER",
+        "ALTER TABLE shifts ADD COLUMN IF NOT EXISTS store_id INTEGER",
+        "ALTER TABLE discounts ADD COLUMN IF NOT EXISTS store_id INTEGER",
+        "ALTER TABLE promo_codes ADD COLUMN IF NOT EXISTS store_id INTEGER",
+        "ALTER TABLE refunds ADD COLUMN IF NOT EXISTS store_id INTEGER",
+        "ALTER TABLE audit_logs ADD COLUMN IF NOT EXISTS store_id INTEGER",
+        "ALTER TABLE inventory_logs ADD COLUMN IF NOT EXISTS store_id INTEGER",
       ];
       
       // Token blacklist table
@@ -180,7 +195,29 @@ module.exports = async (req, res) => {
       
       // Delivery address qoshish (eski DB lar uchun ALTER TABLE)
       try { await db.query(`ALTER TABLE sales ADD COLUMN IF NOT EXISTS delivery_address TEXT DEFAULT ''`); } catch (e) { /* already exists */ }
-      
+
+      // Backfill store_id: give every pre-existing row a store so nothing
+      // already in the DB becomes invisible once store_id is enforced.
+      try {
+        const storeScopedTables = require('../src/config/storeScopedTables');
+        let storeId;
+        const existingStore = await db.query('SELECT id FROM stores ORDER BY id LIMIT 1');
+        if (existingStore.rows.length > 0) {
+          storeId = existingStore.rows[0].id;
+        } else {
+          let name = "Do'kon";
+          try {
+            const settingsRow = await db.query('SELECT store_name FROM settings LIMIT 1');
+            if (settingsRow.rows[0]?.store_name) name = settingsRow.rows[0].store_name;
+          } catch (e) {}
+          const created = await db.query('INSERT INTO stores (name) VALUES ($1) RETURNING id', [name]);
+          storeId = created.rows[0].id;
+        }
+        for (const table of storeScopedTables) {
+          try { await db.query(`UPDATE ${table} SET store_id = $1 WHERE store_id IS NULL`, [storeId]); } catch (e) { /* ignore */ }
+        }
+      } catch (e) { console.log('Store backfill:', e.message); }
+
       console.log('✅ Migration completed!');
     } catch (err) {
       console.error('⚠️ Migration xatosi:', err.message);

@@ -9,8 +9,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['icons/*.svg'],
       manifest: {
-        name: 'POS Tizimi - Sotuv Boshqaruv',
-        short_name: 'POS Tizimi',
+        name: 'MaxPOS - Sotuv Boshqaruv',
+        short_name: 'MaxPOS',
         description: 'Sotuv boshqaruv tizimi',
         theme_color: '#4F46E5',
         background_color: '#ffffff',

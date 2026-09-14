@@ -6,9 +6,9 @@ exports.getAll = async (req, res, next) => {
     const { page = 1, limit = 20, from_date, to_date } = req.query;
     const offset = (parseInt(page) - 1) * parseInt(limit);
 
-    let where = ['1=1'];
-    let params = [];
-    let paramCount = 0;
+    let where = ['r.store_id = $1'];
+    let params = [req.user.store_id];
+    let paramCount = 1;
 
     if (from_date) {
       paramCount++;
@@ -77,8 +77,8 @@ exports.getById = async (req, res, next) => {
        FROM refunds r
        LEFT JOIN users u ON r.user_id = u.id
        LEFT JOIN sales s ON r.sale_id = s.id
-       WHERE r.id = $1`,
-      [req.params.id]
+       WHERE r.id = $1 AND r.store_id = $2`,
+      [req.params.id, req.user.store_id]
     );
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Refund not found' });
@@ -104,8 +104,8 @@ exports.create = async (req, res, next) => {
       return res.status(400).json({ error: 'Sale ID and items are required' });
     }
 
-    // Verify sale exists
-    const sale = await db.query('SELECT * FROM sales WHERE id = $1', [sale_id]);
+    // Verify sale exists and belongs to this store
+    const sale = await db.query('SELECT * FROM sales WHERE id = $1 AND store_id = $2', [sale_id, req.user.store_id]);
     if (sale.rows.length === 0) {
       return res.status(404).json({ error: 'Savdo topilmadi' });
     }
@@ -149,9 +149,9 @@ exports.create = async (req, res, next) => {
 
     // Create refund record
     const refundResult = await db.query(
-      `INSERT INTO refunds (sale_id, user_id, refund_amount, reason, status)
-       VALUES ($1, $2, $3, $4, 'completed') RETURNING *`,
-      [sale_id, req.user.id, refundAmount, reason || null]
+      `INSERT INTO refunds (sale_id, user_id, refund_amount, reason, status, store_id)
+       VALUES ($1, $2, $3, $4, 'completed', $5) RETURNING *`,
+      [sale_id, req.user.id, refundAmount, reason || null, req.user.store_id]
     );
 
     const refund = refundResult.rows[0];
@@ -176,10 +176,10 @@ exports.create = async (req, res, next) => {
       );
 
       await db.query(
-        `INSERT INTO inventory_logs (product_id, change_type, quantity, previous_stock, new_stock, note, created_by)
-         VALUES ($1, 'refund', $2, $3, $4, $5, $6)`,
+        `INSERT INTO inventory_logs (product_id, change_type, quantity, previous_stock, new_stock, note, created_by, store_id)
+         VALUES ($1, 'refund', $2, $3, $4, $5, $6, $7)`,
         [item.product_id, item.quantity, currentStock, newStock,
-          `Refund for sale #${sale.rows[0].invoice_number}`, req.user.id]
+          `Refund for sale #${sale.rows[0].invoice_number}`, req.user.id, req.user.store_id]
       );
     }
 
@@ -205,10 +205,10 @@ exports.create = async (req, res, next) => {
     try {
       const ip = req.ip || req.connection?.remoteAddress || null;
       await db.query(
-        `INSERT INTO audit_logs (user_id, username, action, entity_type, entity_id, new_value, ip_address)
-         VALUES ($1, $2, 'refund_create', 'refunds', $3, $4, $5)`,
+        `INSERT INTO audit_logs (user_id, username, action, entity_type, entity_id, new_value, ip_address, store_id)
+         VALUES ($1, $2, 'refund_create', 'refunds', $3, $4, $5, $6)`,
         [req.user.id, req.user.name, refund.id,
-          JSON.stringify({ sale_id, amount: refundAmount, items, reason }), ip]
+          JSON.stringify({ sale_id, amount: refundAmount, items, reason }), ip, req.user.store_id]
       );
     } catch (auditErr) {
       // audit_logs table might not exist yet, ignore
@@ -226,9 +226,9 @@ exports.getBySaleId = async (req, res, next) => {
       `SELECT r.*, u.name as cashier_name
        FROM refunds r
        LEFT JOIN users u ON r.user_id = u.id
-       WHERE r.sale_id = $1
+       WHERE r.sale_id = $1 AND r.store_id = $2
        ORDER BY r.created_at DESC`,
-      [req.params.saleId]
+      [req.params.saleId, req.user.store_id]
     );
 
     for (const refund of result.rows) {

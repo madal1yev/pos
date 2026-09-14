@@ -1,36 +1,36 @@
 import { memo } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
-  LayoutDashboard,
-  ShoppingCart,
-  Package,
-  FolderTree,
-  Receipt,
-  BarChart3,
-  Users,
-  Truck,
-  BadgePercent,
-  Settings,
-  LogOut,
-  Sun,
-  Moon,
-  Store,
-} from 'lucide-react';
+  HiOutlineSquares2X2,
+  HiOutlineShoppingCart,
+  HiOutlineCube,
+  HiOutlineFolder,
+  HiOutlineReceiptRefund,
+  HiOutlineChartBar,
+  HiOutlineUsers,
+  HiOutlineTruck,
+  HiOutlinePercentBadge,
+  HiOutlineCog6Tooth,
+  HiOutlineArrowRightOnRectangle,
+  HiOutlineSun,
+  HiOutlineMoon,
+  HiOutlineBuildingStorefront,
+} from 'react-icons/hi2';
 import { useAuthStore } from '../../context/AuthContext';
 import { useSettingsStore } from '../../context/SettingsContext';
 import { t } from '../../utils/uzbek';
 
 const NAV_ITEMS = [
-  { to: '/', icon: LayoutDashboard, label: 'dashboardNav', exact: true, group: 'main' },
-  { to: '/pos', icon: ShoppingCart, label: 'posNav', accent: true, group: 'main' },
-  { to: '/products', icon: Package, label: 'productsNav', group: 'products' },
-  { to: '/categories', icon: FolderTree, label: 'categoriesNav', group: 'products' },
-  { to: '/sales', icon: Receipt, label: 'salesNav', group: 'trade' },
-  { to: '/reports', icon: BarChart3, label: 'reportsNav', group: 'trade' },
-  { to: '/customers', icon: Users, label: 'debtorsNav', group: 'trade' },
-  { to: '/suppliers', icon: Truck, label: 'suppliersNav', group: 'management' },
-  { to: '/discounts', icon: BadgePercent, label: 'discountsNav', group: 'management' },
-  { to: '/settings', icon: Settings, label: 'settingsNav', group: 'management' },
+  { to: '/', icon: HiOutlineSquares2X2, label: 'dashboardNav', exact: true, group: 'main' },
+  { to: '/pos', icon: HiOutlineShoppingCart, label: 'posNav', accent: true, group: 'main' },
+  { to: '/products', icon: HiOutlineCube, label: 'productsNav', group: 'products' },
+  { to: '/categories', icon: HiOutlineFolder, label: 'categoriesNav', group: 'products' },
+  { to: '/sales', icon: HiOutlineReceiptRefund, label: 'salesNav', group: 'trade' },
+  { to: '/reports', icon: HiOutlineChartBar, label: 'reportsNav', group: 'trade' },
+  { to: '/customers', icon: HiOutlineUsers, label: 'debtorsNav', group: 'trade' },
+  { to: '/suppliers', icon: HiOutlineTruck, label: 'suppliersNav', group: 'management' },
+  { to: '/discounts', icon: HiOutlinePercentBadge, label: 'discountsNav', group: 'management' },
+  { to: '/settings', icon: HiOutlineCog6Tooth, label: 'settingsNav', group: 'management' },
 ];
 
 const GROUPS = [
@@ -87,7 +87,7 @@ function ThemeToggle({ dark, onClick }) {
       <span
         className={`inline-flex items-center justify-center w-5 h-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${dark ? 'translate-x-[18px]' : 'translate-x-[2px]'}`}
       >
-        {dark ? <Moon className="w-3 h-3 text-indigo-600" /> : <Sun className="w-3 h-3 text-amber-500" />}
+        {dark ? <HiOutlineMoon className="w-3 h-3 text-indigo-600" /> : <HiOutlineSun className="w-3 h-3 text-amber-500" />}
       </span>
     </button>
   );
@@ -109,7 +109,7 @@ export default function Sidebar({ open, onClose, dark, toggleDark }) {
           </div>
         ) : (
           <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center flex-shrink-0">
-            <Store className="w-5 h-5 text-white" />
+            <HiOutlineBuildingStorefront className="w-5 h-5 text-white" />
           </div>
         )}
         <div className="flex-1 min-w-0">
@@ -166,7 +166,7 @@ export default function Sidebar({ open, onClose, dark, toggleDark }) {
             onClick={async () => { await logout(); }}
             className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
           >
-            <LogOut className="w-3 h-3" />
+            <HiOutlineArrowRightOnRectangle className="w-3 h-3" />
             {t('logout')}
           </button>
         </div>

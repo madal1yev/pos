@@ -11,6 +11,11 @@ router.get('/ledger/:productId', async (req, res, next) => {
     const { from_date, to_date, page = 1, limit = 50 } = req.query;
     const offset = (parseInt(page) - 1) * parseInt(limit);
 
+    const productCheck = await db.query('SELECT id FROM products WHERE id = $1 AND store_id = $2', [req.params.productId, req.user.store_id]);
+    if (productCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+
     let where = ['il.product_id = $1'];
     let params = [req.params.productId];
     let paramCount = 1;
@@ -67,9 +72,9 @@ router.get('/movements', async (req, res, next) => {
   try {
     const { change_type, from_date, to_date, page = 1, limit = 50 } = req.query;
     const offset = (parseInt(page) - 1) * parseInt(limit);
-    let where = ['1=1'];
-    let params = [];
-    let paramCount = 0;
+    let where = ['il.store_id = $1'];
+    let params = [req.user.store_id];
+    let paramCount = 1;
 
     if (change_type) {
       paramCount++;
@@ -129,7 +134,7 @@ router.post('/adjust', async (req, res, next) => {
       return res.status(400).json({ error: 'product_id, quantity, change_type required' });
     }
 
-    const product = await db.query('SELECT * FROM products WHERE id = $1', [product_id]);
+    const product = await db.query('SELECT * FROM products WHERE id = $1 AND store_id = $2', [product_id, req.user.store_id]);
     if (product.rows.length === 0) {
       return res.status(404).json({ error: 'Product not found' });
     }
@@ -157,17 +162,17 @@ router.post('/adjust', async (req, res, next) => {
     );
 
     const logResult = await db.query(
-      `INSERT INTO inventory_logs (product_id, change_type, quantity, previous_stock, new_stock, note, created_by)
-       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-      [product_id, change_type, parseInt(quantity), currentStock, newStock, note || null, req.user.id]
+      `INSERT INTO inventory_logs (product_id, change_type, quantity, previous_stock, new_stock, note, created_by, store_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+      [product_id, change_type, parseInt(quantity), currentStock, newStock, note || null, req.user.id, req.user.store_id]
     );
 
     // Audit log
     await db.query(
-      `INSERT INTO audit_logs (user_id, username, action, entity_type, entity_id, old_value, new_value)
-       VALUES ($1, $2, 'inventory_adjust', 'products', $3, $4, $5)`,
+      `INSERT INTO audit_logs (user_id, username, action, entity_type, entity_id, old_value, new_value, store_id)
+       VALUES ($1, $2, 'inventory_adjust', 'products', $3, $4, $5, $6)`,
       [req.user.id, req.user.name, product_id,
-        JSON.stringify({ stock: currentStock }), JSON.stringify({ stock: newStock, change_type })]
+        JSON.stringify({ stock: currentStock }), JSON.stringify({ stock: newStock, change_type }), req.user.store_id]
     );
 
     res.json({
@@ -191,7 +196,8 @@ router.get('/summary', async (req, res, next) => {
         SUM(CASE WHEN stock_quantity = 0 AND status = 'active' THEN 1 ELSE 0 END) as out_of_stock_count,
         SUM(stock_quantity * purchase_price) as total_purchase_value,
         SUM(stock_quantity * selling_price) as total_selling_value
-       FROM products WHERE status = 'active'`
+       FROM products WHERE status = 'active' AND store_id = $1`,
+      [req.user.store_id]
     );
 
     // Get recent movements count
@@ -201,8 +207,9 @@ router.get('/summary', async (req, res, next) => {
           db.isSqlite
             ? "datetime('now', '-7 days')"
             : "(CURRENT_DATE - INTERVAL '7 days')"
-        }
-        GROUP BY change_type`
+        } AND store_id = $1
+        GROUP BY change_type`,
+      [req.user.store_id]
     );
 
     res.json({

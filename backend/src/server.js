@@ -60,6 +60,7 @@ const discountRoutes = require('./routes/discounts');
 const auditRoutes = require('./routes/audit');
 const inventoryRoutes = require('./routes/inventory');
 const returnRoutes = require('./routes/returns');
+const loginAuditRoutes = require('./routes/loginAudit');
 const { auth } = require('./middleware/auth');
 
 const app = express();
@@ -144,33 +145,40 @@ app.use('/api/discounts', discountRoutes);
 app.use('/api/audit-logs', auditRoutes);
 app.use('/api/inventory', inventoryRoutes);
 app.use('/api/returns', returnRoutes);
+app.use('/api/login-audit', loginAuditRoutes);
 app.use('/api/backup', require('./routes/backup'));
 
 // Data overview endpoint — barcha buyurtmalar va mahsulotlarni ko'rish
 app.get('/api/data/overview', auth, async (req, res) => {
   try {
     const db = require('./config/db');
+    const storeId = req.user.store_id;
     const sales = await db.query(
       `SELECT s.*, (SELECT COUNT(*) FROM sale_items si WHERE si.sale_id = s.id) as item_count
-       FROM sales s ORDER BY s.created_at DESC LIMIT 50`
+       FROM sales s WHERE s.store_id = $1 ORDER BY s.created_at DESC LIMIT 50`,
+      [storeId]
     );
     const products = await db.query(
       `SELECT p.*, c.name as category_name,
         (SELECT COUNT(*) FROM sale_items si WHERE si.product_id = p.id) as times_sold
        FROM products p LEFT JOIN categories c ON p.category_id = c.id
-       ORDER BY p.name`
+       WHERE p.store_id = $1
+       ORDER BY p.name`,
+      [storeId]
     );
     const categories = await db.query(
       `SELECT c.*, (SELECT COUNT(*) FROM products p WHERE p.category_id = c.id AND p.status = 'active') as product_count
-       FROM categories c ORDER BY c.name`
+       FROM categories c WHERE c.store_id = $1 ORDER BY c.name`,
+      [storeId]
     );
     const stats = await db.query(
       `SELECT
-        (SELECT COUNT(*) FROM sales) as total_sales,
-        (SELECT COALESCE(SUM(total_amount), 0) FROM sales) as total_revenue,
-        (SELECT COUNT(*) FROM products WHERE status = 'active') as active_products,
-        (SELECT COUNT(*) FROM products WHERE stock_quantity <= minimum_stock AND status = 'active') as low_stock
-       ${db.isSqlite ? "FROM sqlite_master WHERE type='table' LIMIT 1" : "FROM (SELECT 1) t LIMIT 1"}`
+        (SELECT COUNT(*) FROM sales WHERE store_id = $1) as total_sales,
+        (SELECT COALESCE(SUM(total_amount), 0) FROM sales WHERE store_id = $1) as total_revenue,
+        (SELECT COUNT(*) FROM products WHERE status = 'active' AND store_id = $1) as active_products,
+        (SELECT COUNT(*) FROM products WHERE stock_quantity <= minimum_stock AND status = 'active' AND store_id = $1) as low_stock
+       ${db.isSqlite ? "FROM sqlite_master WHERE type='table' LIMIT 1" : "FROM (SELECT 1) t LIMIT 1"}`,
+      [storeId]
     );
     res.json({
       sales: sales.rows,
@@ -240,9 +248,9 @@ if (!process.env.VERCEL) {
     app.get('/', (req, res) => {
       res.send(`
         <html>
-        <head><title>POS Tizimi</title></head>
+        <head><title>MaxPOS</title></head>
         <body style="font-family: sans-serif; padding: 40px; text-align: center;">
-          <h1>🚀 POS Tizimi Ishga Tushdi!</h1>
+          <h1>🚀 MaxPOS Ishga Tushdi!</h1>
           <p>Backend API: <code>/api</code></p>
           <p>Local IP: <strong>${LOCAL_IP}</strong></p>
           <p>Port: <strong>${PORT}</strong></p>
@@ -271,7 +279,7 @@ app.use((err, req, res, next) => {
 if (!process.env.VERCEL) {
   const server = app.listen(PORT, '0.0.0.0', () => {
     console.log('╔══════════════════════════════════════════════╗');
-    console.log('║         🚀 POS TIZIMI ISHGA TUSHDI          ║');
+    console.log('║          🚀 MAXPOS ISHGA TUSHDI           ║');
     console.log('╠══════════════════════════════════════════════╣');
     console.log(`║  Lokal:    http://localhost:${PORT}            ║`);
     console.log(`║  Tarmoq:   http://${LOCAL_IP}:${PORT}           ║`);

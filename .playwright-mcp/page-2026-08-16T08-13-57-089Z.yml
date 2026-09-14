@@ -1,0 +1,70 @@
+- generic [ref=f3e3]:
+  - complementary [ref=f3e4]:
+    - generic [ref=f3e5]:
+      - generic [ref=f3e10]:
+        - heading "Oziq-ovqat Do'koni" [level=1] [ref=f3e11]
+        - paragraph [ref=f3e12]: POS System
+      - navigation [ref=f3e13]:
+        - generic [ref=f3e14]:
+          - generic [ref=f3e15]: Asosiy
+          - generic [ref=f3e16]:
+            - link "Dashboard" [ref=f3e17] [cursor=pointer]:
+              - /url: /
+            - link "Kassa" [ref=f3e22] [cursor=pointer]:
+              - /url: /pos
+        - generic [ref=f3e27]:
+          - generic [ref=f3e28]: Mahsulotlar
+          - generic [ref=f3e29]:
+            - link "Mahsulotlar" [ref=f3e30] [cursor=pointer]:
+              - /url: /products
+            - link "Kategoriyalar" [ref=f3e35] [cursor=pointer]:
+              - /url: /categories
+        - generic [ref=f3e40]:
+          - generic [ref=f3e41]: Savdo
+          - generic [ref=f3e42]:
+            - link "Sotuvlar" [ref=f3e43] [cursor=pointer]:
+              - /url: /sales
+            - link "Hisobotlar" [ref=f3e48] [cursor=pointer]:
+              - /url: /reports
+            - link "Qarzdorlar" [ref=f3e54] [cursor=pointer]:
+              - /url: /customers
+        - generic [ref=f3e59]:
+          - generic [ref=f3e60]: Boshqaruv
+          - generic [ref=f3e61]:
+            - link "Yetkazib beruvchilar" [ref=f3e62] [cursor=pointer]:
+              - /url: /suppliers
+            - link "Chegirmalar" [ref=f3e67] [cursor=pointer]:
+              - /url: /discounts
+            - link "Sozlamalar" [ref=f3e72] [cursor=pointer]:
+              - /url: /settings
+      - generic [ref=f3e78]:
+        - link "A Admin Admin" [ref=f3e79] [cursor=pointer]:
+          - /url: /profile
+          - generic [ref=f3e80]: A
+          - generic [ref=f3e82]:
+            - paragraph [ref=f3e83]: Admin
+            - paragraph [ref=f3e84]: Admin
+        - generic [ref=f3e85]:
+          - generic [ref=f3e86]:
+            - button [ref=f3e87] [cursor=pointer]
+            - generic [ref=f3e91]: Kun
+          - button "Chiqish" [ref=f3e92] [cursor=pointer]
+  - generic [ref=f3e95]:
+    - banner [ref=f3e96]:
+      - generic [ref=f3e97]:
+        - button "Sidebarni ochish/yopish" [ref=f3e99] [cursor=pointer]
+        - generic [ref=f3e102]:
+          - button "uz" [ref=f3e104] [cursor=pointer]
+          - button [ref=f3e108] [cursor=pointer]
+    - main [ref=f3e111]:
+      - generic [ref=f3e112]:
+        - generic [ref=f3e114]:
+          - heading "Hisobotlar va tahlillar" [level=1] [ref=f3e115]
+          - paragraph [ref=f3e116]: Barcha moliyaviy ko'rsatkichlar bir joyda
+        - generic [ref=f3e117]:
+          - button "Umumiy" [ref=f3e118] [cursor=pointer]
+          - button "Kunlik" [ref=f3e122] [cursor=pointer]
+          - button "Oylik" [ref=f3e126] [cursor=pointer]
+          - button "TOP" [ref=f3e130] [cursor=pointer]
+          - button "Ombor" [ref=f3e134] [cursor=pointer]
+        - paragraph [ref=f3e142]: Hisobot yuklanmoqda...

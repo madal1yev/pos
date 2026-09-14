@@ -1,0 +1,112 @@
+version: "3.9"
+
+services:
+  agent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: pos-agent
+    ports:
+      - "5000:5000"
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/pos_agent
+      - REDIS_URL=redis://redis:6379
+      - BOT_TOKEN=${BOT_TOKEN}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    volumes:
+      - ./uploads:/app/uploads
+      - ./logs:/app/logs
+
+  db:
+    image: postgres:16-alpine
+    container_name: pos-agent-db
+    environment:
+      POSTGRES_DB: pos_agent
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/migrations:/docker-entrypoint-initdb.d/migrations
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: pos-agent-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: pos-agent-scheduler
+    command: npm run scheduler
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/pos_agent
+      - REDIS_URL=redis://redis:6379
+      - BOT_TOKEN=${BOT_TOKEN}
+    depends_on:
+      - db
+      - redis
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: pos-agent-worker
+    command: npm run worker
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/pos_agent
+      - REDIS_URL=redis://redis:6379
+      - BOT_TOKEN=${BOT_TOKEN}
+    depends_on:
+      - db
+      - redis
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:

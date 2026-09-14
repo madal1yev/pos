@@ -1,0 +1,19 @@
+- generic [ref=f7e4]:
+  - banner [ref=f7e5]:
+    - generic [ref=f7e6]:
+      - button "Sidebarni ochish/yopish" [ref=f7e8] [cursor=pointer]
+      - generic [ref=f7e11]:
+        - button "Tilni o'zgartirish" [ref=f7e13] [cursor=pointer]
+        - button [ref=f7e16] [cursor=pointer]
+  - main [ref=f7e19]:
+    - generic [ref=f7e20]:
+      - generic [ref=f7e23]:
+        - textbox "Qidirish yoki skanerlash..." [ref=f7e27]
+        - generic [ref=f7e28]:
+          - button "Kalk" [ref=f7e29] [cursor=pointer]
+          - button "Skanerlash" [ref=f7e32] [cursor=pointer]
+      - generic [ref=f7e38]:
+        - heading "Savat" [level=2] [ref=f7e45]
+        - generic [ref=f7e47]:
+          - paragraph [ref=f7e51]: Savat bo'sh
+          - paragraph [ref=f7e52]: Mahsulot qidirib yoki skanerlang

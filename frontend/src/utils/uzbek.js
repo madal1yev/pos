@@ -36,7 +36,8 @@ export const translations = {
     signingIn: 'Kirilmoqda...',
     welcomeBack: 'Xush kelibsiz!',
     loginSubtitle: 'POS tizimiga kiring',
-    demoCredentials: 'Demo: admin@pos.uz / password',
+    secureSystem: 'Xavfsiz va ishonchli tizim',
+    secureSystemDesc: "Ma'lumotlaringiz himoyalangan",
     // Dashboard
     dashboard: 'Boshqaruv paneli',
     pos: 'Kassa',
@@ -100,6 +101,7 @@ export const translations = {
     cash: 'Naqd',
     card: 'Karta',
     other: 'Boshqa',
+    debt: 'Qarz',
     receivedAmount: 'Qabul qilingan summa',
     change: 'Qaytim',
     completeSale: "Sotuvni yakunlash",
@@ -206,6 +208,7 @@ export const translations = {
     suppliersNav: 'Yetkazib beruvchilar',
     discountsNav: 'Chegirmalar',
     settingsNav: 'Sozlamalar',
+    loginActivityNav: 'Login Faoliyati',
     // Debtors
     debtorsTitle: 'Qarzdorlar',
     addDebtor: "Qarzdor qo'shish",
@@ -263,7 +266,8 @@ export const translations = {
     signingIn: 'Вход...',
     welcomeBack: 'Добро пожаловать!',
     loginSubtitle: 'Войдите в POS систему',
-    demoCredentials: 'Демо: admin@pos.uz / password',
+    secureSystem: 'Безопасная и надёжная система',
+    secureSystemDesc: 'Ваши данные защищены',
     // Dashboard
     dashboard: 'Панель управления',
     pos: 'Касса',
@@ -327,6 +331,7 @@ export const translations = {
     cash: 'Наличные',
     card: 'Карта',
     other: 'Другое',
+    debt: 'Долг',
     receivedAmount: 'Получено',
     change: 'Сдача',
     completeSale: 'Завершить продажу',
@@ -433,6 +438,7 @@ export const translations = {
     suppliersNav: 'Поставщики',
     discountsNav: 'Скидки',
     settingsNav: 'Настройки',
+    loginActivityNav: 'Активность входа',
     // Debtors
     debtorsTitle: 'Должники',
     addDebtor: 'Добавить должника',
@@ -490,7 +496,8 @@ export const translations = {
     signingIn: 'Signing in...',
     welcomeBack: 'Welcome back!',
     loginSubtitle: 'Sign in to POS system',
-    demoCredentials: 'Demo: admin@pos.uz / password',
+    secureSystem: 'Secure and reliable system',
+    secureSystemDesc: 'Your data is protected',
     // Dashboard
     dashboard: 'Dashboard',
     pos: 'POS',
@@ -554,6 +561,7 @@ export const translations = {
     cash: 'Cash',
     card: 'Card',
     other: 'Other',
+    debt: 'Debt',
     receivedAmount: 'Received Amount',
     change: 'Change',
     completeSale: 'Complete Sale',
@@ -660,6 +668,7 @@ export const translations = {
     suppliersNav: 'Suppliers',
     discountsNav: 'Discounts',
     settingsNav: 'Settings',
+    loginActivityNav: 'Login Activity',
     // Debtors
     debtorsTitle: 'Debtors',
     addDebtor: 'Add Debtor',

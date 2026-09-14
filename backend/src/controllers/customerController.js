@@ -4,9 +4,9 @@ exports.getAll = async (req, res, next) => {
   try {
     const { search, page = 1, limit = 50 } = req.query;
     const offset = (parseInt(page) - 1) * parseInt(limit);
-    let where = ['1=1'];
-    let params = [];
-    let paramCount = 0;
+    let where = ['store_id = $1'];
+    let params = [req.user.store_id];
+    let paramCount = 1;
 
     if (search) {
       paramCount++;
@@ -42,7 +42,7 @@ exports.getAll = async (req, res, next) => {
 
 exports.getById = async (req, res, next) => {
   try {
-    const result = await db.query('SELECT * FROM customers WHERE id = $1', [req.params.id]);
+    const result = await db.query('SELECT * FROM customers WHERE id = $1 AND store_id = $2', [req.params.id, req.user.store_id]);
     if (result.rows.length === 0) return res.status(404).json({ error: 'Customer not found' });
     res.json({ customer: result.rows[0] });
   } catch (error) { next(error); }
@@ -52,9 +52,9 @@ exports.create = async (req, res, next) => {
   try {
     const { name, phone, email, address, type, tax_id, notes, debt } = req.body;
     const result = await db.query(
-      `INSERT INTO customers (name, phone, email, address, type, tax_id, notes, debt)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
-      [name, phone || null, email || null, address || null, type || 'regular', tax_id || null, notes || null, parseFloat(debt) || 0]
+      `INSERT INTO customers (name, phone, email, address, type, tax_id, notes, debt, store_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
+      [name, phone || null, email || null, address || null, type || 'regular', tax_id || null, notes || null, parseFloat(debt) || 0, req.user.store_id]
     );
     res.status(201).json({ customer: result.rows[0] });
   } catch (error) { next(error); }
@@ -64,6 +64,8 @@ exports.update = async (req, res, next) => {
   try {
     const { name, phone, email, address, type, tax_id, notes, debt } = req.body;
     const nowExpr = db.isSqlite ? "datetime('now')" : 'NOW()';
+    const existing = await db.query('SELECT id FROM customers WHERE id = $1 AND store_id = $2', [req.params.id, req.user.store_id]);
+    if (existing.rows.length === 0) return res.status(404).json({ error: 'Customer not found' });
     const result = await db.query(
       `UPDATE customers SET name = COALESCE($1, name), phone = COALESCE($2, phone),
        email = COALESCE($3, email), address = COALESCE($4, address),
@@ -79,11 +81,14 @@ exports.update = async (req, res, next) => {
 
 exports.remove = async (req, res, next) => {
   try {
-    const existing = await db.query('SELECT id FROM customers WHERE id = $1', [req.params.id]);
+    const existing = await db.query('SELECT id FROM customers WHERE id = $1 AND store_id = $2', [req.params.id, req.user.store_id]);
     if (existing.rows.length === 0) return res.status(404).json({ error: 'Mijoz topilmadi' });
 
     // Check if customer has sales
-    const salesCheck = await db.query('SELECT COUNT(*) as count FROM sales WHERE customer_name = (SELECT name FROM customers WHERE id = $1)', [req.params.id]);
+    const salesCheck = await db.query(
+      'SELECT COUNT(*) as count FROM sales WHERE store_id = $1 AND customer_name = (SELECT name FROM customers WHERE id = $2)',
+      [req.user.store_id, req.params.id]
+    );
     if (parseInt(salesCheck.rows[0]?.count) > 0) {
       // Soft delete - deactivate
       await db.query("UPDATE customers SET is_active = false WHERE id = $1", [req.params.id]);

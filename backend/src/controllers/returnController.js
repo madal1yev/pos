@@ -8,7 +8,7 @@ exports.returnProducts = async (req, res) => {
       return res.status(400).json({ error: 'Mahsulotlar tanlanmagan' });
     }
 
-    const sale = await db.query('SELECT * FROM sales WHERE id = $1', [sale_id]);
+    const sale = await db.query('SELECT * FROM sales WHERE id = $1 AND store_id = $2', [sale_id, req.user?.store_id]);
     if (sale.rows.length === 0) {
       return res.status(404).json({ error: 'Savdo topilmadi' });
     }
@@ -43,8 +43,8 @@ exports.returnProducts = async (req, res) => {
 
     try {
       const refundResult = await db.query(
-        "INSERT INTO refunds (sale_id, user_id, refund_amount, reason, status) VALUES ($1, $2, $3, $4, 'completed') RETURNING *",
-        [sale_id, req.user?.id || 1, totalReturnAmount, reason || 'Mahsulot qaytarish']
+        "INSERT INTO refunds (sale_id, user_id, refund_amount, reason, status, store_id) VALUES ($1, $2, $3, $4, 'completed', $5) RETURNING *",
+        [sale_id, req.user?.id || 1, totalReturnAmount, reason || 'Mahsulot qaytarish', req.user?.store_id]
       );
       const refund = refundResult.rows[0];
 
@@ -66,8 +66,8 @@ exports.returnProducts = async (req, res) => {
           );
 
           await db.query(
-            'INSERT INTO inventory_logs (product_id, change_type, quantity, previous_stock, new_stock, note, created_by) VALUES ($1, $2, $3, $4, $5, $6, $7)',
-            [pi.productId, pi.returnQty, currentStock, newStock, `Qaytarish: ${saleData.invoice_number}`, req.user?.id || 1]
+            'INSERT INTO inventory_logs (product_id, change_type, quantity, previous_stock, new_stock, note, created_by, store_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
+            [pi.productId, 'return', pi.returnQty, currentStock, newStock, `Qaytarish: ${saleData.invoice_number}`, req.user?.id || 1, req.user?.store_id]
           );
         }
       }
@@ -90,8 +90,8 @@ exports.getSaleForReturn = async (req, res) => {
     if (!saleId) return res.status(400).json({ error: 'Noto\'g\'ri savdo ID' });
 
     const sale = await db.query(
-      'SELECT s.*, u.name as cashier_name FROM sales s LEFT JOIN users u ON s.user_id = u.id WHERE s.id = $1',
-      [saleId]
+      'SELECT s.*, u.name as cashier_name FROM sales s LEFT JOIN users u ON s.user_id = u.id WHERE s.id = $1 AND s.store_id = $2',
+      [saleId, req.user?.store_id]
     );
     if (sale.rows.length === 0) return res.status(404).json({ error: 'Savdo topilmadi' });
 

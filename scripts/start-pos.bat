@@ -1,5 +1,5 @@
 @echo off
-title POS Tizimi
+title MaxPOS
 cd /d "%~dp0.."
 
 :: Local IP ni aniqlash (faqat WiFi/ethernet - 192.168.x.x yoki 10.x.x.x)

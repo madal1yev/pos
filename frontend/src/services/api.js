@@ -130,6 +130,7 @@ export const customersAPI = {
   getById: (id) => api.get(`/customers/${id}`),
   create: (data) => api.post('/customers', data),
   update: (id, data) => api.put(`/customers/${id}`, data),
+  updateDebt: (id, data) => api.put(`/customers/${id}/debt`, data),
   delete: (id) => api.delete(`/customers/${id}`),
 };
 
@@ -203,6 +204,11 @@ export const reportsAPI_extended = {
 // Audit Logs
 export const auditAPI = {
   getAll: (params) => api.get('/audit-logs', { params }),
+};
+
+// Login Audit
+export const loginAuditAPI = {
+  getAll: (params) => api.get('/login-audit', { params }),
 };
 
 export default api;

@@ -21,27 +21,27 @@ exports.daily = async (req, res, next) => {
           `SELECT s.*, u.name as cashier_name,
             (SELECT COUNT(*) FROM sale_items WHERE sale_id = s.id) as item_count
            FROM sales s LEFT JOIN users u ON s.user_id = u.id
-           WHERE date(s.created_at) = date($1)
+           WHERE date(s.created_at) = date($1) AND s.store_id = $2
            ORDER BY s.created_at DESC`,
-          [targetDate]
+          [targetDate, req.user.store_id]
         )
       ),
       safeQuery('daily.summary', () =>
         db.query(
-          `SELECT 
+          `SELECT
             COUNT(*) as total_sales,
             COALESCE(SUM(total_amount), 0) as total_revenue,
             COALESCE(SUM(change_amount), 0) as total_change
-           FROM sales WHERE date(created_at) = date($1)`,
-          [targetDate]
+           FROM sales WHERE date(created_at) = date($1) AND store_id = $2`,
+          [targetDate, req.user.store_id]
         )
       ),
       safeQuery('daily.payment', () =>
         db.query(
           `SELECT payment_method, COUNT(*) as count, COALESCE(SUM(total_amount), 0) as total
-           FROM sales WHERE date(created_at) = date($1)
+           FROM sales WHERE date(created_at) = date($1) AND store_id = $2
            GROUP BY payment_method`,
-          [targetDate]
+          [targetDate, req.user.store_id]
         )
       ),
     ]);
@@ -73,55 +73,59 @@ exports.monthly = async (req, res, next) => {
       safeQuery('monthly.daily', () =>
         isSqlite
           ? db.query(
-              `SELECT 
+              `SELECT
                 date(s.created_at) as date,
                 COUNT(*) as total_sales,
                 COALESCE(SUM(s.total_amount), 0) as total_revenue,
                 COALESCE(SUM(si.quantity), 0) as items_sold
-               FROM sales s 
+               FROM sales s
                LEFT JOIN sale_items si ON si.sale_id = s.id
-               WHERE CAST(strftime('%m', s.created_at) AS INTEGER) = $1 
+               WHERE CAST(strftime('%m', s.created_at) AS INTEGER) = $1
                  AND CAST(strftime('%Y', s.created_at) AS INTEGER) = $2
+                 AND s.store_id = $3
                GROUP BY DATE(s.created_at)
                ORDER BY date ASC`,
-              [monthNum, yearNum]
+              [monthNum, yearNum, req.user.store_id]
             )
           : db.query(
-              `SELECT 
+              `SELECT
                 date(s.created_at) as date,
                 COUNT(*) as total_sales,
                 COALESCE(SUM(s.total_amount), 0) as total_revenue,
                 COALESCE(SUM(si.quantity), 0) as items_sold
-               FROM sales s 
+               FROM sales s
                LEFT JOIN sale_items si ON si.sale_id = s.id
-               WHERE EXTRACT(MONTH FROM s.created_at) = $1 
+               WHERE EXTRACT(MONTH FROM s.created_at) = $1
                  AND EXTRACT(YEAR FROM s.created_at) = $2
+                 AND s.store_id = $3
                GROUP BY DATE(s.created_at)
                ORDER BY date ASC`,
-              [monthNum, yearNum]
+              [monthNum, yearNum, req.user.store_id]
             )
       ),
       safeQuery('monthly.summary', () =>
         isSqlite
           ? db.query(
-              `SELECT 
+              `SELECT
                 COUNT(*) as total_sales,
                 COALESCE(SUM(total_amount), 0) as total_revenue,
                 COALESCE(SUM(total_amount - change_amount), 0) as net_revenue
-               FROM sales 
-               WHERE CAST(strftime('%m', created_at) AS INTEGER) = $1 
-                 AND CAST(strftime('%Y', created_at) AS INTEGER) = $2`,
-              [monthNum, yearNum]
+               FROM sales
+               WHERE CAST(strftime('%m', created_at) AS INTEGER) = $1
+                 AND CAST(strftime('%Y', created_at) AS INTEGER) = $2
+                 AND store_id = $3`,
+              [monthNum, yearNum, req.user.store_id]
             )
           : db.query(
-              `SELECT 
+              `SELECT
                 COUNT(*) as total_sales,
                 COALESCE(SUM(total_amount), 0) as total_revenue,
                 COALESCE(SUM(total_amount - change_amount), 0) as net_revenue
-               FROM sales 
-               WHERE EXTRACT(MONTH FROM created_at) = $1 
-                 AND EXTRACT(YEAR FROM created_at) = $2`,
-              [monthNum, yearNum]
+               FROM sales
+               WHERE EXTRACT(MONTH FROM created_at) = $1
+                 AND EXTRACT(YEAR FROM created_at) = $2
+                 AND store_id = $3`,
+              [monthNum, yearNum, req.user.store_id]
             )
       ),
     ]);
@@ -157,7 +161,7 @@ exports.topProducts = async (req, res, next) => {
 
     const result = await safeQuery('topProducts', () =>
       db.query(
-        `SELECT 
+        `SELECT
           p.id, p.name, p.product_code, p.selling_price,
           COALESCE(SUM(si.quantity), 0) as total_sold,
           COALESCE(SUM(si.subtotal), 0) as total_revenue,
@@ -165,11 +169,12 @@ exports.topProducts = async (req, res, next) => {
          FROM products p
          LEFT JOIN sale_items si ON si.product_id = p.id
          LEFT JOIN sales s ON si.sale_id = s.id AND ${dateFilter}
+         WHERE p.store_id = $${params.length + 1}
          GROUP BY p.id, p.name, p.product_code, p.selling_price
          HAVING COALESCE(SUM(si.quantity), 0) > 0
          ORDER BY total_sold DESC
-         LIMIT $${params.length + 1}`,
-        [...params, parseInt(limit)]
+         LIMIT $${params.length + 2}`,
+        [...params, req.user.store_id, parseInt(limit)]
       )
     );
 
@@ -183,7 +188,7 @@ exports.inventory = async (req, res, next) => {
   try {
     const { low_stock } = req.query;
 
-    let where = "p.status = 'active'";
+    let where = "p.status = 'active' AND p.store_id = $1";
     if (low_stock === 'true') {
       where += ' AND p.stock_quantity < p.minimum_stock';
     }
@@ -196,18 +201,20 @@ exports.inventory = async (req, res, next) => {
            FROM products p
            LEFT JOIN categories c ON p.category_id = c.id
            WHERE ${where}
-           ORDER BY p.stock_quantity ASC`
+           ORDER BY p.stock_quantity ASC`,
+          [req.user.store_id]
         )
       ),
       safeQuery('inventory.summary', () =>
         db.query(
-          `SELECT 
+          `SELECT
             COUNT(*) as total_products,
             COALESCE(SUM(stock_quantity), 0) as total_stock,
             COALESCE(SUM(selling_price * stock_quantity), 0) as total_stock_value,
             SUM(CASE WHEN stock_quantity < minimum_stock THEN 1 ELSE 0 END) as low_stock_count,
             SUM(CASE WHEN stock_quantity = 0 THEN 1 ELSE 0 END) as out_of_stock_count
-           FROM products WHERE status = 'active'`
+           FROM products WHERE status = 'active' AND store_id = $1`,
+          [req.user.store_id]
         )
       ),
     ]);
@@ -255,9 +262,9 @@ exports.revenue = async (req, res, next) => {
       }
     }
 
-    let where = ['1=1'];
-    let params = [];
-    let paramCount = 0;
+    let where = ['s.store_id = $1'];
+    let params = [req.user.store_id];
+    let paramCount = 1;
 
     if (from_date) {
       paramCount++;

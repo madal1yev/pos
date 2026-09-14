@@ -1,0 +1,59 @@
+- generic [ref=f5e3]:
+  - complementary [ref=f5e4]:
+    - generic [ref=f5e5]:
+      - generic [ref=f5e10]:
+        - heading "Oziq-ovqat Do'koni" [level=1] [ref=f5e11]
+        - paragraph [ref=f5e12]: POS System
+      - navigation [ref=f5e13]:
+        - generic [ref=f5e14]:
+          - generic [ref=f5e15]: Asosiy
+          - generic [ref=f5e16]:
+            - link "Dashboard" [ref=f5e17] [cursor=pointer]:
+              - /url: /
+            - link "Kassa" [ref=f5e22] [cursor=pointer]:
+              - /url: /pos
+        - generic [ref=f5e27]:
+          - generic [ref=f5e28]: Mahsulotlar
+          - generic [ref=f5e29]:
+            - link "Mahsulotlar" [ref=f5e30] [cursor=pointer]:
+              - /url: /products
+            - link "Kategoriyalar" [ref=f5e35] [cursor=pointer]:
+              - /url: /categories
+        - generic [ref=f5e40]:
+          - generic [ref=f5e41]: Savdo
+          - generic [ref=f5e42]:
+            - link "Sotuvlar" [ref=f5e43] [cursor=pointer]:
+              - /url: /sales
+            - link "Hisobotlar" [ref=f5e48] [cursor=pointer]:
+              - /url: /reports
+            - link "Qarzdorlar" [ref=f5e53] [cursor=pointer]:
+              - /url: /customers
+        - generic [ref=f5e58]:
+          - generic [ref=f5e59]: Boshqaruv
+          - generic [ref=f5e60]:
+            - link "Yetkazib beruvchilar" [ref=f5e61] [cursor=pointer]:
+              - /url: /suppliers
+            - link "Chegirmalar" [ref=f5e66] [cursor=pointer]:
+              - /url: /discounts
+            - link "Sozlamalar" [ref=f5e71] [cursor=pointer]:
+              - /url: /settings
+      - generic [ref=f5e78]:
+        - link "A Admin Admin" [ref=f5e79] [cursor=pointer]:
+          - /url: /profile
+          - generic [ref=f5e80]: A
+          - generic [ref=f5e82]:
+            - paragraph [ref=f5e83]: Admin
+            - paragraph [ref=f5e84]: Admin
+        - generic [ref=f5e85]:
+          - generic [ref=f5e86]:
+            - button [ref=f5e87] [cursor=pointer]
+            - generic [ref=f5e91]: Kun
+          - button "Chiqish" [ref=f5e92] [cursor=pointer]
+  - generic [ref=f5e95]:
+    - banner [ref=f5e96]:
+      - generic [ref=f5e97]:
+        - button "Sidebarni ochish/yopish" [ref=f5e99] [cursor=pointer]
+        - generic [ref=f5e102]:
+          - button "uz" [ref=f5e104] [cursor=pointer]
+          - button [ref=f5e108] [cursor=pointer]
+    - main [ref=f5e111]

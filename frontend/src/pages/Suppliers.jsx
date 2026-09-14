@@ -308,7 +308,7 @@ export default function Suppliers() {
     try {
       const { data } = await suppliersAPI.getAll({ search });
       setSuppliers(data?.suppliers || []);
-    } catch { toast.error("Kuryerlar yuklanmadi"); }
+    } catch {}
     finally { setLoading(false); }
   };
 

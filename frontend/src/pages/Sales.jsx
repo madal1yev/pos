@@ -350,7 +350,7 @@ export default function Sales() {
       const { data } = await salesAPI.getAll({ search, payment_method: paymentFilter, from_date: dateFrom, to_date: dateTo, page, limit: 50 });
       setSales(data?.sales || []);
       setPagination(data?.pagination || { page: 1, total: 0 });
-    } catch { toast.error("Sotuvlar yuklanmadi"); } finally { setLoading(false); }
+    } catch {} finally { setLoading(false); }
   };
 
   const handleCancelOrder = async (saleId, reason) => {

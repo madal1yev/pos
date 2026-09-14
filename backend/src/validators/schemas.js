@@ -10,6 +10,7 @@ const registerSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   email: z.string().email('Invalid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
+  store_name: z.string().min(1, "Do'kon nomi majburiy"),
   role_id: z.number().int().optional(),
 });
 

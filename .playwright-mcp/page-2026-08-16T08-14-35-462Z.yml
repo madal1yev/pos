@@ -1,0 +1,112 @@
+- generic [ref=f5e3]:
+  - complementary [ref=f5e4]:
+    - generic [ref=f5e5]:
+      - generic [ref=f5e10]:
+        - heading "Oziq-ovqat Dokon" [level=1] [ref=f5e114]
+        - paragraph [ref=f5e12]: POS System
+      - navigation [ref=f5e13]:
+        - generic [ref=f5e14]:
+          - generic [ref=f5e15]: Asosiy
+          - generic [ref=f5e16]:
+            - link "Dashboard" [ref=f5e17] [cursor=pointer]:
+              - /url: /
+            - link "Kassa" [ref=f5e22] [cursor=pointer]:
+              - /url: /pos
+        - generic [ref=f5e27]:
+          - generic [ref=f5e28]: Mahsulotlar
+          - generic [ref=f5e29]:
+            - link "Mahsulotlar" [ref=f5e30] [cursor=pointer]:
+              - /url: /products
+            - link "Kategoriyalar" [ref=f5e35] [cursor=pointer]:
+              - /url: /categories
+        - generic [ref=f5e40]:
+          - generic [ref=f5e41]: Savdo
+          - generic [ref=f5e42]:
+            - link "Sotuvlar" [ref=f5e43] [cursor=pointer]:
+              - /url: /sales
+            - link "Hisobotlar" [ref=f5e48] [cursor=pointer]:
+              - /url: /reports
+            - link "Qarzdorlar" [ref=f5e53] [cursor=pointer]:
+              - /url: /customers
+        - generic [ref=f5e58]:
+          - generic [ref=f5e59]: Boshqaruv
+          - generic [ref=f5e60]:
+            - link "Yetkazib beruvchilar" [ref=f5e61] [cursor=pointer]:
+              - /url: /suppliers
+            - link "Chegirmalar" [ref=f5e66] [cursor=pointer]:
+              - /url: /discounts
+            - link "Sozlamalar" [ref=f5e71] [cursor=pointer]:
+              - /url: /settings
+      - generic [ref=f5e78]:
+        - link "A Admin Admin" [ref=f5e79] [cursor=pointer]:
+          - /url: /profile
+          - generic [ref=f5e80]: A
+          - generic [ref=f5e82]:
+            - paragraph [ref=f5e83]: Admin
+            - paragraph [ref=f5e84]: Admin
+        - generic [ref=f5e85]:
+          - generic [ref=f5e86]:
+            - button [active] [ref=f5e87] [cursor=pointer]
+            - generic [ref=f5e91]: Tun
+          - button "Chiqish" [ref=f5e92] [cursor=pointer]
+  - generic [ref=f5e95]:
+    - banner [ref=f5e96]:
+      - generic [ref=f5e97]:
+        - button "Sidebarni ochish/yopish" [ref=f5e99] [cursor=pointer]
+        - generic [ref=f5e102]:
+          - button "uz" [ref=f5e104] [cursor=pointer]
+          - button [ref=f5e108] [cursor=pointer]
+    - main [ref=f5e111]:
+      - generic [ref=f5e112]:
+        - heading "Sozlamalar" [level=1] [ref=f5e115]
+        - generic [ref=f5e116]:
+          - generic [ref=f5e117]:
+            - heading "Do'kon ma'lumotlari" [level=2] [ref=f5e118]
+            - generic [ref=f5e119]:
+              - generic [ref=f5e120]:
+                - generic [ref=f5e121]: Do'kon logosi
+                - generic [ref=f5e122]: Yuklash
+              - generic [ref=f5e129]:
+                - generic [ref=f5e130]: Do'kon nomi
+                - textbox [ref=f5e131]: Oziq-ovqat Dokon
+              - generic [ref=f5e132]:
+                - generic [ref=f5e133]: Telefon
+                - textbox [ref=f5e134]: +998 90 123 45 67
+              - generic [ref=f5e135]:
+                - generic [ref=f5e136]: Elektron pochta
+                - textbox [ref=f5e137]
+              - generic [ref=f5e138]:
+                - generic [ref=f5e139]: Manzil
+                - textbox [ref=f5e140]: Toshkent shahri
+          - generic [ref=f5e141]:
+            - heading "Valyuta va soliq" [level=2] [ref=f5e142]
+            - generic [ref=f5e143]:
+              - generic [ref=f5e144]:
+                - generic [ref=f5e145]: Valyuta
+                - combobox [ref=f5e146]:
+                  - option "UZS - O'zbek so'mi" [selected]
+                  - option "USD - AQSH dollari"
+                  - option "RUB - Rossiya rubli"
+              - generic [ref=f5e147]:
+                - generic [ref=f5e148]: Belgi
+                - textbox [ref=f5e149]: so'm
+              - generic [ref=f5e150]:
+                - generic [ref=f5e151]: Soliq %
+                - spinbutton [ref=f5e152]: "0"
+          - generic [ref=f5e153]:
+            - heading "Chek sozlamalari" [level=2] [ref=f5e154]
+            - generic [ref=f5e155]:
+              - generic [ref=f5e156]:
+                - generic [ref=f5e157]: Chek yuqorisi (chek yuqorisida ko'rinadi)
+                - 'textbox "Masalan: Xush kelibsiz!" [ref=f5e158]': Xush kelibsiz!
+              - generic [ref=f5e159]:
+                - generic [ref=f5e160]: Chek pasti (chek pastida ko'rinadi)
+                - 'textbox "Masalan: Admin: @username" [ref=f5e161]': Xaridingiz uchun rahmat! Yana kutamiz!
+              - generic [ref=f5e162]:
+                - generic [ref=f5e163]: Kam zaxira chegarasi
+                - spinbutton [ref=f5e164]: "10"
+          - generic [ref=f5e165]:
+            - heading "💾 Ma'lumotlar zaxira nusxasi" [level=2] [ref=f5e166]
+            - paragraph [ref=f5e167]: Barcha ma'lumotlar (mahsulotlar, sotuvlar, mijozlar, sozlamalar) YAGONA JSON fayl ko'rinishida yuklab olinadi. Telefon o'chib qolsa yoki xato bo'lsa, ma'lumotlaringiz xavfsiz bo'ladi.
+            - button "Zaxira nusxani yuklab olish" [ref=f5e168] [cursor=pointer]
+          - button "Sozlamalarni saqlash" [ref=f5e172] [cursor=pointer]

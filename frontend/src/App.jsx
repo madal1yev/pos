@@ -16,6 +16,7 @@ import Categories from './pages/Categories';
 import Shifts from './pages/Shifts';
 import Discounts from './pages/Discounts';
 import Refunds from './pages/Refunds';
+import LoginActivity from './pages/LoginActivity';
 import PWAInstall from './components/PWAInstall';
 import ErrorBoundary from './components/ErrorBoundary';
 import { useDarkMode } from './hooks/useDarkMode';
@@ -49,6 +50,7 @@ function App() {
             <Route path="shifts" element={<Shifts />} />
             <Route path="discounts" element={<Discounts />} />
             <Route path="refunds" element={<Refunds />} />
+            <Route path="login-activity" element={<LoginActivity />} />
             <Route path="profile" element={<Profile />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />

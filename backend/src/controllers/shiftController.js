@@ -4,9 +4,9 @@ exports.getAll = async (req, res, next) => {
   try {
     const { status, page = 1, limit = 20 } = req.query;
     const offset = (parseInt(page) - 1) * parseInt(limit);
-    let where = ['1=1'];
-    let params = [];
-    let paramCount = 0;
+    let where = ['s.store_id = $1'];
+    let params = [req.user.store_id];
+    let paramCount = 1;
 
     if (status) {
       paramCount++;
@@ -53,8 +53,8 @@ exports.getById = async (req, res, next) => {
     const result = await db.query(
       `SELECT s.*, u.name as cashier_name
        FROM shifts s LEFT JOIN users u ON s.user_id = u.id
-       WHERE s.id = $1`,
-      [req.params.id]
+       WHERE s.id = $1 AND s.store_id = $2`,
+      [req.params.id, req.user.store_id]
     );
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Shift not found' });
@@ -79,9 +79,9 @@ exports.openShift = async (req, res, next) => {
     }
 
     const result = await db.query(
-      `INSERT INTO shifts (user_id, opening_cash, status, notes, opened_by_name)
-       VALUES ($1, $2, 'open', $3, $4) RETURNING *`,
-      [req.user.id, opening_cash, notes || null, req.user.name]
+      `INSERT INTO shifts (user_id, opening_cash, status, notes, opened_by_name, store_id)
+       VALUES ($1, $2, 'open', $3, $4, $5) RETURNING *`,
+      [req.user.id, opening_cash, notes || null, req.user.name, req.user.store_id]
     );
 
     await logAudit(req, 'shift_open', 'shifts', result.rows[0].id, null, JSON.stringify({ opening_cash, notes }));
@@ -188,8 +188,8 @@ exports.zReport = async (req, res, next) => {
     const shift = await db.query(
       `SELECT s.*, u.name as cashier_name
        FROM shifts s LEFT JOIN users u ON s.user_id = u.id
-       WHERE s.id = $1`,
-      [shiftId]
+       WHERE s.id = $1 AND s.store_id = $2`,
+      [shiftId, req.user.store_id]
     );
     if (shift.rows.length === 0) {
       return res.status(404).json({ error: 'Shift not found' });
@@ -238,9 +238,9 @@ async function logAudit(req, action, entityType, entityId, oldValue, newValue) {
   try {
     const ip = req.ip || req.connection?.remoteAddress || null;
     await db.query(
-      `INSERT INTO audit_logs (user_id, username, action, entity_type, entity_id, old_value, new_value, ip_address)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-      [req.user?.id, req.user?.name, action, entityType, entityId, oldValue, newValue, ip]
+      `INSERT INTO audit_logs (user_id, username, action, entity_type, entity_id, old_value, new_value, ip_address, store_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+      [req.user?.id, req.user?.name, action, entityType, entityId, oldValue, newValue, ip, req.user?.store_id]
     );
   } catch (e) {
     console.error('Audit log error:', e.message);

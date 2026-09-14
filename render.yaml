@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: pos-backend
+    name: maxpos-backend
     runtime: node
     repo: https://github.com/madal1yev/pos
     branch: main

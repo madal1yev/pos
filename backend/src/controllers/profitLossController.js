@@ -5,9 +5,9 @@ exports.getReport = async (req, res, next) => {
     const { from_date, to_date, period = 'daily' } = req.query;
     const isSqlite = db.isSqlite;
 
-    let dateFilter = '1=1';
-    let params = [];
-    let paramCount = 0;
+    let dateFilter = 's.store_id = $1';
+    let params = [req.user.store_id];
+    let paramCount = 1;
 
     if (from_date) {
       paramCount++;
@@ -199,10 +199,10 @@ exports.getProductProfit = async (req, res, next) => {
        LEFT JOIN categories c ON p.category_id = c.id
        LEFT JOIN sale_items si ON si.product_id = p.id
        LEFT JOIN sales s ON si.sale_id = s.id AND ${dateFilter}
-       WHERE p.status = 'active'
+       WHERE p.status = 'active' AND p.store_id = $${paramCount + 1}
        GROUP BY p.id, p.name, p.product_code, p.category_id, c.name, p.purchase_price, p.selling_price
        ORDER BY total_profit DESC`,
-      params
+      [...params, req.user.store_id]
     );
 
     res.json({ products: result.rows });

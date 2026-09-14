@@ -1,0 +1,116 @@
+- generic [ref=e2]:
+  - status [ref=e56]: Xush kelibsiz!
+  - generic [ref=e57]:
+    - complementary [ref=e58]:
+      - generic [ref=e59]:
+        - generic [ref=e64]:
+          - heading "Oziq-ovqat Dokon" [level=1] [ref=e65]
+          - paragraph [ref=e66]: POS System
+        - navigation [ref=e67]:
+          - generic [ref=e68]:
+            - generic [ref=e69]: Asosiy
+            - generic [ref=e70]:
+              - link "Dashboard" [ref=e71] [cursor=pointer]:
+                - /url: /
+              - link "Kassa" [ref=e77] [cursor=pointer]:
+                - /url: /pos
+          - generic [ref=e82]:
+            - generic [ref=e83]: Mahsulotlar
+            - generic [ref=e84]:
+              - link "Mahsulotlar" [ref=e85] [cursor=pointer]:
+                - /url: /products
+              - link "Kategoriyalar" [ref=e90] [cursor=pointer]:
+                - /url: /categories
+          - generic [ref=e95]:
+            - generic [ref=e96]: Savdo
+            - generic [ref=e97]:
+              - link "Sotuvlar" [ref=e98] [cursor=pointer]:
+                - /url: /sales
+              - link "Hisobotlar" [ref=e103] [cursor=pointer]:
+                - /url: /reports
+              - link "Qarzdorlar" [ref=e108] [cursor=pointer]:
+                - /url: /customers
+          - generic [ref=e113]:
+            - generic [ref=e114]: Boshqaruv
+            - generic [ref=e115]:
+              - link "Yetkazib beruvchilar" [ref=e116] [cursor=pointer]:
+                - /url: /suppliers
+              - link "Chegirmalar" [ref=e121] [cursor=pointer]:
+                - /url: /discounts
+              - link "Sozlamalar" [ref=e126] [cursor=pointer]:
+                - /url: /settings
+        - generic [ref=e132]:
+          - link "A Admin Admin" [ref=e133] [cursor=pointer]:
+            - /url: /profile
+            - generic [ref=e134]: A
+            - generic [ref=e136]:
+              - paragraph [ref=e137]: Admin
+              - paragraph [ref=e138]: Admin
+          - generic [ref=e139]:
+            - generic [ref=e140]:
+              - button [ref=e141] [cursor=pointer]
+              - generic [ref=e145]: Kun
+            - button "Chiqish" [ref=e146] [cursor=pointer]
+    - generic [ref=e149]:
+      - banner [ref=e150]:
+        - generic [ref=e151]:
+          - button "Sidebarni ochish/yopish" [ref=e153] [cursor=pointer]
+          - generic [ref=e156]:
+            - button "uz" [ref=e158] [cursor=pointer]
+            - button [ref=e162] [cursor=pointer]
+      - main [ref=e165]:
+        - generic [ref=e166]:
+          - generic [ref=e167]:
+            - generic [ref=e168]:
+              - heading "Boshqaruv paneli" [level=1] [ref=e169]
+              - paragraph [ref=e170]: "Bugun: Yakshanba, 16 Avgust"
+            - button "Hisobotlar" [ref=e171] [cursor=pointer]
+          - generic [ref=e174]:
+            - generic [ref=e177]:
+              - paragraph [ref=e178]: Bugungi daromad
+              - paragraph [ref=e179]: 0 so'm
+              - paragraph [ref=e180]: 0 ta sotuv
+            - generic [ref=e186]:
+              - paragraph [ref=e187]: Sotuvlar soni
+              - paragraph [ref=e188]: "0"
+            - generic [ref=e194]:
+              - paragraph [ref=e195]: Ombor qiymati
+              - paragraph [ref=e196]: 0 so'm
+              - paragraph [ref=e197]: 0 mahsulot
+            - generic [ref=e203] [cursor=pointer]:
+              - paragraph [ref=e204]: Kam qolgan
+              - paragraph [ref=e205]: "0"
+              - paragraph [ref=e206]: 0 ta tugagan
+          - generic [ref=e210]:
+            - generic [ref=e211]:
+              - paragraph [ref=e215]: Oylik daromad
+              - paragraph [ref=e216]: 0 so'm
+              - paragraph [ref=e217]: 0 ta sotuv
+            - generic [ref=e218]:
+              - paragraph [ref=e223]: Umumiy daromad
+              - paragraph [ref=e224]: 0 so'm
+              - paragraph [ref=e225]: Barcha vaqt
+            - generic [ref=e226]:
+              - paragraph [ref=e230]: Jami sotuvlar
+              - paragraph [ref=e231]: "0"
+              - paragraph [ref=e232]: Barcha vaqt
+          - generic [ref=e233]:
+            - heading "Tezkor harakatlar" [level=3] [ref=e234]
+            - generic [ref=e235]:
+              - button [ref=e236] [cursor=pointer]:
+                - generic [ref=e241]:
+                  - paragraph [ref=e242]: Kassa
+                  - paragraph [ref=e243]: Sotuv amalga oshirish
+              - button [ref=e246] [cursor=pointer]:
+                - generic [ref=e251]:
+                  - paragraph [ref=e252]: Mahsulotlar
+                  - paragraph [ref=e253]: Tovarlarni boshqarish
+              - button [ref=e256] [cursor=pointer]:
+                - generic [ref=e261]:
+                  - paragraph [ref=e262]: Hisobotlar
+                  - paragraph [ref=e263]: Barcha tahlillar
+          - generic [ref=e266]:
+            - generic [ref=e267]:
+              - heading "So'nggi sotuvlar" [level=3] [ref=e268]
+              - button "Barchasini ko'rish" [ref=e269] [cursor=pointer]
+            - paragraph [ref=e273]: Bugun sotuv yo'q

@@ -1,13 +1,13 @@
-# POS Tizimini Windows bilan avtomatik ishga tushirish
+# MaxPOS ni Windows bilan avtomatik ishga tushirish
 # BU SKRIPTNI ADMIN SIFATIDA ISHGA TUSHIRING (o'ng tugma -> Run as Administrator)
 #
 # Bu skript:
 # 1. PM2 ni Windows service qilib o'rnatadi (24/7)
-# 2. Windows boshlanganda POS tizimi avtomatik ishga tushadi
+# 2. Windows boshlanganda MaxPOS avtomatik ishga tushadi
 # 3. Backend doimiy ishlaydi
 
 Write-Host "============================================" -ForegroundColor Cyan
-Write-Host "  🚀 POS TIZIMINI O'RNATISH" -ForegroundColor Cyan
+Write-Host "  🚀 MAXPOS NI O'RNATISH" -ForegroundColor Cyan
 Write-Host "============================================" -ForegroundColor Cyan
 Write-Host ""
 
@@ -35,8 +35,8 @@ if ($LASTEXITCODE -ne 0) {
     pm2 startup
 }
 
-# === 2. POS tizimini PM2 ga qo'shish ===
-Write-Host "[2/4] POS tizimini PM2 ga qo'shish..." -ForegroundColor Yellow
+# === 2. MaxPOS ni PM2 ga qo'shish ===
+Write-Host "[2/4] MaxPOS ni PM2 ga qo'shish..." -ForegroundColor Yellow
 Set-Location $PSScriptRoot
 
 # Avval eski processlarni o'chiramiz
@@ -48,13 +48,13 @@ pm2 start scripts\ecosystem.config.js
 # PM2 konfiguratsiyani saqlash (qayta ishga tushganda avtomatik)
 pm2 save
 
-Write-Host "  ✅ POS tizimi PM2 ga qo'shildi" -ForegroundColor Green
+Write-Host "  ✅ MaxPOS PM2 ga qo'shildi" -ForegroundColor Green
 
 # === 3. Windows Task Scheduler ga qo'shish (PM2 service uchun) ===
 Write-Host "[3/4] Windows Task Scheduler sozlanmoqda..." -ForegroundColor Yellow
 
-$taskName = "POS Tizimi (PM2)"
-$taskDescription = "POS tizimi avtomatik ishga tushadi"
+$taskName = "MaxPOS (PM2)"
+  $taskDescription = "MaxPOS avtomatik ishga tushadi"
 
 # Eski taskni o'chirish
 Unregister-ScheduledTask -TaskName $taskName -Confirm:$false -ErrorAction SilentlyContinue
@@ -108,7 +108,7 @@ Write-Host "  2. Brauzerga yozing: http://$($ip):5000" -ForegroundColor Cyan
 Write-Host "  3. Login: admin@pos.uz / admin123" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "  💡 Kompyuterni qayta ishga tushirsangiz ham," -ForegroundColor Green
-Write-Host "     POS tizimi avtomatik ishga tushadi!" -ForegroundColor Green
+Write-Host "     MaxPOS avtomatik ishga tushadi!" -ForegroundColor Green
 Write-Host ""
 Write-Host "  ⚠️ WiFi o'chsa, telefon ulanolmaydi!" -ForegroundColor Red
 Write-Host "     (chunki local tarmoq orqali ishlaydi)" -ForegroundColor DarkRed

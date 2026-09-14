@@ -43,7 +43,7 @@ function normalizeBulkValue(field, value) {
   return value;
 }
 
-async function applyBulkProductUpdates(updates) {
+async function applyBulkProductUpdates(updates, storeId) {
   if (!Array.isArray(updates) || updates.length === 0) {
     return { error: 'Updates array is required' };
   }
@@ -74,11 +74,18 @@ async function applyBulkProductUpdates(updates) {
 
       sets.push(`updated_at = ${nowExpr}`);
       params.push(parseInt(u.id));
+      const idParam = pIdx++;
+      params.push(storeId);
+      const storeParam = pIdx++;
 
       const result = await db.query(
-        `UPDATE products SET ${sets.join(', ')} WHERE id = $${pIdx}`,
+        `UPDATE products SET ${sets.join(', ')} WHERE id = $${idParam} AND store_id = $${storeParam}`,
         params
       );
+      if ((result.rowCount || 0) === 0) {
+        errors.push({ id: u.id, error: 'Not found' });
+        continue;
+      }
       updated += result.rowCount || 0;
     } catch (err) {
       errors.push({ id: u.id, error: err.message });
@@ -91,7 +98,7 @@ async function applyBulkProductUpdates(updates) {
 router.post('/bulk-update-prices', async (req, res, next) => {
   try {
     const { updates } = req.body;
-    const result = await applyBulkProductUpdates(updates);
+    const result = await applyBulkProductUpdates(updates, req.user.store_id);
     if (result.error) return res.status(400).json({ error: result.error });
     res.json(result);
   } catch (error) {
@@ -101,7 +108,7 @@ router.post('/bulk-update-prices', async (req, res, next) => {
 
 router.post('/bulk-update-products', async (req, res, next) => {
   try {
-    const result = await applyBulkProductUpdates(req.body.updates);
+    const result = await applyBulkProductUpdates(req.body.updates, req.user.store_id);
     if (result.error) return res.status(400).json({ error: result.error });
     res.json(result);
   } catch (error) {
@@ -129,7 +136,7 @@ router.post('/bulk-delete-products', async (req, res, next) => {
 
     for (const id of uniqueIds) {
       try {
-        const result = await db.query('DELETE FROM products WHERE id = $1', [id]);
+        const result = await db.query('DELETE FROM products WHERE id = $1 AND store_id = $2', [id, req.user.store_id]);
         if ((result.rowCount || 0) === 0) {
           errors.push({ id, error: 'Product not found' });
         }
@@ -196,17 +203,17 @@ router.post('/import-csv', upload.single('file'), async (req, res, next) => {
         let category_id = null;
         if (categoryIdx >= 0 && vals[categoryIdx]) {
           const catName = vals[categoryIdx];
-          const catResult = await db.query('SELECT id FROM categories WHERE name = $1', [catName]);
+          const catResult = await db.query('SELECT id FROM categories WHERE name = $1 AND store_id = $2', [catName, req.user.store_id]);
           if (catResult.rows.length > 0) {
             category_id = catResult.rows[0].id;
           } else {
-            const newCat = await db.query('INSERT INTO categories (name) VALUES ($1) RETURNING id', [catName]);
+            const newCat = await db.query('INSERT INTO categories (name, store_id) VALUES ($1, $2) RETURNING id', [catName, req.user.store_id]);
             category_id = newCat.rows[0].id;
           }
         }
 
         if (upsertMode && barcode) {
-          const existing = await db.query('SELECT id FROM products WHERE barcode = $1', [barcode]);
+          const existing = await db.query('SELECT id FROM products WHERE barcode = $1 AND store_id = $2', [barcode, req.user.store_id]);
           if (existing.rows.length > 0) {
             const params = [name, category_id, selling_price, stock_quantity, minimum_stock, unit, description, existing.rows[0].id];
             await db.query(
@@ -225,10 +232,10 @@ router.post('/import-csv', upload.single('file'), async (req, res, next) => {
 
         await db.query(
           `INSERT INTO products (name, product_code, category_id, selling_price,
-            stock_quantity, minimum_stock, unit, barcode, description, status)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+            stock_quantity, minimum_stock, unit, barcode, description, status, store_id)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
           [name, productCode, category_id, selling_price,
-            stock_quantity, minimum_stock, unit, autoBarcode, description, status]
+            stock_quantity, minimum_stock, unit, autoBarcode, description, status, req.user.store_id]
         );
         imported++;
       } catch (err) {
@@ -245,8 +252,9 @@ router.post('/import-csv', upload.single('file'), async (req, res, next) => {
 router.get('/export-csv', async (req, res, next) => {
   try {
     const result = await db.query(
-      `SELECT p.*, c.name as category_name FROM products p 
-       LEFT JOIN categories c ON p.category_id = c.id ORDER BY p.id`
+      `SELECT p.*, c.name as category_name FROM products p
+       LEFT JOIN categories c ON p.category_id = c.id WHERE p.store_id = $1 ORDER BY p.id`,
+      [req.user.store_id]
     );
 
     const header = 'name,product_code,barcode,category,selling_price,stock_quantity,minimum_stock,unit,status\n';

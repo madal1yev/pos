@@ -1,0 +1,71 @@
+- generic [ref=f6e3]:
+  - complementary [ref=f6e4]:
+    - generic [ref=f6e5]:
+      - generic [ref=f6e10]:
+        - heading "Oziq-ovqat Do'koni" [level=1] [ref=f6e11]
+        - paragraph [ref=f6e12]: POS System
+      - navigation [ref=f6e13]:
+        - generic [ref=f6e14]:
+          - generic [ref=f6e15]: Asosiy
+          - generic [ref=f6e16]:
+            - link "Dashboard" [ref=f6e17] [cursor=pointer]:
+              - /url: /
+            - link "Kassa" [ref=f6e22] [cursor=pointer]:
+              - /url: /pos
+        - generic [ref=f6e27]:
+          - generic [ref=f6e28]: Mahsulotlar
+          - generic [ref=f6e29]:
+            - link "Mahsulotlar" [ref=f6e30] [cursor=pointer]:
+              - /url: /products
+            - link "Kategoriyalar" [ref=f6e35] [cursor=pointer]:
+              - /url: /categories
+        - generic [ref=f6e40]:
+          - generic [ref=f6e41]: Savdo
+          - generic [ref=f6e42]:
+            - link "Sotuvlar" [ref=f6e43] [cursor=pointer]:
+              - /url: /sales
+            - link "Hisobotlar" [ref=f6e48] [cursor=pointer]:
+              - /url: /reports
+            - link "Qarzdorlar" [ref=f6e53] [cursor=pointer]:
+              - /url: /customers
+        - generic [ref=f6e58]:
+          - generic [ref=f6e59]: Boshqaruv
+          - generic [ref=f6e60]:
+            - link "Yetkazib beruvchilar" [ref=f6e61] [cursor=pointer]:
+              - /url: /suppliers
+            - link "Chegirmalar" [ref=f6e66] [cursor=pointer]:
+              - /url: /discounts
+            - link "Sozlamalar" [ref=f6e72] [cursor=pointer]:
+              - /url: /settings
+      - generic [ref=f6e78]:
+        - link "A Admin Admin" [ref=f6e79] [cursor=pointer]:
+          - /url: /profile
+          - generic [ref=f6e80]: A
+          - generic [ref=f6e82]:
+            - paragraph [ref=f6e83]: Admin
+            - paragraph [ref=f6e84]: Admin
+        - generic [ref=f6e85]:
+          - generic [ref=f6e86]:
+            - button [ref=f6e87] [cursor=pointer]
+            - generic [ref=f6e91]: Kun
+          - button "Chiqish" [ref=f6e92] [cursor=pointer]
+  - generic [ref=f6e95]:
+    - banner [ref=f6e96]:
+      - generic [ref=f6e97]:
+        - button "Sidebarni ochish/yopish" [ref=f6e99] [cursor=pointer]
+        - generic [ref=f6e102]:
+          - button "uz" [ref=f6e104] [cursor=pointer]
+          - button [ref=f6e108] [cursor=pointer]
+    - main [ref=f6e111]:
+      - generic [ref=f6e112]:
+        - generic [ref=f6e113]:
+          - generic [ref=f6e114]:
+            - heading "Chegirma va Aksiyalar" [level=1] [ref=f6e115]
+            - paragraph [ref=f6e118]: 0 ta chegirma, 0 ta promo-kod
+          - button "Yangi chegirma" [ref=f6e119] [cursor=pointer]
+        - generic [ref=f6e122]:
+          - button "Chegirmalar" [ref=f6e123] [cursor=pointer]
+          - button "Promo-kodlar" [ref=f6e124] [cursor=pointer]
+        - generic [ref=f6e125]:
+          - paragraph [ref=f6e129]: Chegirmalar mavjud emas
+          - paragraph [ref=f6e130]: Yangi chegirma qo'shing

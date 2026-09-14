@@ -8,9 +8,9 @@ exports.getAll = async (req, res, next) => {
 
     // Return all matching IDs (for bulk select all)
     if (all_ids === 'true') {
-      let where = ['1=1'];
-      let params = [];
-      let paramCount = 0;
+      let where = ['s.store_id = $1'];
+      let params = [req.user.store_id];
+      let paramCount = 1;
 
       if (search) {
         paramCount++;
@@ -46,9 +46,9 @@ exports.getAll = async (req, res, next) => {
       return res.json({ ids: result.rows.map(r => r.id) });
     }
 
-    let where = ['1=1'];
-    let params = [];
-    let paramCount = 0;
+    let where = ['s.store_id = $1'];
+    let params = [req.user.store_id];
+    let paramCount = 1;
 
     if (search) {
       paramCount++;
@@ -115,10 +115,10 @@ exports.getAll = async (req, res, next) => {
 exports.getById = async (req, res, next) => {
   try {
     const saleResult = await db.query(
-      `SELECT s.*, u.name as cashier_name 
-       FROM sales s LEFT JOIN users u ON s.user_id = u.id 
-       WHERE s.id = $1`,
-      [req.params.id]
+      `SELECT s.*, u.name as cashier_name
+       FROM sales s LEFT JOIN users u ON s.user_id = u.id
+       WHERE s.id = $1 AND s.store_id = $2`,
+      [req.params.id, req.user.store_id]
     );
 
     if (saleResult.rows.length === 0) {
@@ -126,9 +126,9 @@ exports.getById = async (req, res, next) => {
     }
 
     const itemsResult = await db.query(
-      `SELECT si.*, p.name as product_name, p.product_code, p.unit 
-       FROM sale_items si 
-       LEFT JOIN products p ON si.product_id = p.id 
+      `SELECT si.*, p.name as product_name, p.product_code, p.unit
+       FROM sale_items si
+       LEFT JOIN products p ON si.product_id = p.id
        WHERE si.sale_id = $1`,
       [req.params.id]
     );
@@ -158,7 +158,7 @@ exports.create = async (req, res, next) => {
       }
     }
 
-    const settingsResult = await db.query('SELECT tax_percentage FROM settings LIMIT 1');
+    const settingsResult = await db.query('SELECT tax_percentage FROM settings WHERE store_id = $1 LIMIT 1', [req.user.store_id]);
     const taxRate = parseFloat(settingsResult.rows[0]?.tax_percentage || 0) / 100;
 
     let totalAmount = 0;
@@ -167,8 +167,8 @@ exports.create = async (req, res, next) => {
 
     for (const item of items) {
       const product = await db.query(
-        'SELECT * FROM products WHERE id = $1 AND status = $2',
-        [item.product_id, 'active']
+        'SELECT * FROM products WHERE id = $1 AND status = $2 AND store_id = $3',
+        [item.product_id, 'active', req.user.store_id]
       );
 
       if (product.rows.length === 0) {
@@ -195,8 +195,8 @@ exports.create = async (req, res, next) => {
       const promoResult = await db.query(
         `SELECT pc.*, d.type, d.value, d.max_discount, d.min_purchase
          FROM promo_codes pc JOIN discounts d ON pc.discount_id = d.id
-         WHERE pc.code = $1 AND pc.is_active = TRUE AND d.is_active = TRUE`,
-        [promo_code.toUpperCase()]
+         WHERE pc.code = $1 AND pc.is_active = TRUE AND d.is_active = TRUE AND d.store_id = $2`,
+        [promo_code.toUpperCase(), req.user.store_id]
       );
       if (promoResult.rows.length > 0) {
         const promo = promoResult.rows[0];
@@ -223,11 +223,11 @@ exports.create = async (req, res, next) => {
 
     try {
       const saleResult = await db.query(
-        `INSERT INTO sales (user_id, customer_name, total_amount, payment_method, received_amount, change_amount, invoice_number, notes, delivery_address, shift_id, sale_type, promo_code)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'sale', $11) RETURNING *`,
+        `INSERT INTO sales (user_id, customer_name, total_amount, payment_method, received_amount, change_amount, invoice_number, notes, delivery_address, shift_id, sale_type, promo_code, store_id)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'sale', $11, $12) RETURNING *`,
         [req.user.id, customer_name || null, totalAmount, payment_method,
           received_amount || totalAmount, changeAmount, invoiceNumber, notes || null,
-          delivery_address || null, activeShiftId || null, promo_code || null]
+          delivery_address || null, activeShiftId || null, promo_code || null, req.user.store_id]
       );
 
       const sale = saleResult.rows[0];
@@ -254,11 +254,32 @@ exports.create = async (req, res, next) => {
         );
 
         await db.query(
-          `INSERT INTO inventory_logs (product_id, change_type, quantity, previous_stock, new_stock, note, created_by)
-           VALUES ($1, 'sale', $2, $3, $4, $5, $6)`,
+          `INSERT INTO inventory_logs (product_id, change_type, quantity, previous_stock, new_stock, note, created_by, store_id)
+           VALUES ($1, 'sale', $2, $3, $4, $5, $6, $7)`,
           [item.product_id, -item.quantity, product.rows[0].stock_quantity, newStock,
-            `Sale #${invoiceNumber}`, req.user.id]
+            `Sale #${invoiceNumber}`, req.user.id, req.user.store_id]
         );
+      }
+
+      // Update customer debt if payment is debt
+      if (payment_method === 'debt' && customer_name) {
+        const existingCustomer = await db.query(
+          `SELECT id, debt_amount FROM customers WHERE name = $1 AND store_id = $2`,
+          [customer_name, req.user.store_id]
+        );
+        if (existingCustomer.rows.length > 0) {
+          const c = existingCustomer.rows[0];
+          const newDebt = (parseFloat(c.debt_amount) || 0) + totalAmount;
+          await db.query(
+            `UPDATE customers SET debt_amount = $1, debt_status = 'has_debt', updated_at = ${db.isSqlite ? "datetime('now')" : 'NOW()'} WHERE id = $2`,
+            [newDebt, c.id]
+          );
+        } else {
+          await db.query(
+            `INSERT INTO customers (name, debt_amount, debt_status, store_id) VALUES ($1, $2, 'has_debt', $3)`,
+            [customer_name, totalAmount, req.user.store_id]
+          );
+        }
       }
 
       // Commit transaction
@@ -286,15 +307,15 @@ exports.create = async (req, res, next) => {
 exports.cancelOrder = async (req, res, next) => {
   try {
     const { id } = req.params;
-    
+
     // Find the sale
-    const sale = await db.query('SELECT * FROM sales WHERE id = $1', [id]);
+    const sale = await db.query('SELECT * FROM sales WHERE id = $1 AND store_id = $2', [id, req.user.store_id]);
     if (sale.rows.length === 0) {
       return res.status(404).json({ error: 'Savdo topilmadi' });
     }
 
     const saleData = sale.rows[0];
-    
+
     if (saleData.sale_type === 'fully_refunded' || saleData.sale_type === 'voided') {
       return res.status(400).json({ error: 'Bu buyurtma allaqachon bekor qilingan' });
     }
@@ -316,10 +337,10 @@ exports.cancelOrder = async (req, res, next) => {
       );
       
       await db.query(
-        `INSERT INTO inventory_logs (product_id, change_type, quantity, previous_stock, new_stock, note, created_by)
-         VALUES ($1, 'void', $2, $3, $4, $5, $6)`,
+        `INSERT INTO inventory_logs (product_id, change_type, quantity, previous_stock, new_stock, note, created_by, store_id)
+         VALUES ($1, 'void', $2, $3, $4, $5, $6, $7)`,
         [item.product_id, item.quantity, item.current_stock || 0, newStock,
-          `Buyurtma bekor qilindi: ${saleData.invoice_number}`, req.user?.id || 1]
+          `Buyurtma bekor qilindi: ${saleData.invoice_number}`, req.user?.id || 1, req.user.store_id]
       );
     }
 
@@ -341,7 +362,7 @@ exports.cancelOrder = async (req, res, next) => {
 exports.remove = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const sale = await db.query('SELECT * FROM sales WHERE id = $1', [id]);
+    const sale = await db.query('SELECT * FROM sales WHERE id = $1 AND store_id = $2', [id, req.user.store_id]);
     if (sale.rows.length === 0) {
       return res.status(404).json({ error: 'Savdo topilmadi' });
     }
@@ -374,7 +395,7 @@ exports.bulkDelete = async (req, res, next) => {
 
     // Parallel processing for better performance
     const results = await Promise.allSettled(ids.map(async (id) => {
-      const sale = await db.query('SELECT * FROM sales WHERE id = $1', [id]);
+      const sale = await db.query('SELECT * FROM sales WHERE id = $1 AND store_id = $2', [id, req.user.store_id]);
       if (sale.rows.length === 0) throw new Error('Savdo topilmadi');
       await db.query('DELETE FROM sale_items WHERE sale_id = $1', [id]);
       await db.query('DELETE FROM sales WHERE id = $1', [id]);
@@ -401,12 +422,12 @@ exports.bulkDelete = async (req, res, next) => {
 
 exports.getInvoice = async (req, res, next) => {
   try {
-    const settings = await db.query('SELECT * FROM settings LIMIT 1');
+    const settings = await db.query('SELECT * FROM settings WHERE store_id = $1 LIMIT 1', [req.user.store_id]);
 
     const saleResult = await db.query(
-      `SELECT s.*, u.name as cashier_name 
-       FROM sales s LEFT JOIN users u ON s.user_id = u.id WHERE s.id = $1`,
-      [req.params.id]
+      `SELECT s.*, u.name as cashier_name
+       FROM sales s LEFT JOIN users u ON s.user_id = u.id WHERE s.id = $1 AND s.store_id = $2`,
+      [req.params.id, req.user.store_id]
     );
 
     if (saleResult.rows.length === 0) {

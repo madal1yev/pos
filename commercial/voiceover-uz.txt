@@ -1,0 +1,32 @@
+MaxPOS — Premium Commercial | VOICEOVER SCRIPT (o'zbek, 40 soniya)
+Ovoz: professional erkak / neytral. Confident, clean, premium. Upbeat-corporate, agressiv emas.
+Temps: ~130 so'z/daq. Har jumla ekrandagi action bilan sinxron. Musiqa -12dB ostida.
+
+[0.0-3.0 HOOK] — sekin, qiziqtirgan ohang, oxirida pauza
+"Do'koningiz hali ham daftarda yuribdimi?"
+
+[3.0-8.0 MUAMMO] — past, jiddiy, muammo urg'usi
+"Navbat. Xato hisob. Yo'qolgan cheklar. Eski daftar endi yetmaydi."
+
+[8.0-15.0 SOLUTION] — energiya ko'tariladi, ritmik, har fe'l urg'uli
+"MaxPOS. Skanerlang. Savatga qo'shing. To'lovni yakunlang — qaytimni o'zi hisoblaydi, chek bir zumda chiqadi."
+
+[15.0-22.0 MANAGEMENT] — ishonchli sanash ohangi
+"Mahsulotlar. Qarzdorlar. Smenalar. Promo-kodlar. Zaxira nusxa. Hammasi — bitta tizimda."
+
+[22.0-29.0 ANALYTICS] — keng, g'ururli, raqam urg'usi
+"Bugungi daromad. Haftalik. Oylik. Har bir so'm — ko'z oldingizda, real vaqtda."
+
+[29.0-35.0 SPEED] — stakkato, zarbali, har so'z 1.2s
+"Tez. Oson. Aqlli. Zamonaviy."
+
+[35.0-40.0 CTA] — iliq, hal qiluvchi, tabassum bilan
+"MaxPOS. Biznesingizni zamonaviy boshqaring. Bugun boshlang!"
+
+---
+Direktor eslatmasi:
+- 8.0s "MaxPOS" — brand nomini birinchi marta to'liq ayting (avval faqat savol).
+- 11.5s "To'lovni yakunlang" — cha-ching SFX bilan bir vaqtda.
+- 22.0s "Bugungi daromad" — count-up animatsiya bilan sinxron.
+- 35.0s "MaxPOS" — sting + sparkle bilan birga, 0.5s pauza, keyin tagline.
+- Jami ~95 so'z. 40s ga sig'masa, S4 dagi "Promo-kodlar. Zaxira nusxa." ni tezlashtiring (kesib tashlamang).

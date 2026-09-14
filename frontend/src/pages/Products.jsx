@@ -306,7 +306,7 @@ function ProductModal({ product, categories, onClose, onSave }) {
           </div>
         </form>
          {showBarcodeScanner && <BarcodeScannerModal onClose={() => setShowBarcodeScanner(false)} onScan={(code) => { setForm(f => ({ ...f, barcode: code })); toast.success('Shtrix-kod aniqlandi: ' + code); }} />}
-         {showCameraModal && <CameraModal onClose={() => setShowCameraModal(false)} onCapture={(dataUrl) => { setForm(f => ({ ...f, image_url: dataUrl })); toast.success('Rasm tasvirlandi'); }} />}
+         {showCameraModal && <CameraModal onClose={() => setShowCameraModal(false)} onCapture={async (dataUrl) => { try { const blob = await (await fetch(dataUrl)).blob(); const file = new File([blob], `camera-${Date.now()}.jpg`, { type: 'image/jpeg' }); await uploadImageFile(file); } catch { toast.error('Rasm yuklanmadi'); } }} />}
        </div>
      </div>
    );
@@ -575,7 +575,7 @@ export default function Products() {
   const loadProducts = async (page = 1) => {
     setLoading(true);
     try { const { data } = await productsAPI.getAll({ search, category_id: categoryFilter, page, limit: 50 }); setProducts(data?.products || []); setPagination(data?.pagination || { page: 1, total: 0 }); }
-    catch { toast.error("Mahsulotlar yuklanmadi"); } finally { setLoading(false); }
+    catch {} finally { setLoading(false); }
   };
 
   const handleDelete = async () => {
