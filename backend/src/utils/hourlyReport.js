@@ -1,13 +1,11 @@
-// Soatlik hisobot — BACKEND ichida ishlaydi, shuning uchun POS-agent
-// alohida ishga tushirilmagan bo'lsa ham har soatda Telegramga hisobot keladi.
-// Backend PM2/Task Scheduler orqali doimiy ishlasa, hisobot ham doimiy keladi.
-//
+// Soatlik hisobot — BACKEND ichida ishlaydi, har soatda Telegramga professional hisobot yuboradi.
 // Token qayerdan olinadi (birinchi topilgani):
 //   1. backend .env → TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID
 //   2. backend .env → ADMIN_BOT_TOKEN + ADMIN_CHAT_ID
 //   3. "POS agent"/.env → BOT_TOKEN + OWNER_CHAT_ID (avtomatik fallback)
 const fs = require('fs');
 const path = require('path');
+const { generateHourlyReport } = require('./reportGenerator');
 
 function loadPosAgentEnvFallback() {
   if (process.env.TELEGRAM_BOT_TOKEN || process.env.ADMIN_BOT_TOKEN) return;
@@ -48,6 +46,7 @@ async function sendTelegram(text) {
       signal: AbortSignal.timeout(10000),
     });
     if (!res.ok) {
+      // Fallback: HTML tagsiz
       await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -64,48 +63,150 @@ async function sendTelegram(text) {
 
 async function buildReport() {
   const db = require('../config/db');
+
   const todayCond = db.isSqlite ? "DATE(created_at) = DATE('now')" : 'DATE(created_at) = CURRENT_DATE';
   const hourCond = db.isSqlite
     ? "datetime(created_at) >= datetime('now', '-60 minutes')"
     : "created_at >= NOW() - INTERVAL '60 minutes'";
+  const prevHourCond = db.isSqlite
+    ? "datetime(created_at) >= datetime('now', '-120 minutes') AND datetime(created_at) < datetime('now', '-60 minutes')"
+    : "created_at >= NOW() - INTERVAL '120 minutes' AND created_at < NOW() - INTERVAL '60 minutes'";
 
+  // Asosiy statistikalar
   const day = await db.query(
     'SELECT COUNT(*) as cnt, COALESCE(SUM(total_amount), 0) as revenue FROM sales WHERE ' + todayCond
   );
   const hour = await db.query(
     'SELECT COUNT(*) as cnt, COALESCE(SUM(total_amount), 0) as revenue FROM sales WHERE ' + hourCond
   );
-  let low = { rows: [] };
-  let top = { rows: [] };
+  const prevHour = await db.query(
+    'SELECT COUNT(*) as cnt, COALESCE(SUM(total_amount), 0) as revenue FROM sales WHERE ' + prevHourCond
+  );
+
+  // O'rtacha chek
+  const avgCheck = await db.query(
+    'SELECT COALESCE(AVG(total_amount), 0) as avg FROM sales WHERE ' + todayCond
+  );
+
+  // Bekor qilinganlar
+  let cancelled = { rows: [] };
   try {
-    low = await db.query(
-      "SELECT name, stock_quantity FROM products WHERE status = 'active' ORDER BY stock_quantity ASC LIMIT 5"
+    cancelled = await db.query(
+      "SELECT COUNT(*) as cnt FROM sales WHERE status = 'cancelled' AND " + todayCond
     );
-  } catch (e) { /* jadval bo'lmasa bo'sh */ }
+  } catch (e) { /* status yo'q bo'lsa */ }
+
+  // Yangi mijozlar
+  let newCustomers = { rows: [] };
+  try {
+    newCustomers = await db.query(
+      'SELECT COUNT(*) as cnt FROM customers WHERE ' + todayCond
+    );
+  } catch (e) { /* customers jadvali bo'lmasa */ }
+
+  // To'lov usullari
+  let paymentMethods = { rows: [] };
+  try {
+    paymentMethods = await db.query(
+      'SELECT payment_method, SUM(total_amount) as revenue FROM sales WHERE ' +
+      todayCond + ' GROUP BY payment_method'
+    );
+  } catch (e) {}
+
+  // TOP-5 mahsulotlar
+  let topProducts = { rows: [] };
   try {
     const joinCond = db.isSqlite ? "DATE(s.created_at) = DATE('now')" : 'DATE(s.created_at) = CURRENT_DATE';
-    top = await db.query(
-      'SELECT p.name, SUM(si.quantity) as sold FROM sale_items si ' +
-      'JOIN products p ON si.product_id = p.id ' +
-      'JOIN sales s ON s.id = si.sale_id ' +
-      'WHERE ' + joinCond + ' ' +
-      'GROUP BY p.id, p.name ORDER BY sold DESC LIMIT 5'
+    topProducts = await db.query(
+      'SELECT p.name, SUM(si.quantity) as qty, SUM(si.quantity * si.price) as sum FROM sale_items si ' +
+      'JOIN products p ON si.product_id = p.id JOIN sales s ON s.id = si.sale_id ' +
+      'WHERE ' + joinCond + ' GROUP BY p.id, p.name ORDER BY sum DESC LIMIT 5'
     );
-  } catch (e) { /* sale_items bo'lmasa bo'sh */ }
+  } catch (e) {}
+
+  // Xodimlar samaradorligi
+  let staffPerformance = { rows: [] };
+  try {
+    staffPerformance = await db.query(
+      'SELECT u.name, COUNT(s.id) as orders, SUM(s.total_amount) as sales FROM sales s ' +
+      'JOIN users u ON s.user_id = u.id WHERE ' + todayCond + ' GROUP BY u.id, u.name ORDER BY sales DESC LIMIT 5'
+    );
+  } catch (e) {}
+
+  // Kam qolgan mahsulotlar
+  let lowStock = { rows: [] };
+  try {
+    lowStock = await db.query(
+      "SELECT name, stock_quantity as left, 'dona' as unit FROM products " +
+      "WHERE status = 'active' AND stock_quantity <= minimum_stock AND stock_quantity > 0 " +
+      "ORDER BY stock_quantity ASC LIMIT 5"
+    );
+  } catch (e) {}
+
+  // Tugagan mahsulotlar
+  let outOfStock = { rows: [] };
+  try {
+    outOfStock = await db.query(
+      "SELECT name FROM products WHERE status = 'active' AND stock_quantity <= 0 LIMIT 5"
+    );
+  } catch (e) {}
 
   const d = day.rows[0] || {};
   const h = hour.rows[0] || {};
-  const fmt = (n) => Number(n || 0).toLocaleString('uz-UZ');
-  const time = new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit', hour12: false });
-  const lowTxt = (low.rows || []).map((p) => '  • ' + p.name + ' — ' + p.stock_quantity + ' ta').join('\n') || '  Hammasi yetarli ✅';
-  const topTxt = (top.rows || []).map((p) => '  • ' + p.name + ' — ' + p.sold + ' ta').join('\n') || "  Hozircha savdo yo'q";
+  const ph = prevHour.rows[0] || {};
+  const avg = avgCheck.rows[0] || {};
 
-  return '📊 <b>Soatlik hisobot — ' + time + '</b>\n━━━━━━━━━━━━━━━\n' +
-    '💰 Bugungi tushum: <b>' + fmt(d.revenue) + " so'm</b>\n" +
-    '🧾 Bugungi savdolar: <b>' + (d.cnt || 0) + ' ta</b>\n' +
-    '⏱ Oxirgi 1 soat: <b>' + fmt(h.revenue) + " so'm</b> (" + (h.cnt || 0) + ' ta)\n\n' +
-    '🔥 <b>TOP-5 bugun:</b>\n' + topTxt + '\n\n' +
-    '⚠️ <b>Kam qolganlar:</b>\n' + lowTxt;
+  // To'lov usullarini formatlash
+  const payMethods = {};
+  (paymentMethods.rows || []).forEach(p => {
+    payMethods[p.payment_method || 'other'] = Number(p.revenue || 0);
+  });
+
+  // Kunlik maqsad (taxminiy — backend dan olish yoki default)
+  let dailyTarget = 0;
+  let dailyTotalSoFar = Number(d.revenue || 0);
+  try {
+    const settings = await db.query("SELECT value FROM settings WHERE key = 'daily_target'");
+    if (settings.rows[0]) dailyTarget = Number(settings.rows[0].value) || 0;
+  } catch (e) {}
+
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit', hour12: false });
+  const hourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+  const startStr = hourAgo.toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit', hour12: false });
+  const dateStr = now.toLocaleDateString('uz-UZ', { year: 'numeric', month: '2-digit', day: '2-digit' });
+
+  const stats = {
+    periodStart: startStr,
+    periodEnd: timeStr,
+    date: dateStr,
+    revenue: Number(h.revenue || 0),
+    revenuePrevHour: Number(ph.revenue || 0),
+    orderCount: Number(h.cnt || 0),
+    orderPrevHour: Number(ph.cnt || 0),
+    avgCheck: Number(avg.avg || 0),
+    newCustomers: Number((newCustomers.rows[0] || {}).cnt || 0),
+    cancelledOrders: Number((cancelled.rows[0] || {}).cnt || 0),
+    topProducts: (topProducts.rows || []).map(p => ({
+      name: p.name, qty: Number(p.qty || 0), sum: Number(p.sum || 0)
+    })),
+    paymentMethods: {
+      cash: payMethods['cash'] || payMethods['naqd'] || 0,
+      card: payMethods['card'] || payMethods['karta'] || 0,
+      other: payMethods['other'] || payMethods['boshqa'] || 0,
+    },
+    staffPerformance: (staffPerformance.rows || []).map(s => ({
+      name: s.name, orders: Number(s.orders || 0), sales: Number(s.sales || 0)
+    })),
+    lowStock: [
+      ...(lowStock.rows || []).map(p => ({ name: p.name, left: Number(p.left || 0), unit: p.unit || 'dona' })),
+      ...(outOfStock.rows || []).map(p => ({ name: p.name, left: 0, unit: 'TUGADI' })),
+    ],
+    dailyTotalSoFar,
+    dailyTarget,
+  };
+
+  return generateHourlyReport(stats);
 }
 
 let timer = null;
@@ -122,7 +223,7 @@ async function tick() {
 
 function startHourlyReports() {
   if (!ENABLED) {
-    console.log('⏸ Soatlik hisobot o‘chiq (HOURLY_REPORT_ENABLED=false)');
+    console.log('⏸ Soatlik hisobot o\'chiq (HOURLY_REPORT_ENABLED=false)');
     return;
   }
   if (!BOT_TOKEN || !CHAT_ID) {
@@ -134,6 +235,7 @@ function startHourlyReports() {
   if (timer) return;
   console.log('📊 Soatlik hisobot yoqildi (har ' + Math.round(INTERVAL_MS / 60000) + ' daq, chat ' + CHAT_ID + ')');
   timer = setInterval(tick, INTERVAL_MS);
+  // Birinchi hisobot 10 soniyadan keyin
   setTimeout(tick, 10000);
 }
 

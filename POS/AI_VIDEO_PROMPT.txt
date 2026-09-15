@@ -1,0 +1,232 @@
+# MaxPOS — AI Video Generation Prompt
+# BKT Template Style (Phone Mockup + Screen Swaps + Smooth Animations)
+# Format: 9:16 Vertical (1080×1920) — TikTok / Reels / Shorts
+# Duration: ~25 seconds
+# Music Only — NO Voiceover, NO Speech, NO Text-to-Speech
+
+---
+
+## STYLE REFERENCE
+
+Professional mobile app promotional video in BKT advertising template style.
+Clean, modern, minimal — like premium tech product ads on Instagram/TikTok.
+
+Visual DNA:
+- Centered smartphone mockup (iPhone 15 Pro style, Dynamic Island, thin bezels)
+- App screens swap/transition INSIDE the phone frame smoothly
+- Dark indigo background (#0f172a) with subtle gradient shifts
+- Floating label chips on left/right sides of the phone (gently bobbing up and down)
+- White text captions at the bottom of the frame
+- Thin progress bar at the top (shows video progression)
+- Tap indicator dots (white circles) appear at button positions when "tapping"
+- Soft light sweep effect across the background
+- NO people, NO hands, NO face — only the phone and its screen
+
+---
+
+## SCENE BREAKDOWN (25 seconds total)
+
+### SCENE 1 — INTRO (0:00 – 0:03, 3 seconds)
+VISUAL: Dark indigo-to-purple gradient background. A sleek iPhone mockup fades in from center with a subtle scale-up animation (0.9 → 1.0). Inside the phone screen: the MaxPOS login page appears with a clean white UI, email field showing "admin@pos.uz", and a prominent indigo "Kirish" (Login) button.
+
+TEXT OVERLAY (bottom): "MaxPOS" in large white bold font, then "Smart POS System" fades in below in smaller gray text.
+
+FLOATING CHIPS (appear at 0:5s):
+- Left side: "» Oson" in green (#6ee7b7) on dark rounded pill
+- Right side: "Naqd · Karta" in white on dark rounded pill
+
+TRANSITION: Smooth fade into next scene.
+
+MUSIC: Warm ambient pad chord (Am) fades in softly, gentle pluck note.
+
+---
+
+### SCENE 2 — LOGIN (0:03 – 0:06, 3 seconds)
+VISUAL: Phone screen transitions (slide-left) to the MaxPOS dashboard. A soft tap dot appears on the "Kirish" button, then the screen smoothly slides to reveal the main dashboard with revenue numbers, charts, and product cards. The phone has a very slow zoom-in effect (1.0 → 1.08 over 3 seconds).
+
+TEXT OVERLAY: "Ilovani oching" (Open the app)
+
+FLOATING CHIPS:
+- Left: "» Tez" in emerald green
+- Right: "Demo kirish" in white
+
+MUSIC: Plucked pentatonic melody enters over the pad. Soft kick drum on beat 1.
+
+---
+
+### SCENE 3 — POS / PRODUCT SELECTION (0:06 – 0:09, 3 seconds)
+VISUAL: Screen slides to the POS (kassa) interface showing a grid of product cards with images, names, and prices. Tap dot appears on a product — it animates into the cart with a subtle bounce. The SALE discount badge glows briefly on a product.
+
+TEXT OVERLAY: "Mahsulotni tanlang" (Choose a product)
+
+FLOATING CHIPS:
+- Left: "» Chegirma" in amber/gold (#fbbf24)
+- Right: "SALE" in gold, slightly larger font
+
+MUSIC: Chord changes to F major. Another pluck layer joins. Kick on 1 and 3.
+
+---
+
+### SCENE 4 — SCANNER (0:09 – 0:12, 3 seconds)
+VISUAL: Screen transitions to the barcode scanner view. A thin green laser line sweeps vertically across the phone screen (scanning animation). The product instantly appears in the cart with a pop-in animation. Very fast, very clean.
+
+TEXT OVERLAY: "Skanerlang" (Scan it)
+
+FLOATING CHIPS:
+- Left: "Shtrix · QR" in white
+- Right: "» 1 soniya" in light blue (#a5b4fc)
+
+MUSIC: Chord changes to C major. Hi-hat pattern enters softly. Build energy slightly.
+
+---
+
+### SCENE 5 — CART (0:12 – 0:15, 3 seconds)
+VISUAL: Screen slides to the cart view showing added products, quantities, subtotal. Tap dot appears on the quantity "+" button. A promo-code chip appears with a subtle glow. The total price updates with a counting animation.
+
+TEXT OVERLAY: "Savatga qo'shing" (Add to cart)
+
+FLOATING CHIPS:
+- Left: "Promo-kod" in amber
+- Right: "» Chegirma" in white
+
+MUSIC: Chord changes to G major. Bass note deepens. Energy building toward the payment moment.
+
+---
+
+### SCENE 6 — PAYMENT (0:15 – 0:18, 3 seconds)
+VISUAL: Screen transitions to the payment/checkout screen. Shows total amount prominently. Tap dots appear on "Naqd" (Cash) option, then on a quick-cash button (e.g., "50,000"). The "Qaytim" (Change) amount animates in with a green glow — automatic calculation. Satisfaction moment.
+
+TEXT OVERLAY: "To'lov — bir zumda" (Payment — instant)
+
+FLOATING CHIPS:
+- Left: "» Qaytim" in emerald green
+- Right: "Naqd · Karta" in white
+
+MUSIC: Chord resolves back to Am. A soft "cha-ching" sparkle layered gently. Bass note resonates.
+
+---
+
+### SCENE 7 — RECEIPT (0:18 – 0:21, 3 seconds)
+VISUAL: Screen shows the receipt printing animation — a white thermal receipt slides upward from the bottom of the phone screen. The receipt shows line items, total, change, and store name "MaxPOS". Clean, satisfying conclusion to the transaction flow.
+
+TEXT OVERLAY: "Chek tayyor" (Receipt ready)
+
+FLOATING CHIPS:
+- Left: "» Tasdiqlandi" in green
+- Right: "80mm chek" in white
+
+MUSIC: Pluck melody resolves. Pad sustains warmly. Brief pause in kick drum for contrast.
+
+---
+
+### SCENE 8 — DASHBOARD / REPORTS (0:21 – 0:24, 3 seconds)
+VISUAL: Screen slides to the dashboard showing daily revenue in large bold numbers (counting up from 0), weekly chart, "Kam qoldi" (Low stock) alerts, and TOP products. This is the "control center" view — everything in one place.
+
+TEXT OVERLAY: "Daromad — real vaqtda" (Revenue — real-time)
+
+FLOATING CHIPS:
+- Left: "» Real vaqt" in green
+- Right: "Kun · Oy · Yil" in white
+
+MUSIC: Full arrangement returns — pads, plucks, kick, bass. Warm and confident.
+
+---
+
+### SCENE 9 — CTA / OUTRO (0:24 – 0:27, 3 seconds)
+VISUAL: The phone mockup slowly zooms out and centers perfectly. Background shifts to a richer indigo-to-purple gradient. The MaxPOS logo appears large and centered above the phone with a gentle sparkle/glow animation. Below the phone, a prominent white pill-shaped button pulses gently: "» Bugun boshlang" (Start today). Below that, smaller text: "Kassa · Ombor · Qarzdorlar · Hisobotlar". At the very bottom: "O'zbek · Русский · English" in subtle indigo text.
+
+TEXT OVERLAY: "MaxPOS" (large, white, bold) → "Do'koningiz bitta tizimda" (Your store in one system)
+
+TRANSITION: Everything fades to black gracefully over the last 0.5 seconds.
+
+MUSIC: Final chord (Am) rings out with reverb tail. Pluck arpeggio resolves. Clean ending.
+
+---
+
+## VISUAL STYLE SPECIFICATIONS
+
+### Phone Mockup
+- iPhone 15 Pro style with Dynamic Island (black pill at top center)
+- Side buttons visible: 2 on left (volume up/down), 1 on right (power)
+- Thin white outline (2px) with subtle outer glow
+- Background behind phone: dark indigo gradient, slightly blurred
+- Phone frame color: very dark gray (#080812)
+
+### Animations
+- Screen transitions: smooth slide-left (0.3s ease-in-out)
+- Tap dots: white circle, 90px, appears for 0.5s with pulsating alpha (0.5 → 1.0 → 0.5)
+- Floating chips: gentle vertical bobbing (±12px, period 2.4s, sine wave)
+- Phone zoom: slow continuous zoom (in or out, ±14% over clip duration)
+- Light sweep: translucent white bar (240px wide, 5% opacity) sweeps across background
+- Progress bar: thin white line at top (8px height), fills left-to-right across scenes
+
+### Color Palette
+- Primary: Indigo #4f46e5 / #6366f1
+- Background: Dark #0f172a → #17103f gradient
+- Success/Positive: Emerald #6ee7b7
+- Warning/Hot: Amber #fbbf24
+- Info/Light: Blue #a5b4fc
+- Text: White (primary), #c7d2fe (secondary), #818cf8 (accent)
+
+### Typography (for text overlays)
+- Font: Inter or SF Pro Display (bold weight)
+- Title size: 170–185px
+- Caption size: 50–55px
+- Chip size: 28–34px
+- Color: Always high contrast against dark background
+
+---
+
+## MUSIC SPECIFICATIONS
+
+Genre: Warm corporate ambient / Soft electronic
+Tempo: 90–100 BPM (calm, confident, not rushed)
+Mood: Professional, trustworthy, modern, optimistic
+
+Structure:
+- 0:00–0:06: Soft ambient pads enter (Am chord), single pluck notes
+- 0:06–0:15: Pluck melody develops, soft kick enters, energy gently builds
+- 0:15–0:21: Full arrangement — pads + plucks + kick + bass, warm and full
+- 0:21–0:27: Gentle resolution, final chord rings out, clean ending
+
+Instrumentation:
+- Warm synthesizer pads (low-pass filtered, detuned slightly)
+- Pentatonic pluck synth (C major pentatonic: C-D-E-G-A)
+- Soft kick drum (low-pass, not punchy — warm and round)
+- Sub bass (follows chord roots: A → F → C → G)
+- NO drums beyond kick (no hi-hats, no snares, no claps)
+- NO vocals, NO speech, NO text-to-speech
+- NO harsh sound effects, NO whooshes, NO impacts
+
+Audio quality: Stereo, 48kHz, -16 LUFS integrated loudness
+
+---
+
+## TECHNICAL REQUIREMENTS
+
+Resolution: 1080 × 1920 (9:16 vertical)
+Frame rate: 30 fps minimum (60 fps preferred)
+Duration: 25–27 seconds
+Codec: H.264 or H.265
+Color space: sRGB / Rec. 709
+Safe zones: Keep text within center 80% (avoid top 15% and bottom 20% for TikTok/Reels UI)
+
+---
+
+## KEYWORDS FOR AI VIDEO TOOLS
+
+If using Runway, Pika, Kling, Sora, or similar:
+
+"Professional mobile app promo video, centered iPhone mockup on dark indigo gradient background, app screens transitioning smoothly inside the phone, floating label chips on sides, bottom text captions, progress bar at top, soft ambient corporate music, no voiceover, no people, no hands, clean minimal tech aesthetic, 9:16 vertical format, premium product advertisement style, BKT template advertising format"
+
+---
+
+## IMPORTANT NOTES
+
+1. NO voiceover or speech — music only
+2. NO people, NO hands, NO faces — only the phone and screen content
+3. Keep animations smooth and professional — no flashy/jittery effects
+4. The phone should feel like it's "floating" in space
+5. Every screen transition should feel natural and fluid
+6. Text overlays should fade in smoothly, never pop abruptly
+7. The overall feel should be: "This is a premium, trustworthy product"

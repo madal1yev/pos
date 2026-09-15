@@ -16,6 +16,27 @@ const ENABLED = process.env.ACCOUNTS_BOT_ENABLED !== 'false';
 
 let offset = 0;
 let running = false;
+let reportTimer = null;
+
+// Avtomatik soatlik hisobot — har soatda foydalanuvchi so'ramasdan ham yuboriladi
+async function autoHourlyReport() {
+  if (!running || !BOT_TOKEN || !ALLOWED_CHAT) return;
+  try {
+    await cmdHisobot(ALLOWED_CHAT);
+    console.log('📊 Akkaunt-bot: avtomatik soatlik hisobot yuborildi');
+  } catch (e) {
+    console.log('⚠️ Akkaunt-bot avtomatik hisobot xatosi:', e.message);
+  }
+}
+
+function startAutoReport() {
+  if (reportTimer) return;
+  // Har soatda (60 daqiqada) bir marta
+  reportTimer = setInterval(autoHourlyReport, 60 * 60 * 1000);
+  // Birinchi hisobot 30 soniyadan keyin (backend hisobotidan keyin)
+  setTimeout(autoHourlyReport, 30000);
+  console.log('📊 Akkaunt-bot: avtomatik soatlik hisobot yoqildi');
+}
 
 async function api(method, params = {}) {
   const url = 'https://api.telegram.org/bot' + BOT_TOKEN + '/' + method;
@@ -139,19 +160,66 @@ async function cmdArray(chatId) {
 async function cmdHisobot(chatId) {
   const db = require('../config/db');
   const todayCond = db.isSqlite ? "DATE(created_at) = DATE('now')" : 'DATE(created_at) = CURRENT_DATE';
+  const hourCond = db.isSqlite
+    ? "datetime(created_at) >= datetime('now', '-60 minutes')"
+    : "created_at >= NOW() - INTERVAL '60 minutes'";
+  const prevHourCond = db.isSqlite
+    ? "datetime(created_at) >= datetime('now', '-120 minutes') AND datetime(created_at) < datetime('now', '-60 minutes')"
+    : "created_at >= NOW() - INTERVAL '120 minutes' AND created_at < NOW() - INTERVAL '60 minutes'";
+
   const users = await db.query('SELECT COUNT(*) as cnt FROM users');
   const day = await db.query(
     'SELECT COUNT(*) as cnt, COALESCE(SUM(total_amount), 0) as revenue FROM sales WHERE ' + todayCond
   );
-  const d = day.rows[0] || {};
-  await send(
-    chatId,
-    '📊 <b>Hisobot — ' + new Date().toLocaleDateString('uz-UZ') + '</b>\n━━━━━━━━━━━━━━━\n' +
-    '👥 Akkauntlar: <b>' + (users.rows[0].cnt || 0) + ' ta</b>\n' +
-    '💰 Bugungi tushum: <b>' + fmt(d.revenue) + " so'm</b>\n" +
-    '🧾 Bugungi savdolar: <b>' + (d.cnt || 0) + ' ta</b>\n\n' +
-    '💡 Akkountlar ro‘yxati uchun: <i>akkountlar</i> deb yozing.'
+  const hour = await db.query(
+    'SELECT COUNT(*) as cnt, COALESCE(SUM(total_amount), 0) as revenue FROM sales WHERE ' + hourCond
   );
+  const prevHour = await db.query(
+    'SELECT COUNT(*) as cnt, COALESCE(SUM(total_amount), 0) as revenue FROM sales WHERE ' + prevHourCond
+  );
+  const avgCheck = await db.query(
+    'SELECT COALESCE(AVG(total_amount), 0) as avg FROM sales WHERE ' + todayCond
+  );
+
+  let lowStock = { rows: [] };
+  try {
+    lowStock = await db.query(
+      "SELECT name, stock_quantity FROM products WHERE status = 'active' AND stock_quantity <= minimum_stock AND stock_quantity > 0 ORDER BY stock_quantity ASC LIMIT 5"
+    );
+  } catch (e) {}
+
+  const d = day.rows[0] || {};
+  const h = hour.rows[0] || {};
+  const ph = prevHour.rows[0] || {};
+  const avg = avgCheck.rows[0] || {};
+
+  const revenueTrend = ph.revenue
+    ? Math.round(((h.revenue - ph.revenue) / ph.revenue) * 100)
+    : 0;
+  const orderTrend = ph.cnt
+    ? Math.round(((h.cnt - ph.cnt) / ph.cnt) * 100)
+    : 0;
+  const trendIcon = (p) => p > 0 ? `🟢 +${p}%` : p < 0 ? `🔴 ${p}%` : '⚪ 0%';
+
+  const lowTxt = (lowStock.rows || []).map(p => `   • ${p.name} — ${p.stock_quantity} ta`).join('\n') || '   Hammasi yetarli ✅';
+
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit', hour12: false });
+  const dateStr = now.toLocaleDateString('uz-UZ', { year: 'numeric', month: '2-digit', day: '2-digit' });
+
+  let report = `📊 <b>SOATLIK HISOBOT</b>\n`;
+  report += `🗓 ${dateStr} | ⏰ ${timeStr}\n`;
+  report += `━━━━━━━━━━━━━━━━━━━━\n\n`;
+  report += `💰 <b>Tushum:</b> ${fmt(d.revenue)} so'm  ${trendIcon(revenueTrend)}\n`;
+  report += `🧾 <b>Savdolar:</b> ${d.cnt || 0} ta  ${trendIcon(orderTrend)}\n`;
+  report += `💳 <b>O'rtacha chek:</b> ${fmt(avg.avg)} so'm\n`;
+  report += `👥 <b>Akkountlar:</b> ${users.rows[0].cnt || 0} ta\n\n`;
+  report += `⏱ <b>Oxirgi 1 soat:</b> ${fmt(h.revenue)} so'm (${h.cnt || 0} ta)\n\n`;
+  report += `⚠️ <b>Zaxira kam qolgan:</b>\n${lowTxt}\n\n`;
+  report += `━━━━━━━━━━━━━━━━━━━━\n`;
+  report += `🤖 Avtomatik generatsiya qilindi`;
+
+  await send(chatId, report);
 }
 
 async function cmdSotuvlar(chatId) {
@@ -328,6 +396,7 @@ async function startAccountsBot() {
     console.log('🤖 Akkaunt-boti yoqildi: @' + me.result.username + ' (chat ' + ALLOWED_CHAT + ')');
     running = true;
     poll();
+    startAutoReport();
   } catch (e) {
     console.log('⚠️ Akkaunt-boti ishga tushmadi:', e.message);
   }
@@ -335,6 +404,8 @@ async function startAccountsBot() {
 
 function stopAccountsBot() {
   running = false;
+  if (reportTimer) clearInterval(reportTimer);
+  reportTimer = null;
 }
 
 module.exports = { startAccountsBot, stopAccountsBot, handleText };

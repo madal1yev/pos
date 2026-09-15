@@ -1,0 +1,29 @@
+Professional mobile app promo. 9:16 1080x1920, 25s, music only no voiceover.
+
+iPhone mockup centered dark indigo gradient. Dynamic Island. White glow. No people.
+
+0-3s: Phone fades in. Login indigo button. "MaxPOS" text. Chips: "» Oson" green, "Naqd·Karta" white.
+
+3-6s: Slide dashboard. Revenue charts. Zoom. "Ilovani oching". Chips: "» Tez" green, "Demo" white.
+
+6-9s: POS grid. Tap dot product bounces cart. SALE glow. "Mahsulotni tanlang". Chips: "» Chegirma" amber.
+
+9-12s: Scanner green laser sweeps. Product appears cart. "Skanerlang". Chips: "Shtrix·QR" white, "» 1 soniya" blue.
+
+12-15s: Cart quantities. Tap +. Promo-code. Total counts. "Savatga qo'shing". Chips: "Promo-kod" amber.
+
+15-18s: Payment. Tap Naqd. Qaytim change green glow. "To'lov — bir zumda". Chips: "» Qaytim" green.
+
+18-21s: Receipt slides up phone bottom. Items total. "Chek tayyor". Chips: "» Tasdiqlandi" green.
+
+21-24s: Dashboard revenue counting. Chart. Low stock. "Daromad — real vaqtda". Chips: "» Real vaqt" green.
+
+24-27s: Phone zooms out. Gradient richer. Logo sparkle. Button pulses "» Bugun boshlang". Fade black.
+
+Animations: Slide 0.3s. Tap dots 90px pulsating. Chips bob ±12px sine 2.4s. Phone zoom ±14%. Light sweep 240px.
+
+Colors: Indigo #4f46e5. Emerald #6ee7b7. Amber #fbbf24. Blue #a5b4fc. White text.
+
+Music: Warm ambient 90-100 BPM. Pads plucks kick bass. Am-F-C-G. No vocals. Stereo 48kHz.
+
+Style: Premium tech ad. Clean minimal. Smooth animations. Phone floating. High contrast. Modern.

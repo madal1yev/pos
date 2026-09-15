@@ -1,0 +1,33 @@
+MaxPOS — AI reklama uchun tayyor sahifa rasmlari (POS/imagelar)
+
+Har bir rasm — real ilova ekrani (900x1600, telefon formati).
+AI video generatoriga (Runway / Sora / Luma / Pika) shunday bering:
+rasmni yuklang + quyidagi kabi prompt yozing.
+
+NAMUNA PROMPT (inglizcha):
+"Cinematic 4K vertical commercial, 9:16. Modern indigo (#4F46E5) studio background
+with soft light sweep. A realistic iPhone mockup in the center displays this exact
+app screen (keep all UI text and layout unchanged). Floating glossy badges around
+the phone: 'Tez', 'Oson', 'SALE'. Bottom caption in bold white. Smooth slow push-in,
+shallow depth of field, premium tech commercial lighting."
+
+RASMLAR TARTIBI (hikoya ketma-ketligi):
+01_login_kirish.png      — kirish ekrani (boshlanish)
+02_kassa_asosiy.png      — asosiy kassa
+03_skaner_qidiruv.png    — shtrix skanerlash
+04_savat.png             — savat
+05_tolov_qaytim.png      — to'lov + AVTO QAYTIM (asosiy фишка)
+06_chek.png              — tayyor chek
+07_dashboard_daromad.png — daromad ekrani
+08_mahsulotlar_ombor.png — ombor ("Kam qoldi" belgilari)
+09_hisobotlar_grafik.png — grafiklar
+10_qarzdorlar.png        — qarzdorlar
+11_hisobotlar.png        — hisobotlar ro'yxati
+12_sozlamalar.png        — sozlamalar (3 til, backup)
+13_tolov_muqqobil.png    — to'lov oynasi (zaxira kadr)
+
+MATN (ekranda yozuvlar o'zbekcha qolsin):
+Ilovani oching → Mahsulotni tanlang → Skanerlang → Savatga qo'shing →
+To'lov bir zumda → Chek tayyor → Daromad real vaqtda → MaxPOS, Bugun boshlang!
+
+Yozuvda: MaxPOS | O'qilishi: MaksPOS (diktorga "MaksPOS" deb yozdiring).
