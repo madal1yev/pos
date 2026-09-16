@@ -203,6 +203,9 @@ if (DATABASE_URL) {
           .replace(/UPDATE\s+(\w+)\s+SET[\s\S]*?\bWHERE\s+/i, 'SELECT * FROM $1 WHERE ')
           .replace(/\s+RETURNING\s+[\s\S]*$/i, '');
         const selParams = (selectSql.match(/\$\d+/g) || []).map((m) => params[parseInt(m.slice(1)) - 1]);
+        // Renumber placeholders to $1, $2, ... so mapParams can index selParams correctly
+        let idx = 0;
+        selectSql = selectSql.replace(/\$\d+/g, () => `$${++idx}`);
         const { sql: remapped, params: remappedParams } = mapParams(selectSql, selParams);
         const rows = sqlite.prepare(remapped).all(...remappedParams);
         return { rows, rowCount: info.changes };
@@ -251,6 +254,7 @@ if (DATABASE_URL) {
       { table: 'customers', column: 'store_id', sql: "ALTER TABLE customers ADD COLUMN store_id INTEGER" },
       { table: 'customers', column: 'debt_amount', sql: "ALTER TABLE customers ADD COLUMN debt_amount REAL DEFAULT 0" },
       { table: 'customers', column: 'debt_status', sql: "ALTER TABLE customers ADD COLUMN debt_status TEXT DEFAULT 'no_debt'" },
+      { table: 'customers', column: 'is_active', sql: "ALTER TABLE customers ADD COLUMN is_active INTEGER DEFAULT 1" },
       { table: 'suppliers', column: 'store_id', sql: "ALTER TABLE suppliers ADD COLUMN store_id INTEGER" },
       { table: 'settings', column: 'store_id', sql: "ALTER TABLE settings ADD COLUMN store_id INTEGER" },
       { table: 'shifts', column: 'store_id', sql: "ALTER TABLE shifts ADD COLUMN store_id INTEGER" },

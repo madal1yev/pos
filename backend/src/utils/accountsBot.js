@@ -19,11 +19,12 @@ let running = false;
 let reportTimer = null;
 
 // Avtomatik soatlik hisobot — har soatda foydalanuvchi so'ramasdan ham yuboriladi
+// Zakaz bot hisobiga akkauntlar arrayini yuboradi (savdo emas!)
 async function autoHourlyReport() {
   if (!running || !BOT_TOKEN || !ALLOWED_CHAT) return;
   try {
-    await cmdHisobot(ALLOWED_CHAT);
-    console.log('📊 Akkaunt-bot: avtomatik soatlik hisobot yuborildi');
+    await cmdArray(ALLOWED_CHAT);
+    console.log('📊 Akkaunt-bot: avtomatik akkauntlar arrayi yuborildi');
   } catch (e) {
     console.log('⚠️ Akkaunt-bot avtomatik hisobot xatosi:', e.message);
   }

@@ -29,7 +29,6 @@ const NAV_ITEMS = [
   { to: '/reports', icon: HiOutlineChartBar, label: 'reportsNav', group: 'trade' },
   { to: '/customers', icon: HiOutlineUsers, label: 'debtorsNav', group: 'trade' },
   { to: '/suppliers', icon: HiOutlineTruck, label: 'suppliersNav', group: 'management' },
-  { to: '/discounts', icon: HiOutlinePercentBadge, label: 'discountsNav', group: 'management' },
   { to: '/settings', icon: HiOutlineCog6Tooth, label: 'settingsNav', group: 'management' },
 ];
 

@@ -14,7 +14,6 @@ import Settings from './pages/Settings';
 import Profile from './pages/Profile';
 import Categories from './pages/Categories';
 import Shifts from './pages/Shifts';
-import Discounts from './pages/Discounts';
 import Refunds from './pages/Refunds';
 import LoginActivity from './pages/LoginActivity';
 import PWAInstall from './components/PWAInstall';
@@ -48,7 +47,6 @@ function App() {
             <Route path="settings" element={<Settings />} />
             <Route path="categories" element={<Categories />} />
             <Route path="shifts" element={<Shifts />} />
-            <Route path="discounts" element={<Discounts />} />
             <Route path="refunds" element={<Refunds />} />
             <Route path="login-activity" element={<LoginActivity />} />
             <Route path="profile" element={<Profile />} />
