@@ -38,7 +38,7 @@ function QuickAction({ icon: Icon, label, description, gradient, onClick }) {
           <p className="text-sm font-semibold text-gray-900 dark:text-white">{label}</p>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{description}</p>
         </div>
-        <HiOutlineArrowRight className="w-4 h-4 text-gray-300 group-hover:text-indigo-500 group-hover:translate-x-1 transition-all" />
+        <HiOutlineArrowRight className="w-4 h-4 text-gray-400 group-hover:text-indigo-500 group-hover:translate-x-1 transition-all" />
       </div>
     </button>
   );
@@ -140,15 +140,15 @@ export default function Dashboard() {
             Bugun: {formatUzbekDate()}
           </p>
         </div>
-        <button onClick={() => navigate('/reports')} className="flex items-center gap-2 px-4 py-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-xl text-sm font-medium hover:bg-indigo-100 dark:hover:bg-indigo-900/30 transition-all">
+        <button onClick={() => navigate('/reports')} className="flex items-center gap-2 px-4 py-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/50 rounded-xl text-sm font-medium hover:bg-indigo-100 dark:hover:bg-indigo-900/30 transition-all">
           <HiOutlineChartBar className="w-4 h-4" />
           Hisobotlar
         </button>
       </div>
 
-      <div className="flex items-center gap-2 p-1 bg-gray-100 dark:bg-gray-800 rounded-xl w-fit">
+      <div className="flex items-center gap-2 p-1 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl w-fit">
         {[['today', 'Bugun', HiOutlineCalendarDays], ['week', 'Hafta', HiOutlineFire], ['month', 'Oy', HiOutlineCalendar], ['year', 'Yil', HiOutlineChartBar]].map(([key, label, Icon]) => (
-          <button key={key} onClick={() => setPeriod(key)} className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${period === key ? 'bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}`}>
+          <button key={key} onClick={() => setPeriod(key)} className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all border ${period === key ? 'bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-400 border-gray-200 dark:border-gray-600 shadow-sm' : 'text-gray-500 dark:text-gray-400 border-transparent hover:text-gray-700 dark:hover:text-gray-300'}`}>
             <Icon className="w-4 h-4" />
             {label}
           </button>
@@ -192,7 +192,7 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="card animate-fade-in-up stagger-2 bg-gradient-to-br from-indigo-500 to-indigo-600 text-white">
+        <div className="card animate-fade-in-up stagger-2 !border-indigo-400/40 bg-gradient-to-br from-indigo-500 to-indigo-600 text-white shadow-md">
           <div className="flex items-center gap-3 mb-3">
             <HiOutlineArrowTrendingUp className="w-5 h-5 opacity-80" />
             <p className="text-sm font-medium opacity-90">Oylik daromad</p>
@@ -201,7 +201,7 @@ export default function Dashboard() {
           <p className="text-sm opacity-75 mt-1">{monthCount} ta sotuv</p>
         </div>
 
-        <div className="card animate-fade-in-up stagger-3 bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+        <div className="card animate-fade-in-up stagger-3 !border-blue-400/40 bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-md">
           <div className="flex items-center gap-3 mb-3">
             <HiOutlineFire className="w-5 h-5 opacity-80" />
             <p className="text-sm font-medium opacity-90">Haftalik daromad</p>
@@ -210,7 +210,7 @@ export default function Dashboard() {
           <p className="text-sm opacity-75 mt-1">{weekCount} ta sotuv</p>
         </div>
 
-        <div className="card animate-fade-in-up stagger-4 bg-gradient-to-br from-violet-500 to-purple-600 text-white">
+        <div className="card animate-fade-in-up stagger-4 !border-violet-400/40 bg-gradient-to-br from-violet-500 to-purple-600 text-white shadow-md">
           <div className="flex items-center gap-3 mb-3">
             <HiOutlineFire className="w-5 h-5 opacity-80" />
             <p className="text-sm font-medium opacity-90">Yillik daromad</p>
@@ -219,7 +219,7 @@ export default function Dashboard() {
           <p className="text-sm opacity-75 mt-1">{yearCount} ta sotuv</p>
         </div>
 
-        <div className="card animate-fade-in-up stagger-5 bg-gradient-to-br from-amber-500 to-orange-500 text-white">
+        <div className="card animate-fade-in-up stagger-5 !border-amber-400/40 bg-gradient-to-br from-amber-500 to-orange-500 text-white shadow-md">
           <div className="flex items-center gap-3 mb-3">
             <HiOutlineUsers className="w-5 h-5 opacity-80" />
             <p className="text-sm font-medium opacity-90">Qarzdorlar</p>
@@ -248,7 +248,7 @@ export default function Dashboard() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-800">
+                <tr className="text-left text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-800">
                   <th className="pb-3 font-medium">{t("invoice")}</th>
                   <th className="pb-3 font-medium">{t("customer")}</th>
                   <th className="pb-3 font-medium">{t("payment")}</th>
@@ -256,7 +256,7 @@ export default function Dashboard() {
                   <th className="pb-3 font-medium text-right">{t("time")}</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                 {data.recentSales.slice(0, 5).map((sale) => (
                   <tr key={sale.id} className="hover:bg-indigo-50/50 dark:hover:bg-indigo-900/10 transition-colors cursor-pointer" onClick={() => navigate('/sales')}>
                     <td className="py-3 font-mono text-xs font-medium text-indigo-600 dark:text-indigo-400">{sale.invoice_number}</td>

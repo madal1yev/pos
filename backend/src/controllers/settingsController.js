@@ -3,6 +3,27 @@ const db = require('../config/db');
 exports.get = async (req, res, next) => {
   try {
     const result = await db.query('SELECT * FROM settings WHERE store_id = $1 LIMIT 1', [req.user.store_id]);
+
+    // Yangi do'kon uchun settings qatori yo'q — avtomatik yaratib, do'kon nomini qo'yamiz
+    if (result.rows.length === 0) {
+      let storeName = req.user.store_name || 'Do\'kon';
+      try {
+        const s = await db.query('SELECT name FROM stores WHERE id = $1', [req.user.store_id]);
+        if (s.rows[0] && s.rows[0].name) storeName = s.rows[0].name;
+      } catch (e) { /* stores bo'lmasa default nom bilan davom etamiz */ }
+
+      try {
+        const inserted = await db.query(
+          `INSERT INTO settings (store_name, currency, currency_symbol, tax_percentage, low_stock_threshold, store_id)
+           VALUES ($1, 'UZS', $2, 0, 10, $3) RETURNING *`,
+          [storeName, "so'm", req.user.store_id]
+        );
+        return res.json({ settings: inserted.rows[0] });
+      } catch (e) {
+        return res.json({ settings: {} });
+      }
+    }
+
     res.json({ settings: result.rows[0] || {} });
   } catch (error) {
     next(error);

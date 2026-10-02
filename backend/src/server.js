@@ -139,6 +139,7 @@ app.use('/api/suppliers', supplierRoutes);
 app.use('/api/bulk', bulkRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/stores', require('./routes/stores'));
 app.use('/api/shifts', shiftRoutes);
 app.use('/api/refunds', refundRoutes);
 app.use('/api/discounts', discountRoutes);
@@ -285,21 +286,8 @@ if (!process.env.VERCEL) {
     console.log(`║  Tarmoq:   http://${LOCAL_IP}:${PORT}           ║`);
     console.log('╠══════════════════════════════════════════════╣');
     console.log(`║  Telefon:  http://${LOCAL_IP}:${PORT}           ║`);
-    console.log('║  Admin:    admin@pos.uz / admin123          ║');
+    console.log('║  Admin ID:  M-199053 / admin123          ║');
     console.log('╚══════════════════════════════════════════════╝');
-    // Soatlik Telegram hisoboti — backend bilan birga ishlaydi,
-    // POS-agent alohida yoqilmagan bo'lsa ham hisobot keladi.
-    try {
-      require('./utils/hourlyReport').startHourlyReports();
-    } catch (e) {
-      console.log('⚠️ Soatlik hisobot ishga tushmadi:', e.message);
-    }
-    // Akkauntlar boti — hisobot/akkountlar/tahlil buyruqlari.
-    try {
-      require('./utils/accountsBot').startAccountsBot();
-    } catch (e) {
-      console.log('⚠️ Akkaunt-boti ishga tushmadi:', e.message);
-    }
   });
 
   server.on('error', (err) => {

@@ -1,0 +1,92 @@
+[
+ {
+  "name": "Admin",
+  "account_id": "M-199053",
+  "password": "admin123",
+  "role": "admin"
+ },
+ {
+  "name": "Sotuvchi Ali",
+  "account_id": "M-100001",
+  "password": "123456",
+  "role": "cashier",
+  "store": "Sotuvchi Ali"
+ },
+ {
+  "name": "adad dasdasd",
+  "account_id": "M-188645",
+  "password": "123456",
+  "role": "admin",
+  "store": "adad dasdasd"
+ },
+ {
+  "name": "Test Sotuvchi 1",
+  "account_id": "M-100002",
+  "password": "123456",
+  "role": "cashier",
+  "store": "Test Sotuvchi 1"
+ },
+ {
+  "name": "Test Sotuvchi 2",
+  "account_id": "M-100003",
+  "password": "123456",
+  "role": "cashier",
+  "store": "Test Sotuvchi 2"
+ },
+ {
+  "name": "Test Sotuvchi 3",
+  "account_id": "M-100004",
+  "password": "123456",
+  "role": "cashier",
+  "store": "Test Sotuvchi 3"
+ },
+ {
+  "name": "Test Sotuvchi 4",
+  "account_id": "M-100005",
+  "password": "123456",
+  "role": "cashier",
+  "store": "Test Sotuvchi 4"
+ },
+ {
+  "name": "Test Sotuvchi 5",
+  "account_id": "M-100006",
+  "password": "123456",
+  "role": "cashier",
+  "store": "Test Sotuvchi 5"
+ },
+ {
+  "name": "Test Menejer 1",
+  "account_id": "M-100007",
+  "password": "123456",
+  "role": "cashier",
+  "store": "Test Menejer 1"
+ },
+ {
+  "name": "Test Menejer 2",
+  "account_id": "M-100008",
+  "password": "123456",
+  "role": "cashier",
+  "store": "Test Menejer 2"
+ },
+ {
+  "name": "Test Admin 1",
+  "account_id": "M-100009",
+  "password": "123456",
+  "role": "admin",
+  "store": "Test Admin 1"
+ },
+ {
+  "name": "Test Kassir 1",
+  "account_id": "M-100010",
+  "password": "123456",
+  "role": "cashier",
+  "store": "Test Kassir 1"
+ },
+ {
+  "name": "Test Kassir 2",
+  "account_id": "M-100011",
+  "password": "123456",
+  "role": "cashier",
+  "store": "Test Kassir 2"
+ }
+]

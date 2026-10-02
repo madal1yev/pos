@@ -23,8 +23,11 @@ const auth = async (req, res, next) => {
 
     const decoded = jwt.verify(token, JWT_SECRET);
     const result = await db.query(
-      `SELECT u.id, u.name, u.email, u.is_active, u.role_id, u.store_id, u.account_id, r.name as role
-       FROM users u LEFT JOIN roles r ON u.role_id = r.id
+      `SELECT u.id, u.name, u.email, u.is_active, u.role_id, u.store_id, u.account_id,
+              r.name as role, st.name as store_name
+       FROM users u
+       LEFT JOIN roles r ON u.role_id = r.id
+       LEFT JOIN stores st ON u.store_id = st.id
        WHERE u.id = $1`,
       [decoded.userId]
     );

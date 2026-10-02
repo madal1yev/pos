@@ -63,16 +63,46 @@ async function main() {
     const roleId = roleByName[entry.role] || roleByName['cashier'];
     const email = accountId.toLowerCase() + '@pos.local';
     const hash = await bcrypt.hash(password, 10);
-    const storeId = entry.store_id || defaultStoreId;
+
+    // entry.store (nom) yoki entry.store_id → do'konni aniqlash/yaratish
+    let storeId = entry.store_id ? parseInt(entry.store_id, 10) : null;
+    const storeName = String(entry.store || '').trim();
+    if (!storeId && storeName) {
+      const found = await db.query('SELECT id FROM stores WHERE LOWER(name) = LOWER($1)', [storeName]);
+      if (found.rows[0]) {
+        storeId = found.rows[0].id;
+      } else {
+        const made = await db.query('INSERT INTO stores (name) VALUES ($1) RETURNING id', [storeName]);
+        storeId = made.rows[0].id;
+        try {
+          await db.query(
+            `INSERT INTO settings (store_name, currency, currency_symbol, tax_percentage, low_stock_threshold, store_id)
+             VALUES ($1, 'UZS', $2, 0, 10, $3)`,
+            [storeName, "so'm", storeId]
+          );
+        } catch (e) { /* settings ixtiyoriy */ }
+        console.log("🏪 Yangi do'kon:", storeName, '→', storeId);
+      }
+    }
+    if (!storeId) storeId = defaultStoreId;
+
+    const explicitStore = !!(storeName || entry.store_id);
 
     // ID band bo'lsa — yangilash (parol/ism/rol almashtiriladi).
     // Shunda parolni unutgan akkauntga shu fayl orqali yangi parol berish mumkin.
-    const existing = await db.query('SELECT id FROM users WHERE account_id = $1', [accountId]);
+    const existing = await db.query('SELECT id, store_id FROM users WHERE account_id = $1', [accountId]);
     if (existing.rows.length > 0) {
-      await db.query(
-        'UPDATE users SET name = $1, password = $2, role_id = $3 WHERE account_id = $4',
-        [name, hash, roleId, accountId]
-      );
+      if (explicitStore && storeId && parseInt(existing.rows[0].store_id, 10) !== storeId) {
+        await db.query(
+          'UPDATE users SET name = $1, password = $2, role_id = $3, store_id = $4 WHERE account_id = $5',
+          [name, hash, roleId, storeId, accountId]
+        );
+      } else {
+        await db.query(
+          'UPDATE users SET name = $1, password = $2, role_id = $3 WHERE account_id = $4',
+          [name, hash, roleId, accountId]
+        );
+      }
       created.push({ name: name, account_id: accountId, password: password, role: entry.role || 'cashier', updated: true });
       console.log('🔄 Yangilandi (parol almashtirildi):', name, '→', accountId);
       continue;

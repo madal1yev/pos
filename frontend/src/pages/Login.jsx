@@ -10,6 +10,7 @@ import {
   HiOutlineLockClosed,
   HiOutlineIdentification,
   HiOutlineShieldCheck,
+  HiOutlineArrowLeft,
 } from 'react-icons/hi2';
 import toast from 'react-hot-toast';
 import loginShowcase from '../assets/login-showcase.jpg';
@@ -116,6 +117,17 @@ export default function Login() {
       {/* Right - auth form */}
       <div className="flex-1 flex items-center justify-center p-6 sm:p-10">
         <div className="w-full max-w-md">
+          {/* Login'dan landing sahifaga qaytish tugmasi */}
+          <button
+            type="button"
+            onClick={() => navigate('/')}
+            className="group inline-flex items-center gap-2 mb-6 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 rounded-lg px-2 py-1.5 -ml-2"
+            aria-label={t('backToLanding')}
+          >
+            <HiOutlineArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
+            {t('backToLanding')}
+          </button>
+
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white tracking-tight">{settings?.store_name || "Oziq-ovqat Do'koni"}</h1>
           <p className="text-gray-500 dark:text-gray-400 mt-2 text-sm">{t('loginSubtitle')}</p>
 

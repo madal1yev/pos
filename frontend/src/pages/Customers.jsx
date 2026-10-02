@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { customersAPI } from '../services/api';
 import { formatCurrency } from '../utils/uzbek';
-import { HiOutlinePlus, HiOutlineMagnifyingGlass, HiOutlinePencil, HiOutlineTrash, HiOutlineXMark, HiOutlineCheckCircle, HiOutlineXCircle, HiOutlineEllipsisVertical, HiOutlineCurrencyDollar, HiOutlineExclamationTriangle } from 'react-icons/hi2';
-import { Banknote, UserCheck, BadgeAlert, MoreVertical, Pencil, Trash2, X } from 'lucide-react';
+import { HiOutlinePlus, HiOutlineMagnifyingGlass, HiOutlinePencil, HiOutlineTrash, HiOutlineXMark, HiOutlineCheckCircle, HiOutlineXCircle, HiOutlineCurrencyDollar, HiOutlineExclamationTriangle } from 'react-icons/hi2';
+import { Banknote, BadgeAlert, Pencil, Trash2, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { emitDataChanged } from '../utils/events';
 
@@ -163,49 +163,54 @@ function DebtModal({ customer, onClose, onSave }) {
   );
 }
 
-function ActionsDropdown({ customer, onEdit, onDelete, onDebtAction }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef(null);
-
-  useEffect(() => {
-    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, []);
-
+// 3-nuqta dropdown O'RINIGA — doim ko'rinadigan amal tugmalari.
+// Dropdown kesilishi (skroll muammosi) va mobil qulayligi muammosini ham hal qiladi.
+function RowActions({ customer, onEdit, onDelete, onDebtAction, compact = false }) {
   const currentDebt = parseFloat(customer.debt_amount) || parseFloat(customer.debt) || 0;
   const isDebtor = customer.debt_status === 'has_debt' || currentDebt > 0;
 
+  const base = compact
+    ? 'h-11 px-2 rounded-xl text-[11px] font-semibold border flex items-center justify-center gap-1.5 transition-colors'
+    : 'p-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors';
+
   return (
-    <div className="relative" ref={ref}>
-      <button onClick={() => setOpen(!open)} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 transition-colors">
-        <MoreVertical className="w-4 h-4" />
+    <div className={`flex items-center ${compact ? 'gap-2' : 'justify-end gap-0.5'}`}>
+      <button
+        type="button"
+        onClick={() => onDebtAction(customer, isDebtor ? 'pay' : 'add')}
+        title={isDebtor ? "To'lov" : 'Qarz qo\'shish'}
+        aria-label={isDebtor ? "To'lov" : "Qarz qo'shish"}
+        className={`${base} ${compact
+          ? (isDebtor
+              ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400'
+              : 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400')
+          : ''}`}
+      >
+        {isDebtor ? <Banknote className="w-4 h-4" /> : <BadgeAlert className="w-4 h-4" />}
+        {compact && <span>{isDebtor ? "To'landi" : 'Qarzdor'}</span>}
       </button>
-      {open && (
-        <div className="absolute right-0 top-full mt-1 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 py-1.5 z-50 animate-fade-in">
-          {isDebtor ? (
-            <button onClick={() => { setOpen(false); onDebtAction(customer, 'pay'); }} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors">
-              <Banknote className="w-4 h-4" />
-              <span>To'landi</span>
-              <span className="ml-auto text-xs font-semibold text-emerald-600">{formatCurrency(currentDebt)}</span>
-            </button>
-          ) : (
-            <button onClick={() => { setOpen(false); onDebtAction(customer, 'add'); }} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors">
-              <BadgeAlert className="w-4 h-4" />
-              <span>Qarzdor</span>
-            </button>
-          )}
-          <div className="my-1 border-t border-gray-100 dark:border-gray-700" />
-          <button onClick={() => { setOpen(false); onEdit(customer); }} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-            <Pencil className="w-4 h-4" />
-            <span>Tahrirlash</span>
-          </button>
-          <button onClick={() => { setOpen(false); onDelete(customer); }} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
-            <Trash2 className="w-4 h-4" />
-            <span>O'chirish</span>
-          </button>
-        </div>
-      )}
+
+      <button
+        type="button"
+        onClick={() => onEdit(customer)}
+        title="Tahrirlash"
+        aria-label="Tahrirlash"
+        className={`${base} ${compact ? 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300' : ''}`}
+      >
+        <Pencil className="w-4 h-4" />
+        {compact && <span>Tahrirlash</span>}
+      </button>
+
+      <button
+        type="button"
+        onClick={() => onDelete(customer)}
+        title="O'chirish"
+        aria-label="O'chirish"
+        className={`${base} ${compact ? 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-red-600 dark:text-red-400' : ''}`}
+      >
+        <Trash2 className="w-4 h-4" />
+        {compact && <span>O'chirish</span>}
+      </button>
     </div>
   );
 }
@@ -283,54 +288,103 @@ export default function Customers() {
         ) : customers.length === 0 ? (
           <div className="text-center py-12 text-gray-400">Qarzdor topilmadi</div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-800">
-                  <th className="px-4 pb-3 font-medium">Qarzdor</th>
-                  <th className="pb-3 font-medium hidden sm:table-cell">Telefon</th>
-                  <th className="pb-3 font-medium text-center">Holat</th>
-                  <th className="pb-3 font-medium text-right">Qarz miqdori</th>
-                  <th className="pb-3 font-medium text-right w-12"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
-                {customers.map(c => {
-                  const debtVal = parseFloat(c.debt_amount) || parseFloat(c.debt) || 0;
-                  const hasDebt = c.debt_status === 'has_debt' || debtVal > 0;
-                  return (
-                    <tr key={c.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-100 to-indigo-200 dark:from-indigo-900/30 dark:to-indigo-800/30 flex items-center justify-center text-sm font-bold text-indigo-600 dark:text-indigo-400 flex-shrink-0">
-                            {c.name.charAt(0).toUpperCase()}
+          <>
+            {/* Desktop / planshet — jadval, amallar tugmalari DOIM ko'rinadi (dropdown yo'q) */}
+            <div className="hidden sm:block overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-800">
+                    <th className="px-4 pb-3 font-medium">Qarzdor</th>
+                    <th className="pb-3 font-medium hidden md:table-cell">Telefon</th>
+                    <th className="pb-3 font-medium text-center">Holat</th>
+                    <th className="pb-3 font-medium text-right">Qarz miqdori</th>
+                    <th className="pb-4 pr-4 font-medium text-right">Amallar</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
+                  {customers.map(c => {
+                    const debtVal = parseFloat(c.debt_amount) || parseFloat(c.debt) || 0;
+                    const hasDebt = c.debt_status === 'has_debt' || debtVal > 0;
+                    return (
+                      <tr key={c.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-100 to-indigo-200 dark:from-indigo-900/30 dark:to-indigo-800/30 flex items-center justify-center text-sm font-bold text-indigo-600 dark:text-indigo-400 flex-shrink-0">
+                              {c.name.charAt(0).toUpperCase()}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-semibold text-gray-900 dark:text-white truncate">{c.name}</p>
+                              {c.phone && <p className="text-xs text-gray-400 truncate">{c.phone}</p>}
+                            </div>
                           </div>
-                          <div className="min-w-0">
-                            <p className="font-semibold text-gray-900 dark:text-white truncate">{c.name}</p>
-                            {c.phone && <p className="text-xs text-gray-400 truncate">{c.phone}</p>}
-                          </div>
+                        </td>
+                        <td className="py-3 text-gray-600 dark:text-gray-400 hidden md:table-cell">{c.phone || '-'}</td>
+                        <td className="py-3 text-center">
+                          {hasDebt
+                            ? <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400">Qarzdor</span>
+                            : <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400">To'langan</span>}
+                        </td>
+                        <td className="py-3 text-right">
+                          <span className={`font-bold text-sm ${hasDebt ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                            {formatCurrency(debtVal)}
+                          </span>
+                        </td>
+                        <td className="py-3 pr-4">
+                          <RowActions
+                            customer={c}
+                            onEdit={(cust) => { setEditCustomer(cust); setShowModal(true); }}
+                            onDelete={setDeleteCustomer}
+                            onDebtAction={handleDebtAction}
+                          />
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobil — kartochkalar + katta tugmalar (gorizontal skroll va dropdown yo'q) */}
+            <div className="sm:hidden divide-y divide-gray-100 dark:divide-gray-800">
+              {customers.map(c => {
+                const debtVal = parseFloat(c.debt_amount) || parseFloat(c.debt) || 0;
+                const hasDebt = c.debt_status === 'has_debt' || debtVal > 0;
+                return (
+                  <div key={c.id} className="p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-100 to-indigo-200 dark:from-indigo-900/30 dark:to-indigo-800/30 flex items-center justify-center text-sm font-bold text-indigo-600 dark:text-indigo-400 flex-shrink-0">
+                          {c.name.charAt(0).toUpperCase()}
                         </div>
-                      </td>
-                      <td className="py-3 text-gray-600 dark:text-gray-400 hidden sm:table-cell">{c.phone || '-'}</td>
-                      <td className="py-3 text-center">
-                        {hasDebt
-                          ? <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400">Qarzdor</span>
-                          : <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400">To'langan</span>}
-                      </td>
-                      <td className="py-3 text-right">
-                        <span className={`font-bold text-sm ${hasDebt ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                        <div className="min-w-0">
+                          <p className="font-semibold text-gray-900 dark:text-white truncate">{c.name}</p>
+                          {c.phone && <p className="text-xs text-gray-400 truncate">{c.phone}</p>}
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className={`font-bold text-sm ${hasDebt ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
                           {formatCurrency(debtVal)}
+                        </p>
+                        <span className={`inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${hasDebt ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400' : 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400'}`}>
+                          {hasDebt ? 'Qarzdor' : "To'langan"}
                         </span>
-                      </td>
-                      <td className="py-3 text-right">
-                        <ActionsDropdown customer={c} onEdit={(c) => { setEditCustomer(c); setShowModal(true); }} onDelete={setDeleteCustomer} onDebtAction={handleDebtAction} />
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-3">
+                      <RowActions
+                        compact
+                        customer={c}
+                        onEdit={(cust) => { setEditCustomer(cust); setShowModal(true); }}
+                        onDelete={setDeleteCustomer}
+                        onDebtAction={handleDebtAction}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
         )}
       </div>
 

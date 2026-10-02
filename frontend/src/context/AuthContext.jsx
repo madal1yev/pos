@@ -37,6 +37,10 @@ export const useAuthStore = create((set, get) => ({
     } catch {}
     localStorage.removeItem('pos_token');
     localStorage.removeItem('pos_user');
+    // Keyingi akkaunt eski akkauntning sozlama/savat ma'lumotini ko'rmasligi uchun
+    localStorage.removeItem('pos_settings');
+    localStorage.removeItem('pos_cart');
+    localStorage.removeItem('pos_held_orders');
     set({ user: null, token: null });
   },
 

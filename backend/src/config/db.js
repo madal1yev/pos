@@ -140,6 +140,8 @@ if (DATABASE_URL) {
     await pgAutoMigrate();
     await pgBackfillAccountIds();
     await pgBackfillDefaultStore();
+    // users-import.json dagi akkauntlarni bazaga sinxronlash (Vercel cold start da ham)
+    await require('../utils/syncImportUsers')({ query: (sql, params) => pool.query(sql, params) });
   })().catch(e => console.log('⚠️ PG auto-migration error:', e.message));
 
   const db = {
@@ -470,6 +472,9 @@ if (DATABASE_URL) {
   autoMigrate();
   backfillAccountIds();
   backfillDefaultStore();
+  // users-import.json dagi akkauntlarni bazaga sinxronlash (faqat fayl o'zgarganda)
+  require('../utils/syncImportUsers')({ query: (sql, params) => Promise.resolve(runQuery(sql, params)) })
+    .catch(() => {});
 
   const db = {
     query: (sql, params) => Promise.resolve(runQuery(sql, params)),

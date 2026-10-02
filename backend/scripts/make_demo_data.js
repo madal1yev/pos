@@ -16,8 +16,8 @@ async function api(method, path, body) {
 }
 
 async function main() {
-  // Login
-  const login = await api('POST', '/auth/login', { email: 'admin@pos.uz', password: 'admin123' });
+  // Login (Akkaunt ID orqali — backend faqat account_id qabul qiladi)
+  const login = await api('POST', '/auth/login', { account_id: 'M-199053', password: 'admin123' });
   TOKEN = login.token;
   console.log('Login OK:', login.user.email);
 

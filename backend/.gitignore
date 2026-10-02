@@ -10,6 +10,9 @@ node_modules/
 
 .vercel
 
-# Lokal akkaunt fayllari — ichida parollar bo'ladi, GitHub ga chiqmasin
-users-import.json
+# Lokal akkaunt ro'yxati (parolsiz) — GitHub ga chiqmasin
 users-list.csv
+
+# DIQQAT: users-import.json ataylab GitHub ga chiqadi — jonli (Vercel) backend
+# har ishga tushganda shu fayldagi ID + parollarni bazaga sinxronlaydi.
+# Shu faylni himoya qiling: repo private bo'lishi shart!

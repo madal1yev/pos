@@ -1,7 +1,6 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('../config/db');
-const { sendAdminBotMessage } = require('../utils/adminTelegram');
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
@@ -83,7 +82,7 @@ exports.login = async (req, res, next) => {
 
     // Bitta helper — noto'g'ri ID ham, noto'g'ri parol ham bir xil hisoblanadi,
     // shunda mavjud bo'lmagan ID bilan ham kira olmaydi va 3-xatoda bloklanadi.
-    const failLogin = async (userId, storeId, botText) => {
+    const failLogin = async (userId, storeId) => {
       try {
         await db.query(
           `INSERT INTO login_audit_logs (user_id, email, status, ip_address, user_agent, store_id)
@@ -91,7 +90,6 @@ exports.login = async (req, res, next) => {
           [userId, accountId, 'failed', ip, userAgent, storeId]
         );
       } catch (e) { /* audit jadvali bo'lmasa ham login javobi qaytishi shart */ }
-      sendAdminBotMessage(botText);
       const attempt = recordFailedAttempt(lockKey);
       if (attempt.locked) {
         return res.status(429).json({
@@ -106,18 +104,15 @@ exports.login = async (req, res, next) => {
     };
 
     const result = await db.query(
-      `SELECT u.*, r.name as role_name FROM users u 
+      `SELECT u.*, r.name as role_name, st.name as store_name FROM users u 
        LEFT JOIN roles r ON u.role_id = r.id 
+       LEFT JOIN stores st ON u.store_id = st.id
        WHERE u.account_id = $1`,
       [accountId]
     );
 
     if (result.rows.length === 0) {
-      return failLogin(
-        null,
-        null,
-        `⚠️ LOGIN FAILED (mavjud bo'lmagan ID)\n🆔 ID: ${accountId}\n🕐 ${new Date().toISOString()}\n📍 IP: ${ip}`
-      );
+      return failLogin(null, null);
     }
 
     const user = result.rows[0];
@@ -128,11 +123,7 @@ exports.login = async (req, res, next) => {
 
     const validPassword = await bcrypt.compare(password, user.password);
     if (!validPassword) {
-      return failLogin(
-        user.id,
-        user.store_id,
-        `⚠️ LOGIN FAILED (xato parol)\n🆔 ID: ${accountId} (${user.name})\n🕐 ${new Date().toISOString()}\n📍 IP: ${ip}`
-      );
+      return failLogin(user.id, user.store_id);
     }
 
     // Muvaffaqiyatli kirish — urinishlar hisoblagichi nollanadi
@@ -142,10 +133,6 @@ exports.login = async (req, res, next) => {
       `INSERT INTO login_audit_logs (user_id, email, status, ip_address, user_agent, store_id)
        VALUES ($1, $2, $3, $4, $5, $6)`,
       [user.id, accountId, 'success', ip, userAgent, user.store_id]
-    );
-
-    sendAdminBotMessage(
-      `🔐 LOGIN\n🆔 ID: ${accountId}\n👤 ${user.name}\n🏪 Do'kon #${user.store_id || '-'}\n🕐 ${new Date().toISOString()}\n📍 IP: ${ip}\n📱 ${userAgent.slice(0, 60)}`
     );
 
     const token = generateToken(user.id, remember);
@@ -158,6 +145,8 @@ exports.login = async (req, res, next) => {
         name: user.name,
         email: user.email,
         role: user.role_name,
+        store_id: user.store_id,
+        store_name: user.store_name || null,
         has_pin: !!user.pin,
       },
     });
@@ -182,6 +171,8 @@ exports.getMe = async (req, res, next) => {
         name: req.user.name,
         email: req.user.email,
         role: req.user.role,
+        store_id: req.user.store_id,
+        store_name: req.user.store_name || null,
       },
     });
   } catch (error) {
@@ -246,19 +237,43 @@ exports.updateProfile = async (req, res, next) => {
 
 exports.changePassword = async (req, res, next) => {
   try {
-    const { current_password, new_password } = req.body;
+    const body = req.body || {};
+    // Field nomlarni moslashtirish: frontend/skrip turli yozuvlarda yuborsa ham ishlaydi
+    const rawCurrent = String(
+      body.current_password ?? body.currentPassword ?? body.old_password ?? body.oldPassword ?? ''
+    );
+    const newPassword = String(
+      body.new_password ?? body.newPassword ?? body.password ?? ''
+    ).trim();
+
+    if (!rawCurrent.trim()) {
+      return res.status(400).json({ error: "Joriy parolni kiriting" });
+    }
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: "Yangi parol kamida 6 belgidan iborat bo'lishi kerak" });
+    }
 
     const result = await db.query('SELECT password FROM users WHERE id = $1', [req.user.id]);
-    const valid = await bcrypt.compare(current_password, result.rows[0].password);
+    const stored = result.rows[0] && result.rows[0].password;
+    if (!stored) {
+      return res.status(404).json({ error: 'Foydalanuvchi topilmadi' });
+    }
+
+    // Avval aynan kiritilgan qiymat, keyin atrofidagi bo'shliqlar olib tashlangan variant
+    // (klaviatura/mobile orqali yashirin bo'shliq kirsa ham ishlaydi)
+    let valid = await bcrypt.compare(rawCurrent, stored);
+    if (!valid && rawCurrent !== rawCurrent.trim()) {
+      valid = await bcrypt.compare(rawCurrent.trim(), stored);
+    }
     if (!valid) {
-      return res.status(400).json({ error: 'Current password is incorrect' });
+      return res.status(400).json({ error: "Joriy parol noto'g'ri" });
     }
 
     const nowExpr = db.isSqlite ? "datetime('now')" : 'NOW()';
-    const hashed = await bcrypt.hash(new_password, 10);
+    const hashed = await bcrypt.hash(newPassword, 10);
     await db.query(`UPDATE users SET password = $1, updated_at = ${nowExpr} WHERE id = $2`, [hashed, req.user.id]);
 
-    res.json({ message: 'Password changed successfully' });
+    res.json({ message: "Parol muvaffaqiyatli o'zgartirildi" });
   } catch (error) {
     next(error);
   }

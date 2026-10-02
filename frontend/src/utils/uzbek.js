@@ -208,6 +208,8 @@ export const translations = {
     suppliersNav: 'Yetkazib beruvchilar',
     discountsNav: 'Chegirmalar',
     settingsNav: 'Sozlamalar',
+    storesNav: 'Dokonlar',
+    backToLanding: 'Bosh sahifa',
     loginActivityNav: 'Login Faoliyati',
     // Debtors
     debtorsTitle: 'Qarzdorlar',
@@ -438,6 +440,8 @@ export const translations = {
     suppliersNav: 'Поставщики',
     discountsNav: 'Скидки',
     settingsNav: 'Настройки',
+    storesNav: 'Магазины',
+    backToLanding: 'Главная',
     loginActivityNav: 'Активность входа',
     // Debtors
     debtorsTitle: 'Должники',
@@ -668,6 +672,8 @@ export const translations = {
     suppliersNav: 'Suppliers',
     discountsNav: 'Discounts',
     settingsNav: 'Settings',
+    storesNav: 'Stores',
+    backToLanding: 'Home',
     loginActivityNav: 'Login Activity',
     // Debtors
     debtorsTitle: 'Debtors',

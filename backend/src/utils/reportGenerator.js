@@ -1,8 +1,8 @@
 /**
- * PROFESSIONAL SOATLIK HISOBOT GENERATORI
- * MaxPOS uchun — Telegram HTML formatidagi to'liq analitika
+ * HISOBOT GENERATORI
+ * MaxPOS uchun — HTML formatidagi savdo hisoboti matni
  *
- * Ishlatish: generateHourlyReport(stats) => Telegram HTML matn
+ * Ishlatish: generateHourlyReport(stats) => HTML matn
  */
 
 function formatMoney(num) {

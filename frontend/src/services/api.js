@@ -47,6 +47,7 @@ api.interceptors.response.use(
         isRedirecting = true;
         localStorage.removeItem('pos_token');
         localStorage.removeItem('pos_user');
+        localStorage.removeItem('pos_settings');
         window.location.href = '/login';
       } else if (!token && !isLoginPage) {
         isRedirecting = true;
@@ -207,6 +208,22 @@ export const auditAPI = {
 // Login Audit
 export const loginAuditAPI = {
   getAll: (params) => api.get('/login-audit', { params }),
+};
+
+// Do'konlar (har bir do'konning ma'lumotlari alohida)
+export const storesAPI = {
+  getAll: () => api.get('/stores'),
+  create: (data) => api.post('/stores', data),
+  update: (id, data) => api.put(`/stores/${id}`, data),
+  remove: (id) => api.delete(`/stores/${id}`),
+};
+
+// Foydalanuvchilar (admin) — do'konlarga ko'chirish bilan
+export const usersAPI = {
+  getAll: () => api.get('/users'),
+  create: (data) => api.post('/users', data),
+  update: (id, data) => api.put(`/users/${id}`, data),
+  remove: (id) => api.delete(`/users/${id}`),
 };
 
 export default api;

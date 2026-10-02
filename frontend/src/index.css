@@ -24,7 +24,7 @@
   }
 
   .btn-secondary {
-    @apply bg-white text-gray-700 border border-gray-200 px-4 py-2 rounded-lg font-medium
+    @apply bg-white text-gray-700 border border-gray-300 px-4 py-2 rounded-lg font-medium
            hover:bg-gray-50 transition-all duration-200 focus:outline-none focus:ring-2
            focus:ring-indigo-500 focus:ring-offset-2 active:scale-[0.98];
   }
@@ -45,7 +45,7 @@
            focus:ring-offset-2 active:scale-[0.98];
   }
   .input-field {
-    @apply w-full px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white
+    @apply w-full px-3 py-2 border border-gray-300 rounded-xl text-sm bg-white
            focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
            placeholder:text-gray-400 transition-all duration-200;
   }
@@ -54,7 +54,7 @@
   }
 
   .card {
-    @apply bg-white rounded-2xl shadow-[0_1px_2px_rgba(15,15,35,0.04),0_8px_24px_-12px_rgba(15,15,35,0.08)] border border-gray-100/80 p-6;
+    @apply bg-white rounded-2xl shadow-[0_1px_2px_rgba(15,15,35,0.06),0_8px_24px_-12px_rgba(15,15,35,0.12)] border border-gray-200 p-6;
   }
   .dark .card {
     @apply bg-gray-800 border-gray-700 shadow-sm;
@@ -87,6 +87,22 @@
   .dark .badge-info {
     @apply bg-indigo-900/30 text-indigo-300;
   }
+}
+
+/* Light mode border ko'rinuvchanligi — dark mode'dagi kabi ajratib turishi uchun.
+   Butun sayt bo'ylab ishlatilgan xira border-gray-50/100 larni gray-200 ga ko'taramiz.
+   Dark mode'ga ta'sir qilmaydi (dark: variantlar ustunlik qiladi). */
+.border-gray-50 {
+  border-color: rgb(229 231 235);
+}
+.border-gray-100 {
+  border-color: rgb(229 231 235);
+}
+.divide-gray-50 > :not([hidden]) ~ :not([hidden]) {
+  border-color: rgb(243 244 246);
+}
+.divide-gray-100 > :not([hidden]) ~ :not([hidden]) {
+  border-color: rgb(229 231 235);
 }
 
 ::-webkit-scrollbar {
@@ -342,4 +358,36 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 /* Safe area for mobile bottom bar */
 .safe-area-bottom {
   padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* ================= LANDING (ochiq marketing sahifa) ================= */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Fixed navbar balandligi uchun anchor scroll zapasi */
+section[id] {
+  scroll-margin-top: 76px;
+}
+
+/* Scroll paytida asta-sekin ko'rish (Reveal komponenti bilan) */
+.lp-reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 0.55s ease, transform 0.55s ease;
+  will-change: opacity, transform;
+}
+.lp-reveal.is-in {
+  opacity: 1;
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .lp-reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
 }

@@ -29,6 +29,7 @@ const NAV_ITEMS = [
   { to: '/reports', icon: HiOutlineChartBar, label: 'reportsNav', group: 'trade' },
   { to: '/customers', icon: HiOutlineUsers, label: 'debtorsNav', group: 'trade' },
   { to: '/suppliers', icon: HiOutlineTruck, label: 'suppliersNav', group: 'management' },
+  { to: '/stores', icon: HiOutlineBuildingStorefront, label: 'storesNav', group: 'management', adminOnly: true },
   { to: '/settings', icon: HiOutlineCog6Tooth, label: 'settingsNav', group: 'management' },
 ];
 
@@ -54,12 +55,12 @@ const NavItem = memo(function NavItem({ item, onClose }) {
           <div
             className={`
               group relative flex items-center gap-3 h-9 px-3.5 rounded-lg cursor-pointer
-              select-none transition-colors duration-150
+              select-none transition-colors duration-150 border
               ${isAccent
-                ? 'bg-indigo-600 text-white shadow-sm'
+                ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
                 : isActive
-                  ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400'
-                  : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-300'
+                  ? 'bg-indigo-50 text-indigo-700 border-indigo-300 dark:bg-indigo-900/30 dark:text-indigo-400 dark:border-indigo-700 shadow-sm'
+                  : 'text-gray-500 dark:text-gray-400 border-transparent hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-200 dark:hover:border-gray-700'
               }
             `}
           >
@@ -120,7 +121,9 @@ export default function Sidebar({ open, onClose, dark, toggleDark }) {
        {/* Navigation - All items visible, no scroll */}
       <nav className="flex-1 min-h-0 overflow-y-auto px-2.5 py-2.5 scrollbar-none">
         {GROUPS.map((group) => {
-          const items = NAV_ITEMS.filter((i) => i.group === group.key);
+          const items = NAV_ITEMS.filter(
+            (i) => i.group === group.key && (!i.adminOnly || user?.role === 'admin')
+          );
           if (!items.length) return null;
           return (
             <div key={group.key}>
