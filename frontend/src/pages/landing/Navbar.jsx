@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { HiOutlineBars3, HiOutlineXMark } from 'react-icons/hi2';
 import { Store } from 'lucide-react';
+import InstallAppButton from '../../components/InstallAppButton';
 
 const LINKS = [
   { href: '#top', label: 'Bosh sahifa' },
@@ -53,6 +54,7 @@ export default function Navbar() {
         </div>
 
         <div className="flex items-center gap-2">
+          <InstallAppButton className="hidden sm:inline-flex" />
           <Link
             to="/login"
             className="hidden sm:inline-flex items-center justify-center h-10 px-5 rounded-lg bg-gray-900 text-white text-sm font-semibold hover:bg-gray-800 transition-colors"
@@ -84,6 +86,7 @@ export default function Navbar() {
                 {l.label}
               </a>
             ))}
+            <InstallAppButton className="mt-2 w-full" sizeClass="h-11 rounded-lg" />
             <Link
               to="/login"
               onClick={close}

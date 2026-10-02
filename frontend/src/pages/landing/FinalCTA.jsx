@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import Reveal from './Reveal';
+import InstallAppButton from '../../components/InstallAppButton';
 
 export default function FinalCTA() {
   return (
@@ -28,6 +29,7 @@ export default function FinalCTA() {
               >
                 Imkoniyatlar
               </a>
+              <InstallAppButton variant="solid" sizeClass="h-12 px-8 rounded-xl" />
             </div>
           </div>
         </Reveal>
